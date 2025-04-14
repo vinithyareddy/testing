@@ -1,10 +1,11 @@
 TooltipText =
-VAR selectedRegion = SELECTEDVALUE('SummarizedData'[Region])
-VAR regionName = SELECTEDVALUE('SummarizedData'[RegionName])
-VAR grants = 
+VAR selectedCountry = SELECTEDVALUE('SummarizedTable'[Country])
+VAR selectedRegion = LOOKUPVALUE('SummarizedData'[Region], 'SummarizedData'[Country], selectedCountry)
+VAR regionName = LOOKUPVALUE('SummarizedData'[RegionName], 'SummarizedData'[Country], selectedCountry)
+VAR grants =
     CALCULATE(
         SUM('SummarizedData'[TotalGrants]),
-        ALLEXCEPT('SummarizedData', 'SummarizedData'[Region])
+        FILTER('SummarizedData', 'SummarizedData'[Region] = selectedRegion)
     )
 
 RETURN
