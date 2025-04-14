@@ -1,4 +1,4 @@
-TooltipText = 
+TooltipText =
 VAR selectedRegion = SELECTEDVALUE('SummarizedTable'[Region])
 VAR regionName = LOOKUPVALUE('SummarizedData'[RegionName], 'SummarizedData'[Region], selectedRegion)
 VAR grants = 
