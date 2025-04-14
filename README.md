@@ -1,8 +1,7 @@
-TooltipText =
-VAR selectedCountry = SELECTEDVALUE('SummarizedTable'[Country])
-VAR selectedRegion = LOOKUPVALUE('SummarizedData'[Region], 'SummarizedData'[Country], selectedCountry)
-VAR regionName = LOOKUPVALUE('SummarizedData'[RegionName], 'SummarizedData'[Country], selectedCountry)
-VAR grants =
+TooltipText = 
+VAR selectedRegion = SELECTEDVALUE('SummarizedTable'[Region])
+VAR regionName = LOOKUPVALUE('SummarizedData'[RegionName], 'SummarizedData'[Region], selectedRegion)
+VAR grants = 
     CALCULATE(
         SUM('SummarizedData'[TotalGrants]),
         FILTER('SummarizedData', 'SummarizedData'[Region] = selectedRegion)
