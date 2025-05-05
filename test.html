@@ -26,7 +26,7 @@
   </div>
 
    -->
-
+<!-- 
    <div class="quick-access-widget">
     <div class="quick-access-header">
       <span class="header-text">Quick Access</span>
@@ -58,6 +58,36 @@
             <span *ngIf="section.showingMore">Show Less</span>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+   -->
+
+   <div class="quick-access-header">
+    Quick Access
+    <span (click)="toggleQuickAccess()" class="bgt-collapse-state">
+      <img *ngIf="!quickAccessCollapsed" src="assets/images/budget_glance/arrow_up.png" />
+      <img *ngIf="quickAccessCollapsed" src="assets/images/budget_glance/arrow_down.png" />
+    </span>
+  </div>
+  
+  <div *ngIf="!quickAccessCollapsed">
+    <div class="section-container" *ngFor="let section of sections">
+      <div class="section-header" (click)="toggleSection(section)">
+        {{ section.title }}
+        <span class="bgt-collapse-state">
+          <img *ngIf="!section.expanded" src="assets/images/budget_glance/arrow_down.png" />
+          <img *ngIf="section.expanded" src="assets/images/budget_glance/arrow_up.png" />
+        </span>
+      </div>
+      <div class="section-body" *ngIf="section.expanded">
+        <ul>
+          <li *ngFor="let item of section.items">
+            <span class="dummy-link">
+              <i [ngClass]="item.icon"></i> {{ item.label }}
+            </span>
+          </li>
+        </ul>
       </div>
     </div>
   </div>

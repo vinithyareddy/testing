@@ -93,7 +93,7 @@ export class QuickAccessWidgetComponent {
   toggleMainCollapse() {
     this.mainCollapsed = !this.mainCollapsed;
   }
-
+  quickAccessCollapsed = false;
   sections = [
     {
       title: 'Other Dashboards',
@@ -144,6 +144,10 @@ export class QuickAccessWidgetComponent {
       ]
     }
   ];
+  toggleQuickAccess() {
+    this.quickAccessCollapsed = !this.quickAccessCollapsed;
+  }
+  
 
   toggleSection(section: any) {
     section.expanded = !section.expanded;
