@@ -1,0 +1,28 @@
+<div class="quick-access-card">
+
+    <div class="quick-access-header">Quick Access</div>
+  
+    <div *ngFor="let section of sections">
+      <div class="section-header" (click)="toggleSection(section)">
+        {{ section.title }}
+        <span class="arrow">{{ section.expanded ? '▼' : '▶' }}</span>
+      </div>
+  
+      <div class="section-body" *ngIf="section.expanded">
+        <ul>
+          <li *ngFor="let item of getVisibleItems(section)">
+            <span class="dummy-link">
+              <i [ngClass]="item.icon"></i> {{ item.label }}
+            </span>
+          </li>
+        </ul>
+  
+        <div *ngIf="section.showToggle" class="toggle" (click)="toggleShowMore(section)">
+          {{ section.showingMore ? 'Show Less' : 'Show More' }}
+        </div>
+      </div>
+    </div>
+  
+  </div>
+
+  

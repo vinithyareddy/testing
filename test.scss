@@ -1,0 +1,58 @@
+.quick-access-card {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background: white;
+    padding: 10px;
+    font-family: "Open Sans", sans-serif;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .quick-access-header {
+    font-weight: 600;
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+  
+  .section-header {
+    background-color: #f5f5f5;
+    padding: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid #ddd;
+  }
+  
+  .section-body {
+    padding: 8px 12px;
+    border-bottom: 1px solid #eee;
+  
+    ul {
+      padding-left: 0;
+      list-style: none;
+    }
+  
+    li {
+      padding: 4px 0;
+      .dummy-link {
+        color: #0071BC;
+        cursor: pointer;
+        i {
+          margin-right: 6px;
+        }
+      }
+    }
+  
+    .toggle {
+      color: #0071BC;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      padding-top: 6px;
+    }
+  }
+  
+  .arrow {
+    font-size: 12px;
+  }
+  
