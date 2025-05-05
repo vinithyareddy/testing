@@ -92,3 +92,18 @@
     </div>
   </div>
   
+<!-- Add this inside the section-body block -->
+<div 
+  *ngIf="section.title === 'Key/Exception Reports' && section.originalTitle === 'Related Policy, Directives or Procedures'" 
+  class="inline-show-toggle" 
+  (click)="expandFourthSection()"
+>
+  <span class="show-more-text">Show More</span>
+  <i class="fas fa-chevron-down"></i>
+</div>
+
+<div 
+  *ngFor="let section of sections" 
+  [attr.id]="section.title === 'P-Card Quick Reference Guides and PCard Reports' ? 'section-pcard' : null"
+  class="section-container"
+>

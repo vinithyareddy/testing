@@ -209,4 +209,25 @@ export class QuickAccessComponent {
   toggleSection(section: any) {
     section.expanded = !section.expanded;
   }
+  expandFourthSection() {
+    const fourthSection = this.sections.find(
+      s => s.title === 'P-Card Quick Reference Guides and PCard Reports'
+    );
+  
+    if (fourthSection) {
+      // Collapse all others
+      this.sections.forEach(s => s.expanded = false);
+  
+      // Expand the fourth section and show more
+      fourthSection.expanded = true;
+      fourthSection.showingMore = true;
+  
+      // Optional scroll
+      setTimeout(() => {
+        const el = document.getElementById('section-pcard');
+        el?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }
+  
 }

@@ -68,3 +68,22 @@
     }
   }
 }
+.inline-show-toggle {
+  margin-top: 10px;
+  margin-left: 1rem;
+  cursor: pointer;
+  color: #005aa7;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+
+  .fas {
+    margin-left: 6px;
+    font-size: 12px;
+  }
+
+  &:hover {
+    color: #003f7f;
+    text-decoration: underline;
+  }
+}
