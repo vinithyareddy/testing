@@ -1,4 +1,4 @@
-<div class="quick-access-card">
+<!-- <div class="quick-access-card">
 
     <div class="quick-access-header">Quick Access</div>
   
@@ -25,4 +25,40 @@
   
   </div>
 
+   -->
+
+   <div class="quick-access-widget">
+    <div class="quick-access-header">
+      <span class="header-text">Quick Access</span>
+      <span class="toggle-icon" (click)="toggleMainCollapse()">
+        <img *ngIf="!mainCollapsed" src="assets/images/budget_glance/arrow_up.png" />
+        <img *ngIf="mainCollapsed" src="assets/images/budget_glance/arrow_down.png" />
+      </span>
+    </div>
+  
+    <div class="quick-access-body" *ngIf="!mainCollapsed">
+      <div *ngFor="let section of sections" class="section-container">
+        <div class="section-header" (click)="toggleSection(section)">
+          {{ section.title }}
+          <span class="arrow">
+            <img *ngIf="!section.expanded" src="assets/images/budget_glance/arrow_down.png" />
+            <img *ngIf="section.expanded" src="assets/images/budget_glance/arrow_up.png" />
+          </span>
+        </div>
+        <div class="section-body" *ngIf="section.expanded">
+          <ul>
+            <li *ngFor="let item of getVisibleItems(section)">
+              <span class="dummy-link">
+                <i [ngClass]="item.icon"></i> {{ item.label }}
+              </span>
+            </li>
+          </ul>
+          <div *ngIf="section.showToggle" (click)="toggleShowMore(section)" class="show-toggle">
+            <span *ngIf="!section.showingMore">Show More</span>
+            <span *ngIf="section.showingMore">Show Less</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   
