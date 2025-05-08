@@ -1,30 +1,35 @@
-LoadChildData(parentData: any) {
-  parentData.forEach(resData => {
-    // Always recheck checkbox state
-    if (resData.data.length === 0) {
-      this.spinnerload = true;
-      this.BudgetGlance_Service.getFilterChildData(resData).subscribe(datas => {
-        resData.data = datas;
-        this.markCheckboxSelections(resData);
-        this.spinnerload = false;
-      });
-    } else {
-      this.markCheckboxSelections(resData); // ✅ sync state even if data already exists
-    }
-  });
-}
 markCheckboxSelections(resData: any): void {
   if (!resData || !resData.data || !Array.isArray(resData.data)) return;
 
+  console.log('➡️ Checking filter category:', resData.title);
+
   resData.data.forEach(element => {
-    element.checked = false;
-    if (this.BudgetGlance_Service.facetFilter.length > 0) {
-      this.BudgetGlance_Service.facetFilter.forEach(element2 => {
-        if (resData.title === element2.category &&
-            element[resData.measureQuery.code] === element2.value) {
-          element.checked = true;
-        }
+    const elementCode = element[resData.measureQuery.code];
+
+    let matched = false;
+
+    this.BudgetGlance_Service.facetFilter.forEach(element2 => {
+      console.log('  Comparing:', {
+        UI_Category: resData.title,
+        UI_Code: elementCode,
+        Filter_Category: element2.category,
+        Filter_Value: element2.value
       });
+
+      if (
+        resData.title?.trim().toLowerCase() === element2.category?.trim().toLowerCase() &&
+        elementCode?.toString().trim().toLowerCase() === element2.value?.toString().trim().toLowerCase()
+      ) {
+        matched = true;
+      }
+    });
+
+    element.checked = matched;
+
+    if (matched) {
+      console.log('✅ Marked as checked:', elementCode);
     }
   });
+
+  this.cdRef.detectChanges();
 }
