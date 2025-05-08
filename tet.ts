@@ -1,233 +1,39 @@
-// // import { Component } from '@angular/core';
+syncCheckedState(): void {
+  const selectedFilters = this.BudgetGlance_Service.facetFilter;
+  if (!this.filterjsonData?.length || !selectedFilters?.length) return;
 
-// // @Component({
-// //   selector: 'app-quick-access-widget',
-// //   templateUrl: './quick-access-widget.component.html',
-// //   styleUrls: ['./quick-access-widget.component.scss']
-// // })
-// // export class QuickAccessWidgetComponent {
-// //   sections = [
-// //     {
-// //       title: 'Other Dashboards',
-// //       expanded: false,
-// //       showToggle: false,
-// //       showingMore: false,
-// //       items: [
-// //         { label: 'Travel Dashboard', icon: 'fas fa-globe' },
-// //         { label: 'QA Dashboard', icon: 'fas fa-tasks' },
-// //         { label: 'RM Portal', icon: 'fas fa-clipboard-list' },
-// //         { label: 'Procurement Dashboard', icon: 'fas fa-box' },
-// //         { label: 'Manager’s Learning Dashboard', icon: 'fas fa-graduation-cap' },
-// //       ]
-// //     },
-// //     {
-// //       title: 'Key/Exception Reports',
-// //       expanded: false,
-// //       showToggle: false,
-// //       showingMore: false,
-// //       items: [
-// //         { label: 'ICBS (Telephone) Charges Report', icon: 'fas fa-file-alt' }
-// //       ]
-// //     },
-// //     {
-// //       title: 'Related Policy, Directives or Procedures',
-// //       expanded: false,
-// //       showToggle: false,
-// //       showingMore: false,
-// //       items: [
-// //         { label: 'World Bank Policy & Procedure Framework (PPF)', icon: 'fas fa-file-pdf' },
-// //         { label: '(PPF) World Bank Staff Manual', icon: 'fas fa-book' }
-// //       ]
-// //     },
-// //     {
-// //       title: 'P-Card Quick Reference Guides and PCard Reports',
-// //       expanded: false,
-// //       showToggle: true,
-// //       showingMore: false,
-// //       items: [
-// //         { label: 'Cardholder Manual', icon: 'fas fa-file-pdf' },
-// //         { label: 'Quick Reference Guide: Unit PCard Audit Report', icon: 'fas fa-globe' },
-// //         { label: 'Quick Reference Guide: Unit Reconciliation to Procurement Card Transactions', icon: 'fas fa-file-alt' },
-// //         { label: 'Quick Reference Guide: PCard Cardholder Report by Unit', icon: 'fas fa-file-alt' },
-// //         { label: 'Quick Reference Guide: PCard Charges for Fund Center Report', icon: 'fas fa-file-alt' },
-// //         { label: 'Quick Reference Guide: P-Card vs. MyCard', icon: 'fas fa-globe' }
-// //       ]
-// //     },
-// //     {
-// //       title: 'WBG Glossary and HQ/CO Salary Sales',
-// //       expanded: false,
-// //       showToggle: false,
-// //       showingMore: false,
-// //       items: [
-// //         { label: 'World Bank Business Glossary', icon: 'fas fa-globe' },
-// //         { label: 'HQ and CO Salary Scales', icon: 'fas fa-globe' }
-// //       ]
-// //     }
-// //   ];
+  this.filterjsonData.forEach(category => {
+    category.children.forEach(child => {
+      const key = child.key;
 
-// //   toggleSection(section: any) {
-// //     section.expanded = !section.expanded;
-// //   }
+      child.data?.forEach(option => {
+        const optionCode = option[child.measureQuery.code];
+        const match = selectedFilters.find(f =>
+          f.id === key && f.value === optionCode
+        );
+        option.checked = !!match;
+      });
 
-// //   toggleShowMore(section: any) {
-// //     section.showingMore = !section.showingMore;
-// //   }
+      child.vpudata?.forEach(vpu => {
+        const match = selectedFilters.find(f =>
+          f.id === vpu.id && f.value === vpu[vpu.childfacet]
+        );
+        vpu.checked = !!match;
 
-// //   getVisibleItems(section: any) {
-// //     if (!section.showToggle) return section.items;
-// //     return section.showingMore ? section.items : section.items.slice(0, 2);
-// //   }
-// // }
+        vpu.deptgrpdata?.forEach(deptgrp => {
+          const match2 = selectedFilters.find(f =>
+            f.id === deptgrp.id && f.value === deptgrp[deptgrp.childfacet]
+          );
+          deptgrp.checked = !!match2;
 
-
-// import { Component } from '@angular/core';
-
-// @Component({
-//   selector: 'app-quick-access-widget',
-//   templateUrl: './quick-access-widget.component.html',
-//   styleUrls: ['./quick-access-widget.component.scss']
-// })
-// export class QuickAccessWidgetComponent {
-//   mainCollapsed = false;
-
-//   toggleMainCollapse() {
-//     this.mainCollapsed = !this.mainCollapsed;
-//   }
-//   quickAccessCollapsed = false;
-//   sections = [
-//     {
-//       title: 'Other Dashboards',
-//       expanded: false,
-//       items: [
-//         { label: 'Travel Dashboard', icon: 'fas fa-globe' },
-//         { label: 'QA Dashboard', icon: 'fas fa-tasks' },
-//         { label: 'RM Portal', icon: 'fas fa-clipboard-list' },
-//         { label: 'Procurement Dashboard', icon: 'fas fa-box' },
-//         { label: 'Manager’s Learning Dashboard', icon: 'fas fa-graduation-cap' }
-//       ]
-//     },
-//     {
-//       title: 'Key/Exception Reports',
-//       expanded: false,
-//       items: [
-//         { label: 'ICBS (Telephone) Charges Report', icon: 'fas fa-file-alt' }
-//       ]
-//     },
-//     {
-//       title: 'Related Policy, Directives or Procedures',
-//       expanded: false,
-//       items: [
-//         { label: 'World Bank Policy & Procedure Framework (PPF)', icon: 'fas fa-file-pdf' },
-//         { label: '(PPF) World Bank Staff Manual', icon: 'fas fa-book' }
-//       ]
-//     },
-//     {
-//       title: 'P-Card Quick Reference Guides and PCard Reports',
-//       expanded: false,
-//       showToggle: true,
-//       showingMore: false,
-//       items: [
-//         { label: 'Cardholder Manual', icon: 'fas fa-file-pdf' },
-//         { label: 'Quick Reference Guide: Unit PCard Audit Report', icon: 'fas fa-globe' },
-//         { label: 'Quick Reference Guide: Unit Reconciliation...', icon: 'fas fa-file-alt' },
-//         { label: 'Quick Reference Guide: PCard Cardholder Report by Unit', icon: 'fas fa-file-alt' },
-//         { label: 'Quick Reference Guide: PCard Charges for Fund Center Report', icon: 'fas fa-file-alt' },
-//         { label: 'Quick Reference Guide: P-Card vs. MyCard', icon: 'fas fa-globe' }
-//       ]
-//     },
-//     {
-//       title: 'WBG Glossary and HQ/CO Salary Sales',
-//       expanded: false,
-//       items: [
-//         { label: 'World Bank Business Glossary', icon: 'fas fa-globe' },
-//         { label: 'HQ and CO Salary Scales', icon: 'fas fa-globe' }
-//       ]
-//     }
-//   ];
-//   toggleQuickAccess() {
-//     this.quickAccessCollapsed = !this.quickAccessCollapsed;
-//   }
-  
-
-//   toggleSection(section: any) {
-//     section.expanded = !section.expanded;
-//   }
-
-//   toggleShowMore(section: any) {
-//     section.showingMore = !section.showingMore;
-//   }
-
-//   getVisibleItems(section: any) {
-//     if (!section.showToggle) return section.items;
-//     return section.showingMore ? section.items : section.items.slice(0, 2);
-//   }
-// }
-
-
-import { Component } from '@angular/core';
-
-@Component({
-  selector: 'app-quick-access',
-  templateUrl: './quick-access.component.html',
-  styleUrls: ['./quick-access.component.scss']
-})
-export class QuickAccessComponent {
-  quickAccessCollapsed: boolean = false;
-
-  sections = [
-    {
-      title: 'Other Dashboards',
-      expanded: false,
-      items: [{ label: 'Dashboard 1', icon: 'fas fa-chart-line' }]
-    },
-    {
-      title: 'Key/Exception Reports',
-      expanded: false,
-      items: [{ label: 'Exception Report A', icon: 'fas fa-file-alt' }]
-    },
-    {
-      title: 'Related Policy, Directives or Procedures',
-      expanded: false,
-      items: [{ label: 'Directive Doc', icon: 'fas fa-book' }]
-    },
-    {
-      title: 'P-Card Quick Reference Guides and PCard Reports',
-      expanded: false,
-      items: [{ label: 'P-Card Manual', icon: 'fas fa-credit-card' }]
-    },
-    {
-      title: 'WBG Glossary and HQ/CO Salary Sales',
-      expanded: false,
-      items: [{ label: 'Glossary File', icon: 'fas fa-info-circle' }]
-    }
-  ];
-
-  toggleQuickAccess() {
-    this.quickAccessCollapsed = !this.quickAccessCollapsed;
-  }
-
-  toggleSection(section: any) {
-    section.expanded = !section.expanded;
-  }
-  expandFourthSection() {
-    const fourthSection = this.sections.find(
-      s => s.title === 'P-Card Quick Reference Guides and PCard Reports'
-    );
-  
-    if (fourthSection) {
-      // Collapse all others
-      this.sections.forEach(s => s.expanded = false);
-  
-      // Expand the fourth section and show more
-      fourthSection.expanded = true;
-      fourthSection.showingMore = true;
-  
-      // Optional scroll
-      setTimeout(() => {
-        const el = document.getElementById('section-pcard');
-        el?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-    }
-  }
-  
+          deptgrp.deptdata?.forEach(dept => {
+            const match3 = selectedFilters.find(f =>
+              f.id === dept.id && f.value === dept[dept.childfacet]
+            );
+            dept.checked = !!match3;
+          });
+        });
+      });
+    });
+  });
 }
