@@ -1,39 +1,15 @@
-syncCheckedState(): void {
-  const selectedFilters = this.BudgetGlance_Service.facetFilter;
-  if (!this.filterjsonData?.length || !selectedFilters?.length) return;
-
-  this.filterjsonData.forEach(category => {
-    category.children.forEach(child => {
-      const key = child.key;
-
-      child.data?.forEach(option => {
-        const optionCode = option[child.measureQuery.code];
-        const match = selectedFilters.find(f =>
-          f.id === key && f.value === optionCode
-        );
-        option.checked = !!match;
+LoadChildData(parentData: any) {
+  parentData.forEach(resData => {
+    // Always recheck checkbox state
+    if (resData.data.length === 0) {
+      this.spinnerload = true;
+      this.BudgetGlance_Service.getFilterChildData(resData).subscribe(datas => {
+        resData.data = datas;
+        this.markCheckboxSelections(resData);
+        this.spinnerload = false;
       });
-
-      child.vpudata?.forEach(vpu => {
-        const match = selectedFilters.find(f =>
-          f.id === vpu.id && f.value === vpu[vpu.childfacet]
-        );
-        vpu.checked = !!match;
-
-        vpu.deptgrpdata?.forEach(deptgrp => {
-          const match2 = selectedFilters.find(f =>
-            f.id === deptgrp.id && f.value === deptgrp[deptgrp.childfacet]
-          );
-          deptgrp.checked = !!match2;
-
-          deptgrp.deptdata?.forEach(dept => {
-            const match3 = selectedFilters.find(f =>
-              f.id === dept.id && f.value === dept[dept.childfacet]
-            );
-            dept.checked = !!match3;
-          });
-        });
-      });
-    });
+    } else {
+      this.markCheckboxSelections(resData); // ✅ sync state even if data already exists
+    }
   });
 }
