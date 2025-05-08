@@ -15,3 +15,7 @@ this.wpa_req_selectedItems = this.wpaReqItemList.filter(item => wpaRequestingVPU
 // Restore WPA Responsible VPU Group
 const wpaResponsibleVPU = facetFilters.filter(f => f.category === 'WPA Responsible VPU Group');
 this.wpa_res_selectedItems = this.wpaResItemList.filter(item => wpaResponsibleVPU.some(f => f.value === item.itemName));
+
+
+const vpFilters = this.BudgetGlance_Service.facetFilter.filter(f => f.category === 'VPU Group');
+this.selectedItemsvpugroup = this.vpuItemList.filter(item => vpFilters.some(f => f.value === item.itemName));
