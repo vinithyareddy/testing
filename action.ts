@@ -21,3 +21,15 @@ setTimeout(() => {
     }
   }, 300); // Ensures filterjsonData is ready
   
+
+  const [filterKey, filterValue] = datas[idx].split('~');
+      const filterMatch = FilterResData.find(f =>
+        f.id === filterKey &&
+        f.value?.toString().toLowerCase() === element[FilterResData[idx]?.facetType?.split('[')[1]?.split(']')[0]]?.toString().toLowerCase()
+      );
+      element.checked = !!filterMatch;
+    });
+  });
+
+  this.getFilterData(datas, FilterResData, Resdatas, val);
+});
