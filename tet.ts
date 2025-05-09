@@ -1,35 +1,29 @@
-if (value_1 === value_2) {
-  element3.checked = true;
+restoreSelectedMultiselectItems() {
+  this.cost_obj_req_selectedItems = [];
+  this.cost_obj_res_selectedItems = [];
+  this.wpa_req_selectedItems = [];
+  this.wpa_res_selectedItems = [];
 
-  // ✅ Also check nested children if available
-  if (element3.vpudata) {
-    element3.vpudata.forEach(vpu => {
-      if (vpu[element2.childfacet]?.toString().toLowerCase() === value_2) {
-        vpu.checked = true;
-      }
-      if (vpu.deptgrpdata) {
-        vpu.deptgrpdata.forEach(deptgrp => {
-          if (deptgrp[deptgrp.childfacet]?.toString().toLowerCase() === value_2) {
-            deptgrp.checked = true;
-          }
-          if (deptgrp.deptdata) {
-            deptgrp.deptdata.forEach(dept => {
-              if (dept[dept.childfacet]?.toString().toLowerCase() === value_2) {
-                dept.checked = true;
-              }
-            });
-          }
-        });
-      }
-    });
-  }
+  const filterList = this.BudgetGlance_Service.facetFilter;
 
-  DataFilter.push({
-    category: element2.title,
-    value: val.value,
-    name: element3[element2.measureQuery.name],
-    id: element2.key,
-    facetType: element2.facetQuery,
-    Typenumber: Datatype
+  filterList.forEach(filter => {
+    switch (filter.category) {
+      case 'Requesting VPU Group':
+        const foundReq = this.costObjReqItemList.find(x => x.itemName === filter.value);
+        if (foundReq) this.cost_obj_req_selectedItems.push(foundReq);
+        break;
+      case 'Responsible VPU Group':
+        const foundRes = this.costObjResItemList.find(x => x.itemName === filter.value);
+        if (foundRes) this.cost_obj_res_selectedItems.push(foundRes);
+        break;
+      case 'WPA Requesting VPU Group':
+        const foundWpaReq = this.wpaReqItemList.find(x => x.itemName === filter.value);
+        if (foundWpaReq) this.wpa_req_selectedItems.push(foundWpaReq);
+        break;
+      case 'WPA Responsible VPU Group':
+        const foundWpaRes = this.wpaResItemList.find(x => x.itemName === filter.value);
+        if (foundWpaRes) this.wpa_res_selectedItems.push(foundWpaRes);
+        break;
+    }
   });
 }
