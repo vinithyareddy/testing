@@ -1,30 +1,27 @@
-/* Prevent all scrollbars */
-html, body {
-  margin: 0;
-  padding: 0;
-  height: auto;
-  overflow: visible !important;
-}
+ngAfterViewInit(): void {
+  this.Subscribe = this.powerBiRSApi.getStandardReports().subscribe(data => {
+    this.LoadFavReport();
+    this.onreportinitialload();
+    this.prousercheck();
 
-/* Remove scroll from Power BI container */
-.powerDiv {
-  height: auto !important;
-  max-height: none !important;
-  overflow: visible !important;
-  width: 100%;
-  background-color: #FFFFFF;
-  border-top: none;
-}
+    // Zoom detection logic
+    let previousZoom = window.devicePixelRatio;
 
-/* Remove scroll from iframe */
-:host ::ng-deep iframe {
-  width: 100% !important;
-  height: auto !important;
-  min-height: unset !important;
-  overflow: visible !important;
-  border: none;
+    window.addEventListener('resize', () => {
+      const newZoom = window.devicePixelRatio;
+      if (newZoom !== previousZoom) {
+        previousZoom = newZoom;
+
+        // ✅ Force Power BI report to re-render at new zoom level
+        if (this.currentEmbedObject) {
+          this.currentEmbedObject.updateSettings({
+            layoutType: this.pbiModels.LayoutType.Custom,
+            customLayout: {
+              displayOption: this.pbiModels.DisplayOption.FitToWidth
+            }
+          });
+        }
+      }
+    });
+  });
 }
-layoutType: this.pbiModels.LayoutType.Custom,
-  customLayout: {
-    displayOption: this.pbiModels.DisplayOption.FitToPage  // 🔁 makes report auto-expand vertically
-  },
