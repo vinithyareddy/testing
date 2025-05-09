@@ -1,10 +1,18 @@
-:host ::ng-deep .container-lg,
-:host ::ng-deep .row,
-:host ::ng-deep .customizeClass,
-:host ::ng-deep .powerDiv,
 :host ::ng-deep #pbi-container {
-  max-width: 100vw !important;
-  width: 100vw !important;
-  margin: 0 !important;
-  padding: 0 !important;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  width: 100vw;
+  max-width: 100vw;
+  padding: 0;
+}
+
+:host ::ng-deep .powerDiv {
+  width: 100vw;
+  height: 798px;
+  background-color: #ffffff;
+  padding: 0;
+  margin: 0;
 }
