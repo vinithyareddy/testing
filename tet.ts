@@ -24,3 +24,7 @@ html, body {
   overflow: visible !important;
   border: none;
 }
+layoutType: this.pbiModels.LayoutType.Custom,
+  customLayout: {
+    displayOption: this.pbiModels.DisplayOption.FitToPage  // 🔁 makes report auto-expand vertically
+  },
