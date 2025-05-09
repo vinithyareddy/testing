@@ -1,18 +1,17 @@
 :host ::ng-deep #pbi-container {
   position: relative;
+  width: 100vw;
   left: 50%;
   right: 50%;
   margin-left: -50vw;
   margin-right: -50vw;
-  width: 100vw;
-  max-width: 100vw;
-  padding: 0;
+  background-color: #fff;
+  padding: 0 24px; // Optional spacing inside
+  box-sizing: border-box;
 }
 
 :host ::ng-deep .powerDiv {
-  width: 100vw;
-  height: 798px;
-  background-color: #ffffff;
-  padding: 0;
-  margin: 0;
+  width: 100%;
+  height: 800px;
+  background-color: #fff;
 }
