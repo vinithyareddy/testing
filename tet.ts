@@ -1,19 +1,22 @@
+/* Prevent all scrollbars */
 html, body {
   margin: 0;
   padding: 0;
   height: auto;
-  overflow: visible !important; /* ✅ no page-level scroll */
+  overflow: visible !important;
 }
 
+/* Remove scroll from Power BI container */
 .powerDiv {
   height: auto !important;
   max-height: none !important;
-  overflow: visible !important;  /* ✅ no scroll inside this div */
+  overflow: visible !important;
   width: 100%;
-  background-color: #fff;
-  border: none;
+  background-color: #FFFFFF;
+  border-top: none;
 }
 
+/* Remove scroll from iframe */
 :host ::ng-deep iframe {
   width: 100% !important;
   height: auto !important;
