@@ -1,92 +1,26 @@
-<div class="row mt-2 align-items-center justify-content-center">
-  <div class="col-12 d-flex justify-content-center position-relative pie-container">
-    <highcharts-chart 
-      [Highcharts]="Highcharts"
-      [options]="compliancePieChartOptions"
-      style="width: 100px; height: 100px; display: block;">
-    </highcharts-chart>
-    <div class="donut-center-text">{{ trclosedHrPer }}%</div>
-  </div>
-</div>
+const pieChartValue = Math.min(this.trclosedHrPer, 100);
 
-
-.box-md {
-  background-color: #f6f6f6 !important;
-  border-radius: 8px;
-  padding: 16px;
-  min-height: 170px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  position: relative;
-
-  .budget-box-h1 {
-    font-size: 14px;
-    font-weight: 600;
-    color: #1a1a1a;
-  }
-
-  .budget-box-h2 {
-    font-size: 12px;
-    font-weight: 400;
-    color: #444;
-  }
-
-  .note {
-    font-size: 11px;
-    color: #777;
-  }
-
-  .imgvi {
-    width: 18px;
-    height: 18px;
-    float: right;
-  }
-
-  .donut-center-text {
-    position: absolute;
-    top: 52%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 18px;
-    font-weight: 600;
-    color: #000;
-    z-index: 1;
-  }
-
-  .pie-container {
-    padding-top: 8px;
-  }
-}
-
-
-.box-md {
-  background-color: #ffffff !important;
-  border-radius: 8px;
-  padding: 16px;
-  min-height: 200px; // ⬅️ increase height slightly
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  position: relative;
-
-  .budget-box-h1 {
-    font-size: 14px;
-    font-weight: 600;
-    color: #0064b4; // ⬅️ Make it the same blue as in design
-  }
-
-  .donut-center-text {
-    top: 50%; // ⬅️ vertically center exactly
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 18px;
-    font-weight: 600;
-    color: #000;
-  }
-}
-.budget-box-h3, .budget-box-h2 {
-  color: #000 !important;
-}
-.budget-box-h2, .budget-box-h3 {
-  color: #000 !important;
-  white-space: normal !important;
-  overflow: visible !important;
-  text-overflow: unset !important;
-}
+this.compliancePieChartOptions = {
+  chart: {
+    type: 'pie',
+    backgroundColor: 'transparent',
+    height: 100,
+    width: 100
+  },
+  title: { text: undefined },
+  tooltip: { enabled: false },
+  plotOptions: {
+    pie: {
+      innerSize: '75%',
+      dataLabels: { enabled: false },
+      colors: ['#36A2EB', '#E0E0E0'] // Blue, Grey
+    }
+  },
+  series: [{
+    type: 'pie',
+    data: [
+      { name: 'Entered Time', y: pieChartValue },
+      { name: 'Remaining', y: 100 - pieChartValue }
+    ]
+  }]
+};
