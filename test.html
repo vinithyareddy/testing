@@ -1,88 +1,58 @@
-<div class="col-md-4 pr-0">
-    <div class="box-md-loading" *ngIf="ResponseFlagError == false">
-      <div class="loader-img">
-        <lift-section-loader></lift-section-loader>
-      </div>
-    </div>
-    <ng-container *ngIf="ResponseFlagError == true">
-      <div class="box-md">
-        <div class="row rowHeight">
-          <div class="col-sm-10">
-            <div class="budget-box-h1">COMPLIANCE RATE (CLOSED MONTH)</div>
-          </div>
-          <div class="col-sm-2 text-width">
-            <img src="../../assets/images/budget_glance/icon_3.png" class="imgvi" />
-          </div>
-        </div>
-  
-        <div class="row mt-1">
-          <div class="col-md-12 pl-3">
-            <div class="budget-box-h2">Missing Hours</div>
-            <div class="font-italic note mt-1" style="font-size: 0.85rem;">
-              *Closed Month data for compliance
-            </div>
-          </div>
-        </div>
-  
-        <div class="row">
-          <div class="col-md-12 text-center chart-wrapper">
-            <highcharts-chart 
-              [Highcharts]="Highcharts"
-              [options]="compliancePieChartOptions"
-              style="width: 100px; height: 100px; display: block;">
-            </highcharts-chart>
-            <div class="heading-val">{{ trclosedHrPer }}%</div>
-          </div>
-        </div>
-      </div>
-    </ng-container>
+<div class="row mt-2 align-items-center justify-content-center">
+  <div class="col-12 d-flex justify-content-center position-relative pie-container">
+    <highcharts-chart 
+      [Highcharts]="Highcharts"
+      [options]="compliancePieChartOptions"
+      style="width: 100px; height: 100px; display: block;">
+    </highcharts-chart>
+    <div class="donut-center-text">{{ trclosedHrPer }}%</div>
   </div>
-
-  
-  this.compliancePieChartOptions = {
-    chart: {
-      type: 'pie',
-      backgroundColor: 'transparent',
-      height: 100,
-      width: 100
-    },
-    title: { text: undefined },
-    tooltip: { enabled: false },
-    plotOptions: {
-      pie: {
-        innerSize: '75%',
-        dataLabels: { enabled: false },
-        colors: ['#36A2EB', '#E0E0E0'], // Blue, Grey
-      }
-    },
-    series: [{
-      type: 'pie',
-      data: [
-        { name: 'Missing Time', y: this.trclosedHrPer },
-        { name: 'Other', y: 100 - this.trclosedHrPer }
-      ]
-    }]
-  };
-
-  
-  Highcharts: typeof Highcharts = Highcharts;
-compliancePieChartOptions: Highcharts.Options;
+</div>
 
 
+.box-md {
+  background-color: #f6f6f6 !important;
+  border-radius: 8px;
+  padding: 16px;
+  min-height: 170px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  position: relative;
 
-.chart-wrapper {
-    padding: 0px 10px 0px;
-    margin-top: -60px;
-    margin-left: 32px;
-    position: relative;
+  .budget-box-h1 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1a1a;
   }
-  
-  .heading-val {
+
+  .budget-box-h2 {
+    font-size: 12px;
+    font-weight: 400;
+    color: #444;
+  }
+
+  .note {
+    font-size: 11px;
+    color: #777;
+  }
+
+  .imgvi {
+    width: 18px;
+    height: 18px;
+    float: right;
+  }
+
+  .donut-center-text {
     position: absolute;
-    top: 38%;
+    top: 52%;
     left: 50%;
     transform: translate(-50%, -50%);
     font-size: 18px;
-    font-weight: bold;
+    font-weight: 600;
+    color: #000;
+    z-index: 1;
   }
-  
+
+  .pie-container {
+    padding-top: 8px;
+  }
+}
