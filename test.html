@@ -56,3 +56,37 @@
     padding-top: 8px;
   }
 }
+
+
+.box-md {
+  background-color: #ffffff !important;
+  border-radius: 8px;
+  padding: 16px;
+  min-height: 200px; // ⬅️ increase height slightly
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  position: relative;
+
+  .budget-box-h1 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #0064b4; // ⬅️ Make it the same blue as in design
+  }
+
+  .donut-center-text {
+    top: 50%; // ⬅️ vertically center exactly
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 18px;
+    font-weight: 600;
+    color: #000;
+  }
+}
+.budget-box-h3, .budget-box-h2 {
+  color: #000 !important;
+}
+.budget-box-h2, .budget-box-h3 {
+  color: #000 !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+}
