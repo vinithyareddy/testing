@@ -1,12 +1,17 @@
 <div class="col-md-4 pr-0">
-    <ng-container *ngIf="ResponseFlagError">
+    <div class="box-md-loading" *ngIf="ResponseFlagError == false">
+      <div class="loader-img">
+        <lift-section-loader></lift-section-loader>
+      </div>
+    </div>
+    <ng-container *ngIf="ResponseFlagError == true">
       <div class="box-md">
         <div class="row rowHeight">
           <div class="col-sm-10">
-            <div class="budget-box-h1">COMPLIANCE RATE (OPEN AND CURRENT MONTH)</div>
+            <div class="budget-box-h1">COMPLIANCE RATE (CLOSED MONTH)</div>
           </div>
           <div class="col-sm-2 text-width">
-            <img src="../../assets/images/budget_glance/icon_3.png" class="imgvi">
+            <img src="../../assets/images/budget_glance/icon_3.png" class="imgvi" />
           </div>
         </div>
   
@@ -14,45 +19,70 @@
           <div class="col-md-12 pl-3">
             <div class="budget-box-h2">Missing Hours</div>
             <div class="font-italic note mt-1" style="font-size: 0.85rem;">
-              *Please note that in May, Closing month is May and June
+              *Closed Month data for compliance
             </div>
           </div>
         </div>
   
-        <div class="chart-wrapper">
-          <highcharts-chart 
-            [Highcharts]="highChartsService.Highcharts"
-            [options]="complianceChartOptions"
-            style="width: 100%; height: 150px; display: block;">
-          </highcharts-chart>
+        <div class="row">
+          <div class="col-md-12 text-center chart-wrapper">
+            <highcharts-chart 
+              [Highcharts]="Highcharts"
+              [options]="compliancePieChartOptions"
+              style="width: 100px; height: 100px; display: block;">
+            </highcharts-chart>
+            <div class="heading-val">{{ trclosedHrPer }}%</div>
+          </div>
         </div>
       </div>
     </ng-container>
   </div>
-  
 
-  this.complianceChartOptions = {
+  
+  this.compliancePieChartOptions = {
     chart: {
       type: 'pie',
-      height: 150,
       backgroundColor: 'transparent',
+      height: 100,
+      width: 100
     },
     title: { text: undefined },
-    tooltip: { pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>' },
+    tooltip: { enabled: false },
     plotOptions: {
       pie: {
-        innerSize: '60%',
+        innerSize: '75%',
         dataLabels: { enabled: false },
-        colors: ['#0088cc', '#ccc']
+        colors: ['#36A2EB', '#E0E0E0'], // Blue, Grey
       }
     },
-    credits: { enabled: false },
     series: [{
-      name: 'Compliance',
+      type: 'pie',
       data: [
         { name: 'Missing Time', y: this.trclosedHrPer },
-        { name: 'Remaining', y: 100 - this.trclosedHrPer }
+        { name: 'Other', y: 100 - this.trclosedHrPer }
       ]
     }]
   };
+
+  
+  Highcharts: typeof Highcharts = Highcharts;
+compliancePieChartOptions: Highcharts.Options;
+
+
+
+.chart-wrapper {
+    padding: 0px 10px 0px;
+    margin-top: -60px;
+    margin-left: 32px;
+    position: relative;
+  }
+  
+  .heading-val {
+    position: absolute;
+    top: 38%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 18px;
+    font-weight: bold;
+  }
   
