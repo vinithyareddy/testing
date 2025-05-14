@@ -1,0 +1,28 @@
+<div class="col-md-4 pr-0">
+    <div class="box-md-loading" *ngIf="!ResponseFlagMissing">
+      <div class="loader-img">
+        <lift-section-loader></lift-section-loader>
+      </div>
+    </div>
+  
+    <ng-container *ngIf="ResponseFlagMissing">
+      <div class="box-md">
+        <div class="row rowHeight">
+          <div class="col-sm-10">
+            <div class="budget-box-h1">Compliance Rate</div>
+          </div>
+          <div class="col-sm-2 text-width">
+            <img src="../../assets/images/budget_glance/icon_3.png" class="imgvi">
+          </div>
+        </div>
+  
+        <!-- Pie Chart Section -->
+        <div class="row mt-2">
+          <div class="col-md-12">
+            <div id="compliancePieContainer" style="height: 180px; width: 100%;"></div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+  
