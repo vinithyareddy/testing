@@ -1,40 +1,48 @@
-<div class="box-md" *ngIf="ResponseFlagMissing">
-    <div class="row rowHeight">
-      <div class="col-sm-10">
-        <div class="budget-box-h1">COMPLIANCE RATE (OPEN AND CURRENT MONTH)</div>
-      </div>
-      <div class="col-sm-2 text-width">
-        <img src="../../assets/images/budget_glance/icon_3.png" class="imgvi" />
+<div class="col-md-4 pr-0">
+    <div class="box-md-loading" *ngIf="ResponseFlagMissing == false">
+      <div class="loader-img">
+        <lift-section-loader></lift-section-loader>
       </div>
     </div>
   
-    <div class="row mt-1">
-      <div class="col-md-12 pl-3">
-        <div class="budget-box-h2">Missing Hours</div>
-        <div class="font-italic note mt-1" style="font-size: 0.85rem;">
-          *Please note that in May, Closing month is May and June
+    <ng-container *ngIf="ResponseFlagMissing == true">
+      <div class="box-md">
+        <div class="row rowHeight">
+          <div class="col-sm-10">
+            <div class="budget-box-h1">COMPLIANCE RATE (OPEN AND CURRENT MONTH)</div>
+          </div>
+          <div class="col-sm-2 text-width">
+            <img src="../../assets/images/budget_glance/icon_3.png" class="imgvi" />
+          </div>
+        </div>
+  
+        <div class="row mt-1">
+          <div class="col-md-12 pl-3">
+            <div class="budget-box-h2">Missing Hours</div>
+            <div class="font-italic note mt-1" style="font-size: 0.85rem;">
+              *Please note that in May, Closing month is May and June
+            </div>
+          </div>
+        </div>
+  
+        <div class="imageWidth">
+          <highcharts-chart
+            [Highcharts]="Highcharts"
+            [options]="complianceChartOptions"
+            style="width: 64px; height: 64px; display: block;">
+          </highcharts-chart>
+          <div class="percentage-text">{{ complianceRate }}%</div>
         </div>
       </div>
-    </div>
-  
-    <div class="d-flex justify-content-center mt-2">
-      <highcharts-chart 
-        [Highcharts]="Highcharts"
-        [options]="complianceChartOptions"
-        style="width: 120px; height: 120px; display: block;">
-      </highcharts-chart>
-      <div class="compliance-percentage">{{ complianceRate }}%</div>
-    </div>
+    </ng-container>
   </div>
-  
 
-  .compliance-percentage {
-    position: absolute;
-    font-size: 20px;
-    font-weight: bold;
-    top: 55%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+  
+  .imageWidth {
+    width: 64px;
+    top: 13%;
+    left: 39%;
+    position: relative;
   }
   
   .percentage-text {
