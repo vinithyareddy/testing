@@ -1,4 +1,5 @@
-const pieChartValue = Math.min(this.trclosedHrPer, 100);
+const enteredPercent = this.trclosedHrPer;
+const missingPercent = 100 - enteredPercent;
 
 this.compliancePieChartOptions = {
   chart: {
@@ -13,14 +14,14 @@ this.compliancePieChartOptions = {
     pie: {
       innerSize: '75%',
       dataLabels: { enabled: false },
-      colors: ['#36A2EB', '#E0E0E0'] // Blue, Grey
+      colors: ['#36A2EB', '#E0E0E0'] // Blue: Entered, Grey: Remaining
     }
   },
   series: [{
     type: 'pie',
     data: [
-      { name: 'Entered Time', y: pieChartValue },
-      { name: 'Remaining', y: 100 - pieChartValue }
+      { name: 'Entered Time', y: Math.min(enteredPercent, 100) },
+      { name: 'Remaining', y: Math.max(0, 100 - enteredPercent) }
     ]
   }]
 };
