@@ -1,4 +1,67 @@
-<div class="col-md-4 pr-0">
+let missingOpen = 0;
+let missingClosing = 0;
+let adjustedOpen = 0;
+let adjustedClosing = 0;
+
+this.details.forEach(x => {
+  if (x['RM Data[TRS Month Flag]'] === 'Open Months') {
+    missingOpen = x['[Missing Time, Hours]'] || 0;
+    adjustedOpen = x['[Adjusted Required, Hours]'] || 0;
+  }
+  if (x['RM Data[TRS Month Flag]'] === 'Closing Months') {
+    missingClosing = x['[Missing Time, Hours]'] || 0;
+    adjustedClosing = x['[Adjusted Required, Hours]'] || 0;
+  }
+});
+
+this.complianceMissingTime = this.budget_Service.decimalpointconversion(missingOpen + missingClosing, this.unitdecimalpoint);
+this.complianceAdjustedRequired = this.budget_Service.decimalpointconversion(adjustedOpen + adjustedClosing, this.unitdecimalpoint);
+
+if (this.complianceAdjustedRequired > 0) {
+  this.complianceRatePercentage = Math.round((this.complianceMissingTime / this.complianceAdjustedRequired) * 100);
+  this.renderComplianceRateChart();
+}
+
+
+renderComplianceRateChart(): void {
+    Highcharts.chart('compliancePieContainer', {
+      chart: {
+        type: 'pie',
+        height: 180
+      },
+      title: {
+        text: `${this.complianceRatePercentage}%`,
+        verticalAlign: 'middle',
+        floating: true,
+        style: {
+          fontSize: '20px',
+          fontWeight: 'bold'
+        }
+      },
+      tooltip: {
+        pointFormat: '<b>{point.name}: {point.y} hours</b>'
+      },
+      plotOptions: {
+        pie: {
+          innerSize: '60%',
+          dataLabels: {
+            enabled: false
+          }
+        }
+      },
+      series: [{
+        type: 'pie',
+        name: 'Compliance',
+        data: [
+          { name: 'Missing Time', y: this.complianceMissingTime, color: '#0056D2' },
+          { name: 'Adjusted Required', y: this.complianceAdjustedRequired - this.complianceMissingTime, color: '#c4c4c4' }
+        ]
+      }]
+    });
+  }
+
+  
+  <div class="col-md-4 pr-0">
     <div class="box-md-loading" *ngIf="!ResponseFlagMissing">
       <div class="loader-img">
         <lift-section-loader></lift-section-loader>
@@ -9,18 +72,27 @@
       <div class="box-md">
         <div class="row rowHeight">
           <div class="col-sm-10">
-            <div class="budget-box-h1">Compliance Rate</div>
+            <div class="budget-box-h1">COMPLIANCE RATE (OPEN AND CURRENT MONTH)</div>
           </div>
           <div class="col-sm-2 text-width">
-            <img src="../../assets/images/budget_glance/icon_3.png" class="imgvi">
+            <img src="../../assets/images/budget_glance/icon_3.png" class="imgvi" />
           </div>
         </div>
+  
+        <div class="row mt-1">
+          <div class="col-md-12 pl-3">
+            <div class="budget-box-h2">Missing Hours</div>
+            <div class="font-italic note mt-1" style="font-size: 0.85rem;">
+              *Please note that in May, Closing month is May and June
+            </div>
+          </div>
+        </div>
+  
         <div class="row mt-2">
           <div class="col-md-12">
             <div id="compliancePieContainer" style="height: 180px; width: 100%;"></div>
           </div>
         </div>
       </div>
-    </ng-container>
-  </div>
+    </
   
