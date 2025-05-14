@@ -1,37 +1,25 @@
-renderComplianceRateChart(): void {
-    Highcharts.chart('compliancePieContainer', {
-      chart: {
-        type: 'pie',
-        height: 180
-      },
-      title: {
-        text: `${this.complianceRatePercentage}%`,
-        verticalAlign: 'middle',
-        floating: true,
-        style: {
-          fontSize: '20px',
-          fontWeight: 'bold'
-        }
-      },
-      tooltip: {
-        pointFormat: '<b>{point.name}: {point.y} hours</b>'
-      },
-      plotOptions: {
-        pie: {
-          innerSize: '60%',
-          dataLabels: {
-            enabled: false
-          }
-        }
-      },
-      series: [{
-        type: 'pie',
-        name: 'Compliance',
-        data: [
-          { name: 'Missing Time', y: this.complianceMissingTime, color: '#0056D2' },
-          { name: 'Adjusted Required', y: this.complianceAdjustedRequired - this.complianceMissingTime, color: '#c4c4c4' }
-        ]
-      }]
-    });
+let missingOpen = 0;
+let missingClosing = 0;
+let adjustedOpen = 0;
+let adjustedClosing = 0;
+
+this.details.forEach(x => {
+  if (x['RM Data[TRS Month Flag]'] === 'Open Months') {
+    missingOpen = x['[Missing Time, Hours]'] || 0;
+    adjustedOpen = x['[Adjusted Required, Hours]'] || 0;
   }
-  
+  if (x['RM Data[TRS Month Flag]'] === 'Closing Months') {
+    missingClosing = x['[Missing Time, Hours]'] || 0;
+    adjustedClosing = x['[Adjusted Required, Hours]'] || 0;
+  }
+});
+
+// Total missing and required hours for Open + Closing
+this.complianceMissingTime = this.budget_Service.decimalpointconversion(missingOpen + missingClosing, this.unitdecimalpoint);
+this.complianceAdjustedRequired = this.budget_Service.decimalpointconversion(adjustedOpen + adjustedClosing, this.unitdecimalpoint);
+
+// Percentage calculation + chart rendering
+if (this.complianceAdjustedRequired > 0) {
+  this.complianceRatePercentage = Math.round((this.complianceMissingTime / this.complianceAdjustedRequired) * 100);
+  this.renderComplianceRateChart();
+}
