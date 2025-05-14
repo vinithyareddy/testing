@@ -3,9 +3,14 @@ adjustedHours: number = 0;
 missingPercentage: number = 0;
 
 
+// After calculating closedMonth, closingMonth, openedMonth, and corresponding percentages
 this.missingHours = this.closedMonth + this.closingMonth + this.openedMonth;
-this.adjustedHours = Math.round(this.missingHours / (this.closedHrPer + this.closingHrPer + this.openHrPer) * 100);
-this.missingPercentage = Math.round((this.missingHours / this.adjustedHours) * 100);
+const totalPercent = this.closedHrPer + this.closingHrPer + this.openHrPer;
+
+if (totalPercent > 0) {
+  this.adjustedHours = Math.round(this.missingHours / (totalPercent / 100));
+  this.missingPercentage = Math.round((this.missingHours / this.adjustedHours) * 100);
+}
 
 
 import * as Highcharts from 'highcharts';
