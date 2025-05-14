@@ -1,18 +1,12 @@
 <div class="col-md-4 pr-0">
-    <div class="box-md-loading" *ngIf="ResponseFlagMissing == false">
-      <div class="loader-img">
-        <lift-section-loader></lift-section-loader>
-      </div>
-    </div>
-  
-    <ng-container *ngIf="ResponseFlagMissing == true">
+    <ng-container *ngIf="ResponseFlagError">
       <div class="box-md">
         <div class="row rowHeight">
           <div class="col-sm-10">
             <div class="budget-box-h1">COMPLIANCE RATE (OPEN AND CURRENT MONTH)</div>
           </div>
           <div class="col-sm-2 text-width">
-            <img src="../../assets/images/budget_glance/icon_3.png" class="imgvi" />
+            <img src="../../assets/images/budget_glance/icon_3.png" class="imgvi">
           </div>
         </div>
   
@@ -25,32 +19,40 @@
           </div>
         </div>
   
-        <div class="imageWidth">
-          <highcharts-chart
-            [Highcharts]="Highcharts"
+        <div class="chart-wrapper">
+          <highcharts-chart 
+            [Highcharts]="highChartsService.Highcharts"
             [options]="complianceChartOptions"
-            style="width: 64px; height: 64px; display: block;">
+            style="width: 100%; height: 150px; display: block;">
           </highcharts-chart>
-          <div class="percentage-text">{{ complianceRate }}%</div>
         </div>
       </div>
     </ng-container>
   </div>
+  
 
-  
-  .imageWidth {
-    width: 64px;
-    top: 13%;
-    left: 39%;
-    position: relative;
-  }
-  
-  .percentage-text {
-    position: absolute;
-    font-size: 14px;
-    font-weight: bold;
-    top: 33%;
-    left: 46%;
-    transform: translate(-50%, -50%);
-  }
+  this.complianceChartOptions = {
+    chart: {
+      type: 'pie',
+      height: 150,
+      backgroundColor: 'transparent',
+    },
+    title: { text: undefined },
+    tooltip: { pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>' },
+    plotOptions: {
+      pie: {
+        innerSize: '60%',
+        dataLabels: { enabled: false },
+        colors: ['#0088cc', '#ccc']
+      }
+    },
+    credits: { enabled: false },
+    series: [{
+      name: 'Compliance',
+      data: [
+        { name: 'Missing Time', y: this.trclosedHrPer },
+        { name: 'Remaining', y: 100 - this.trclosedHrPer }
+      ]
+    }]
+  };
   
