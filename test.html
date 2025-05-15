@@ -1,26 +1,834 @@
-const chartMissingPercent = Math.min(this.closedHrPer, 100);
+html:
+<div class="row pr-3">
 
-this.compliancePieChartOptions = {
-  chart: {
-    type: 'pie',
-    backgroundColor: 'transparent',
-    height: 100,
-    width: 100
-  },
-  title: { text: undefined },
-  tooltip: { enabled: false },
-  plotOptions: {
-    pie: {
-      innerSize: '75%',
-      dataLabels: { enabled: false },
-      colors: ['#36A2EB', '#E0E0E0'] // Blue: missing, Grey: remainder
+    <div class="col-md-4 pr-0">
+
+        <div class="box-md-loading" *ngIf="ResponseFlagError == false">
+
+            <div class="loader-img">
+
+                <lift-section-loader></lift-section-loader>
+
+            </div>
+
+        </div>
+
+        <ng-container *ngIf="ResponseFlagError == true">
+
+            <div class="box-md">
+
+                <div class="row rowHeight">
+
+                    <div class="col-sm-10">
+
+                        <div class="budget-box-h1">COMPLIANCE RATE (OPEN AND CURRENT MONTH)</div>
+
+                    </div>
+
+                    <div class="col-sm-2 text-width">
+
+                        <img src="../../assets/images/budget_glance/icon_3.png" class="imgvi" />
+
+                    </div>
+
+                </div>
+
+
+ 
+
+                <div class="row mt-1">
+
+                    <div class="col-md-12 pl-3">
+
+                        <div class="budget-box-h2">Missing Hours</div>
+
+                        <div class="font-italic note mt-1" style="font-size: 0.85rem;">
+
+                            *Please note that in May, Closing month is may and june
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+ 
+
+                <div class="row mt-2 align-items-center justify-content-center">
+
+                    <div class="col-12 d-flex justify-content-center position-relative pie-container">
+
+                        <highcharts-chart [Highcharts]="Highcharts" [options]="compliancePieChartOptions"
+
+                            style="width: 100px; height: 100px; display: block;">
+
+                        </highcharts-chart>
+
+                        <div class="donut-center-text">{{ closedHrPer }}%</div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </ng-container>
+
+    </div>
+
+    <div class="col-md-4 pr-0">
+
+        <div class="box-md-loading" *ngIf="ResponseFlagMissing==false">
+
+            <div class="loader-img">
+
+                <lift-section-loader></lift-section-loader>
+
+            </div>
+
+        </div>
+
+        <ng-container *ngIf="ResponseFlagMissing==true">
+
+            <div class="box-md">
+
+                <div class="row rowHeight">
+
+                    <div class="col-sm-10">
+
+                        <div class="budget-box-h1">Missing Time</div>
+
+                    </div>
+
+                    <div class="com-sm-2 text-width">
+
+                        <img src="../../assets/images/budget_glance/icon_1.png" class="imgvi">
+
+                    </div>
+
+                </div>
+
+                <div class="row mt-1 budget-box-h3">
+
+                    <div class="col-md-5"></div>
+
+                    <div class="col-md-7 pl-0 pr-0">
+
+                        <div class="row pl-0 pr-3">
+
+                            <div class="col-md-6 pl-0 pr-0">Amount($)</div>
+
+                            <div class="col-md-6 pl-0 pr-0">Hours</div>
+
+                            <div class="col-md-6 pl-0 pr-0">Hours(%)</div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="row tile-widget-bottomtext">
+
+                    <div class="col-sm-6 col-md-6 pr-0">
+
+                        <div class="budget-box-h2  mt-1">Closed Months</div>
+
+                        <div class="budget-box-h2  mt-1">Closing Months</div>
+
+                        <div class="budget-box-h2  mt-1">Open Months</div>
+
+                    </div>
+
+                    <div class="col-sm-6 col-md-6 pl-0 pr-1">
+
+                        <div class="row pl-0 pr-9">
+
+                            <div class="col-md-6 budget-box-right mt-1 pl-0 pr-0">
+
+                                <div class="budget-box-h3 mt-1"> {{closedMonth | number}}</div>
+
+                                <div class="budget-box-h3 mt-1"> {{closingMonth | number}}</div>
+
+                                <div class="budget-box-h3 mt-1"> {{openedMonth | number}}</div>
+
+                            </div>
+
+                            <div class="col-md-6 budget-box-right mt-1 pl-0 pr-2">
+
+                                <div class="budget-box-h3 mt-1"> {{closedHrPer | number}}%</div>
+
+                                <div class="budget-box-h3 mt-1"> {{closingHrPer | number}}%</div>
+
+                                <div class="budget-box-h3 mt-1"> {{openHrPer | number}}%</div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </ng-container>
+
+
+ 
+
+    </div>
+
+    <div class="col-md-4 pr-0">
+
+        <ng-container>
+
+            <div class="box-md-loading" *ngIf="ResponseFlagError==false">
+
+                <div class="loader-img">
+
+                    <lift-section-loader></lift-section-loader>
+
+                </div>
+
+            </div>
+
+            <ng-container *ngIf="ResponseFlagError==true">
+
+                <div class="box-md">
+
+                    <div class="row rowHeight">
+
+                        <div class="col-sm-10">
+
+                            <div class="budget-box-h1">Time in Error</div>
+
+                        </div>
+
+                        <div class="com-sm-2 text-width">
+
+                            <img src="../../assets/images/budget_glance/icon_2.png" class="imgvi">
+
+                        </div>
+
+                    </div>
+
+                    <div class="row mt-1 budget-box-h3">
+
+                        <div class="col-md-4"></div>
+
+                        <div class="col-md-8 pl-0 pr-2">
+
+                            <div class="row pl-0 pr-4">
+
+                                <div class="col-md-4 pl-0 pr-1">BB Hours</div>
+
+                                <div class="col-md-4 pr-0 pl-0">REIMB Hours</div>
+
+                                <div class="col-md-4 pr-0 pl-0">TF Hours</div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="row tile-widget-bottomtext">
+
+                        <div class="col-sm-4 col-md-3 pr-0">
+
+                            <div class="budget-box-h2  mt-1">Closed Months</div>
+
+                            <div class="budget-box-h2 mt-1">Closing Months</div>
+
+                            <div class="budget-box-h2  mt-1">Open Months</div>
+
+                        </div>
+
+                        <div class="col-sm-8 col-md-8 pl-0 pr-1">
+
+                            <div class="row pl-0 pr-0">
+
+                                <div class="col-md-4 budget-box-right mt-1 pl-0 pr-2">
+
+                                    <div class="budget-box-h3 mt-1"> {{BBClosed | number}}</div>
+
+                                    <div class="budget-box-h3 mt-1"> {{TFClosed | number}}</div>
+
+                                    <div class="budget-box-h3 mt-1"> {{REIMBClosed | number}}</div>
+
+                                </div>
+
+                                <div class="col-md-4 budget-box-right mt-1 pl-0 pr-2">
+
+                                    <div class="budget-box-h3 mt-1"> {{BBClosing | number}}</div>
+
+                                    <div class="budget-box-h3 mt-1"> {{TFClosing | number}}</div>
+
+                                    <div class="budget-box-h3 mt-1"> {{REIMBClosing| number}}</div>
+
+                                </div>
+
+                                <div class="col-md-4 budget-box-right mt-1 pl-0 pr-2">
+
+                                    <div class="budget-box-h3 mt-1"> {{BBOpened | number}}</div>
+
+                                    <div class="budget-box-h3 mt-1"> {{TFOpened | number}}</div>
+
+                                    <div class="budget-box-h3 mt-1"> {{REIMBOpened | number}}</div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </ng-container>
+
+        </ng-container>
+
+    </div>
+
+    <!-- <div class="col-md-4 pr-0">
+
+        <div class="box-md-loading" *ngIf="ResponseFlagTime==false">
+
+            <div class="loader-img">
+
+                <lift-section-loader></lift-section-loader>
+
+            </div>
+
+        </div>
+
+        <ng-container *ngIf="ResponseFlagTime==true">
+
+            <div class="box-md">
+
+                <div class="row rowHeight">
+
+                    <div class="col-sm-10">
+
+                        <div class="budget-box-h1">Time Entered</div>
+
+                    </div>
+
+                    <div class="col-sm-2 textwidth">
+
+                        <img src="../../assets/images/budget_glance/icon_2.png" class="imgvi">
+
+                    </div>
+
+                </div>
+
+                <div class="row mt-1 budget-box-h3">
+
+                    <div class="col-md-5"></div>
+
+                    <div class="col-md-7 pl-0 pr-0">
+
+                        <div class="row pl-0 pr-3">
+
+                            <div class="col-md-6 pl-0 pr-0">Hours</div>
+
+                            <div class="col-md-6 pl-0">Hours(%)</div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="row tile-widget-bottomtext">
+
+                    <div class="col-sm-6 col-md-6 pr-0">
+
+                        <div class="budget-box-h2 textEliipsis mt-1">Closed Months</div>
+
+                        <div class="budget-box-h2 textEliipsis mt-1">Closing Months</div>
+
+                        <div class="budget-box-h2 textEliipsis mt-1">Open Months</div>
+
+                    </div>
+
+                    <div class="col-sm-6 col-md-6 pl-0 pr-1">
+
+                        <div class="row pl-0 pr-9">
+
+                            <div class="col-md-6 budget-box-right mt-1 pl-0 pr-0">
+
+                                <div class="budget-box-h3 mt-1"> {{trclosedMonth | number}}</div>
+
+                                <div class="budget-box-h3 mt-1"> {{trclosingMonth | number}}</div>
+
+                                <div class="budget-box-h3 mt-1"> {{tropenedMonth | number}}</div>
+
+                            </div>
+
+                            <div class="col-md-6 budget-box-right mt-1 pl-0 pr-2">
+
+                                <div class="budget-box-h3 mt-1"> {{trclosedHrPer | number}}%</div>
+
+                                <div class="budget-box-h3 mt-1"> {{trclosingHrPer | number}}%</div>
+
+                                <div class="budget-box-h3 mt-1"> {{tropenHrPer | number}}%</div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </ng-container>
+
+
+ 
+
+    </div> -->
+
+</div>
+scss: 
+.cart-box {
+
+    min-height: 189px !important;
+
+    --box-shadow-color: rgb(31 31 31 / 10%);
+
+    background-color: #fff;
+
+    border-radius: 4px;
+
+    box-shadow: 0 2px 4px var(--box-shadow-color);
+
+
+ 
+
+    .widget-heading {
+
+        min-height: 91px;
+
+        font-size: 14px;
+
+        font-weight: 600;
+
+        padding: 16px;
+
+        margin-bottom: 0px !important;
+
+
+ 
+
+        &.widget-heading-chart {
+
+            min-height: 20px;
+
+            position: relative;
+
+            z-index: 9;
+
+        }
+
+
+ 
+
+        .title {
+
+            font-family: Open Sans;
+
+            font-weight: 600;
+
+            font-size: 18px;
+
+            margin-bottom: .5rem;
+
+        }
+
+
+ 
+
+        .icon-list {
+
+            img {
+
+                width: 18px;
+
+                height: 18px;
+
+                float: right;
+
+            }
+
+        }
+
+
+ 
+
+        .heading-val {
+
+            font-family: Open Sans;
+
+            font-size: 32px;
+
+            font-weight: 600;
+
+            line-height: 40px;
+
+        }
+
     }
-  },
-  series: [{
-    type: 'pie',
-    data: [
-      { name: 'Missing Time', y: chartMissingPercent },
-      { name: 'Other', y: 100 - chartMissingPercent }
-    ]
-  }]
-};
+
+
+ 
+
+    .widget-content-section {
+
+        height: 82px !important;
+
+        background-color: #FAFAFA;
+
+        padding: 16px;
+
+
+ 
+
+        .h-widget-content {
+
+            font-family: Open Sans;
+
+            font-size: 14px;
+
+            font-weight: 400;
+
+            line-height: 21px;
+
+        }
+
+    }
+
+
+ 
+
+    .chart-wrapper {
+
+        padding: 0px 10px 0px;
+
+        margin-top: -60px;
+
+        margin-left: 32px;
+
+    }
+
+}
+
+
+ 
+
+.rightPad {
+
+    left: 14px;
+
+    position: relative;
+
+}
+
+
+ 
+
+.col-md-2 {
+
+    flex: 0 0 28.666667%;
+
+    max-width: 19.666667%;
+
+}
+
+
+ 
+
+.tile-widget-bottomtext {
+
+    bottom: 16px;
+
+    position: absolute;
+
+    width: 90%;
+
+}
+
+
+ 
+
+.textEliipsis {
+
+    width: 100%;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+}
+
+
+ 
+
+.imageWidth {
+
+    width: 64px;
+
+    top: 13%;
+
+    left: 39%;
+
+    position: relative;
+
+}
+
+
+ 
+
+.rowHeight {
+
+    height: 20px;
+
+}
+
+
+ 
+
+.budget-box-h2 {
+
+    font-family: Open Sans;
+
+    font-size: 12px !important;
+
+    font-weight: 400;
+
+    line-height: 20px;
+
+    letter-spacing: 0.400000006px;
+
+    text-align: left !important;
+
+    text-underline-position: from-font;
+
+    -webkit-text-decoration-skip-ink: none;
+
+    text-decoration-skip-ink: none;
+
+}
+
+
+ 
+
+.budget-box-h3 {
+
+    text-align: right !important;
+
+}
+
+
+ 
+
+.text-width {
+
+    padding-right: 7px !important;
+
+    margin-top: -4px;
+
+}
+
+
+ 
+
+.textwidth {
+
+    width: 15% !important;
+
+    padding-right: 15px !important;
+
+    margin-top: -4px;
+
+}
+
+
+ 
+
+.box-md-loading {
+
+    background-color: #fff;
+
+    height: 160px;
+
+    padding: 20px;
+
+    grid-gap: 38px;
+
+    gap: 38px;
+
+    border-radius: 8px;
+
+    overflow: hidden;
+
+
+ 
+
+    .budget-box-h1 {
+
+        color: #000;
+
+    }
+
+}
+
+
+ 
+
+.box-md {
+
+    background-color: #ffffff !important;
+
+    border-radius: 8px;
+
+    padding: 16px;
+
+    min-height: 200px; // ⬅️ increase height slightly
+
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+    position: relative;
+
+
+
+ 
+
+    .budget-box-h1 {
+
+        font-size: 10px;
+
+        font-weight: 600;
+
+        color: #0064b4; // ⬅️ Make it the same blue as in design
+
+    }
+
+
+ 
+
+    .budget-box-h2 {
+
+        font-size: 10px;
+
+        font-weight: 400;
+
+        color: #444;
+
+        margin-top: 13px;
+
+    }
+
+
+ 
+
+    .note {
+
+        font-size: 11px;
+
+        color: #777;
+
+    }
+
+
+ 
+
+    .imgvi {
+
+        width: 18px;
+
+        height: 18px;
+
+        float: right;
+
+    }
+
+
+ 
+
+    .donut-center-text {
+
+        top: 50%; // ⬅️ vertically center exactly
+
+        left: 50%;
+
+        transform: translate(-50%, -50%);
+
+        font-size: 18px;
+
+        font-weight: 600;
+
+        color: #000;
+
+    }
+
+
+ 
+
+    .pie-container {
+
+        padding-top: 8px;
+
+        position: relative;
+
+        display: flex;
+
+        justify-content: center;
+
+        align-items: center;
+
+        height: 120px;
+
+
+ 
+
+    }
+
+}
+
+
+ 
+
+.budget-box-h3,
+
+.budget-box-h2 {
+
+    color: #000 !important;
+
+}
+
+
+ 
+
+.budget-box-h2,
+
+.budget-box-h3 {
+
+    color: #000 !important;
+
+    white-space: normal !important;
+
+    overflow: visible !important;
+
+    text-overflow: unset !important;
+
+}
+ 
