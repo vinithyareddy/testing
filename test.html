@@ -1,47 +1,24 @@
-<div class="box-md position-relative">
-    <div class="row">
-      <div class="col-sm-9">
-        <div class="budget-box-h1">COMPLIANCE RATE (OPEN AND CURRENT MONTH)</div>
-        <div class="budget-box-h2 mt-1">Missing Hours</div>
-        <div class="font-italic note" style="font-size: 0.85rem;">
-          *Please note that in May, Closing month is may and june
-        </div>
-      </div>
-  
-      <div class="col-sm-3 text-right position-relative">
-        <div class="pie-chart-wrapper">
-          <highcharts-chart 
-            [Highcharts]="Highcharts" 
-            [options]="compliancePieChartOptions"
-            style="width: 70px; height: 70px; display: block;">
-          </highcharts-chart>
-          <div class="donut-center-text-chart">{{ closedHrPer }}%</div>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-
-  .pie-chart-wrapper {
+.pie-chart-bottom-right {
     position: absolute;
-    top: -10px;
-    right: 10px;
+    bottom: 12px;
+    right: 12px;
     width: 80px;
     height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    pointer-events: none;
   }
   
   .donut-center-text-chart {
     position: absolute;
-    top: 28px;
-    left: 20px;
     font-size: 14px;
     font-weight: bold;
     color: #333;
-  }
-  
-  .box-md {
-    padding: 15px;
-    height: 160px;
-    position: relative;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
   }
   
