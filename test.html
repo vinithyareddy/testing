@@ -1,24 +1,50 @@
-.pie-chart-bottom-right {
+<div class="chart-wrapper">
+    <div class="donut-chart-wrapper">
+      <highcharts-chart
+        [Highcharts]="Highcharts"
+        [options]="compliancePieChartOptions"
+        style="width: 100%; height: 100%; display: block;">
+      </highcharts-chart>
+      <div class="donut-center-text">{{ closedHrPer }}%</div>
+    </div>
+  </div>
+  
+
+  .chart-wrapper {
     position: absolute;
-    bottom: 12px;
-    right: 12px;
-    width: 80px;
-    height: 80px;
+    bottom: 14px;
+    right: 14px;
+    width: 76px;
+    height: 76px;
     display: flex;
     align-items: center;
     justify-content: center;
+    background-color: transparent;
     overflow: hidden;
     pointer-events: none;
   }
   
-  .donut-center-text-chart {
+  .donut-chart-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+  
+  .donut-center-text {
     position: absolute;
-    font-size: 14px;
-    font-weight: bold;
-    color: #333;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+    font-size: 13px;
+    font-weight: bold;
+    color: #333;
     pointer-events: none;
+  }
+  
+  .box-md {
+    position: relative;
+    padding: 16px;
+    min-height: 180px; // make sure box isn't too short
+    overflow: hidden;
   }
   
