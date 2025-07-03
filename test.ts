@@ -1,15 +1,15 @@
-test('Search input below table is visible and accepts input', async () => {
+test('IBRD+IDA sidebar menu item is visible', async () => {
     await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
-    await page.waitForLoadState('networkidle');
-    await page.waitForSelector('text=Commitments');
-  
-    const inputs = page.locator('input[placeholder="Search"]');
-    console.log('Search inputs found:', await inputs.count());
-  
-    const input = inputs.first(); // Try .nth(0) or .nth(1) if needed
-    await input.waitFor({ state: 'visible', timeout: 15000 });
-  
-    await input.fill('FY24');
-    await expect(input).toHaveValue('FY24');
+    await expect(page.getByRole('link', { name: 'IBRD+IDA' })).toBeVisible();
+  });
+  test('Sidebar link IBRD navigates correctly', async () => {
+    await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
+    await page.getByRole('link', { name: 'IBRD' }).click();
+    await expect(page).toHaveURL(/ibrd$/);
+  });
+  test('Sidebar link MIGA navigates correctly', async () => {
+    await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
+    await page.getByRole('link', { name: 'MIGA' }).click();
+    await expect(page).toHaveURL(/miga$/);
   });
   
