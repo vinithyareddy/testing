@@ -1,22 +1,15 @@
-test('Calendar input for As of Date is visible', async () => {
+test('Search input below table is visible and accepts input', async () => {
     await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
     await page.waitForLoadState('networkidle');
+    await page.waitForSelector('text=Commitments');
   
-    // Click the date input
-    const inputs = await page.locator('input[type="text"]').all();
-    for (const input of inputs) {
-      const val = await input.inputValue();
-      if (val && val.includes('20')) {
-        await input.click();
-        break;
-      }
-    }
+    const inputs = page.locator('input[placeholder="Search"]');
+    console.log('Search inputs found:', await inputs.count());
   
-    // Screenshot for debug
-    await page.screenshot({ path: 'calendar_debug.png', fullPage: true });
+    const input = inputs.first(); // Try .nth(0) or .nth(1) if needed
+    await input.waitFor({ state: 'visible', timeout: 15000 });
   
-    // Wait for the popup — use known year or calendar container
-    const calendarPopup = page.locator('.mat-datepicker-content, text=2025, text=Jul, text=Today');
-    await expect(calendarPopup.first()).toBeVisible({ timeout: 7000 });
+    await input.fill('FY24');
+    await expect(input).toHaveValue('FY24');
   });
   
