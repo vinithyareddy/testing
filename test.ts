@@ -1,49 +1,58 @@
-test('"As of Date" input is visible', async () => {
+test('Switch back to Card view from Classic', async () => {
     await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
-    await expect(page.locator('input[type="date"]')).toBeVisible();
-  });
-  test('Indicator Approval Status label is present', async () => {
-    await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
-    await expect(page.getByText('Indicator Approval Status')).toBeVisible();
-  });
-  test('Indicator Approval Status has expected value', async () => {
-    await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
-    const value = await page.locator('input[type="range"]').evaluate(el => el.value);
-    expect(value).toBe('36');
-  });
-  test('Total Commitment shows 0%', async () => {
-    await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
-    await expect(page.getByText('0%')).toBeVisible();
-  });
-  test('"FY TO DATE" tab is visible', async () => {
-    await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
-    await expect(page.getByRole('tab', { name: 'FY TO DATE' })).toBeVisible();
-  });
-  test('Commitment card shows label', async () => {
-    await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
+    await page.getByRole('link', { name: 'Classic' }).click();
+    await page.getByRole('link', { name: 'Card' }).click();
     await expect(page.getByText('Total Commitment')).toBeVisible();
   });
-  test('o/w Guarantees text is visible in metrics', async () => {
+  test('Info tooltip appears on hover or click', async () => {
     await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
-    await expect(page.getByText('o/w Guarantees')).toBeVisible();
+    const infoIcon = page.locator('text=Private Capital Mobilization >> .. >> [data-tooltip]');
+    await infoIcon.hover(); // or `.click()` if tooltip is click-based
+    await expect(page.locator('[role="tooltip"]')).toBeVisible();
   });
-  test('"Gross Disbursements" header is visible', async () => {
-    await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
-    await expect(page.getByText('Gross Disbursements')).toBeVisible();
-  });
-  test('Bottom download button appears in classic view', async () => {
+  test('Search bar filters results', async () => {
     await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
     await page.getByRole('link', { name: 'Classic' }).click();
-    await expect(page.getByRole('button', { name: 'Download' })).toBeVisible();
+    const input = page.locator('input[placeholder="Search"]');
+    await input.fill('FY24');
+    await expect(page.getByText('FY24')).toBeVisible();
   });
-  test('Table contains FY25 Q3 text', async () => {
+  test('COLUMNS menu opens in Classic view', async () => {
     await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
     await page.getByRole('link', { name: 'Classic' }).click();
-    await expect(page.getByText('FY25 Q3')).toBeVisible();
+    await page.getByRole('link', { name: 'COLUMNS' }).click();
+    await expect(page.getByText('All Columns')).toBeVisible(); // or whatever appears
   });
-  test('Private Capital Mobilization row appears', async () => {
+  test('Two Download buttons are present', async () => {
+    await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
+    const buttons = await page.locator('button:has-text("Download")').all();
+    expect(buttons.length).toBe(2);
+  });
+  test('Table loads multiple rows of data', async () => {
     await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
     await page.getByRole('link', { name: 'Classic' }).click();
-    await expect(page.getByText('Private Capital Mobilization')).toBeVisible();
+    const rows = await page.locator('table tbody tr').count();
+    expect(rows).toBeGreaterThan(3);
+  });
+  test('Primary Metrics option in Indicators dropdown', async () => {
+    await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
+    await page.locator('text=All Indicators').click();
+    await expect(page.getByText('Primary Metrics')).toBeVisible();
+  });
+  test('Slider value changes on interaction', async () => {
+    await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
+    const slider = page.locator('input[type="range"]');
+    const original = await slider.evaluate((el) => el.value);
+    await slider.press('ArrowRight');
+    const updated = await slider.evaluate((el) => el.value);
+    expect(updated).not.toBe(original);
+  });
+  test('User profile icon visible in navbar', async () => {
+    await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
+    await expect(page.locator('img[alt="Profile"], .avatar')).toBeVisible();
+  });
+  test('Gross Disbursements shows 0.0B value', async () => {
+    await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
+    await expect(page.getByText('0.0B')).toBeVisible();
   });
               
