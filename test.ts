@@ -1,20 +1,25 @@
-test('Verify Indicator Approval Status is 0 and 36', async ({ page }) => {
-  const section = page.locator('.zapprovalstatus-section');
+const dropdownOptions = ['All Indicators', 'Primary Metrics', 'Other Metrics of Interest'];
 
-  // Step 1: Wait for section to be visible
-  await expect(section).toBeVisible({ timeout: 10000 });
+for (const option of dropdownOptions) {
+  test(`Verify Dropdown Option: ${option}`, async ({ page }) => {
+    // Go to the page again to avoid context issues per iteration
+    await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida', {
+      waitUntil: 'domcontentloaded'
+    });
 
-  // Step 2: Get the spans containing values
-  const spans = section.locator('span');
+    // Wait for the dropdown to appear
+    const dropdown = page.locator('mat-select[formcontrolname="metricFilter"]');
+    await expect(dropdown).toBeVisible({ timeout: 10000 });
 
-  // Step 3: Validate specific positions or contents
-  const zero = spans.nth(1);       // 0 is the second span
-  const thirtySix = spans.nth(3);  // 36 is the fourth span
+    // Open the dropdown
+    await dropdown.click();
 
-  // Step 4: Visibility and Screenshot Checks
-  await expect(zero).toBeVisible({ timeout: 10000 });
-  await expect(thirtySix).toBeVisible({ timeout: 10000 });
+    // Get and verify the specific dropdown option
+    const optionItem = page.getByRole('option', { name: option });
+    await expect(optionItem).toBeVisible({ timeout: 5000 });
 
-  await expect(zero).toHaveScreenshot('oh-ibrd-ida-indicator-0.png');
-  await expect(thirtySix).toHaveScreenshot('oh-ibrd-ida-indicator-36.png');
-});
+    // Screenshot and click the item
+    await expect(optionItem).toHaveScreenshot(`dropdown-option-${option.replace(/\s+/g, '-')}.png`);
+    await optionItem.click();
+  });
+}
