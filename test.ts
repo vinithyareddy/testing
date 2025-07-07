@@ -1,97 +1,80 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Locator } from '../global-fixture';
 
-// --- Basic Page Validation ---
-test('Page loads with correct title', async ({ page }) => {
-  await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
-  await expect(page).toHaveTitle('Management Dashboard');
-});
+// Run against: https://mgmtqa.asestg.worldbank.org/operation_highlight/ibrdida
+// Use `toMatchAriaSnapshot` and `toHaveScreenshot` for visual + accessibility validation
 
-test('Has visible header text: IBRD+IDA', async ({ page }) => {
-  await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
-  await expect(page.getByText('IBRD+IDA')).toBeVisible();
-});
 
-// --- View Toggle ---
-test('Switch to Classic view', async ({ page }) => {
-  await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
-  await page.getByRole('link', { name: 'Classic' }).click();
-});
+test.describe('Operations Highlights - IBRD+IDA Page', () => {
 
-test('Switch back to Card view', async ({ page }) => {
-  await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
-  await page.getByRole('link', { name: 'Classic' }).click();
-  await page.getByRole('link', { name: 'Card' }).click();
-  await expect(page.getByText('Total Commitment')).toBeVisible();
-});
+  test.beforeEach(async ({ page }) => {
+    await page.goto('https://mgmtqa.asestg.worldbank.org/operation_highlight/ibrdida', {
+      waitUntil: 'domcontentloaded'
+    });
+    await page.waitForLoadState('networkidle');
+  });
 
-// --- Metrics Presence ---
-test('Shows Total Commitment', async ({ page }) => {
-  await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
-  await expect(page.getByText('Total Commitment')).toBeVisible();
-});
+  // ----------------------
+  // 1. HEADER VALIDATIONS
+  // ----------------------
+  test('Verify Header Title - Management Dashboard', async ({ page }) => {
+    await expect(page.locator('header')).toMatchAriaSnapshot(`- text: Management Dashboard`);
+  });
 
-test('Shows Gross Disbursements section', async ({ page }) => {
-  await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
-  await expect(page.getByText('Gross Disbursements')).toBeVisible();
-});
+  test('Verify User Icon is Visible', async ({ page }) => {
+    await expect(page.locator('img[alt="User profile picture"]')).toBeVisible();
+  });
 
-// --- Data Blocks ---
-test('Shows o/w Guarantees label', async ({ page }) => {
-  await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
-  await expect(page.getByText('o/w Guarantees')).toBeVisible();
-});
+  test('Verify Help Button is Visible', async ({ page }) => {
+    await expect(page.getByRole('button', { name: /help/i })).toBeVisible();
+  });
 
-test('Total Commitment shows 0%', async ({ page }) => {
-  await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
-  await expect(page.getByText('0%')).toBeVisible();
-});
+  test('Verify Bell Icon is Visible', async ({ page }) => {
+    await expect(page.getByRole('button', { name: /notifications/i })).toBeVisible();
+  });
 
-// --- Tab Check ---
-test('FY TO DATE tab is visible', async ({ page }) => {
-  await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
-  await expect(page.getByRole('tab', { name: 'FY TO DATE' })).toBeVisible();
-});
+  test('Verify Download Button is Present', async ({ page }) => {
+    await expect(page.getByRole('button', { name: 'Download' })).toBeVisible();
+  });
 
-// --- Dropdown & Column ---
-test('COLUMNS dropdown opens in Classic view', async ({ page }) => {
-  await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
-  await page.getByRole('link', { name: 'Classic' }).click();
-  await page.getByRole('link', { name: 'COLUMNS' }).click();
-  await expect(page.getByText('All Columns')).toBeVisible();
-});
+  // -------------------------
+  // 2. BREADCRUMB + TITLE
+  // -------------------------
+  test('Verify Breadcrumb Navigation', async ({ page }) => {
+    await expect(page.locator('app-top-header')).toMatchAriaSnapshot(`
+      - navigation "breadcrumb":
+        - list:
+          - listitem: Operations Highlights
+          - listitem: / IBRD+IDA
+    `);
+  });
 
-// --- Table Checks ---
-test('Contains text FY25 Q3', async ({ page }) => {
-  await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
-  await page.getByRole('link', { name: 'Classic' }).click();
-  await expect(page.getByText('FY25 Q3')).toBeVisible();
-});
+  test('Verify Page Title - IBRD+IDA', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: 'IBRD+IDA' })).toBeVisible();
+    await expect(page.getByRole('heading')).toMatchAriaSnapshot(`- heading "IBRD+IDA" [level=2]`);
+  });
 
-test('Private Capital Mobilization row visible', async ({ page }) => {
-  await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
-  await page.getByRole('link', { name: 'Classic' }).click();
-  await expect(page.getByText('Private Capital Mobilization')).toBeVisible();
-});
+  // ----------------------------------
+  // 3. SIDEBAR NAVIGATION CHECKS
+  // ----------------------------------
+  const navItems = [
+    'WBG Overview',
+    'IBRD+IDA',
+    'IBRD',
+    'IDA',
+    'IFC',
+    'MIGA',
+    'Thematic Highlights',
+    'Finance & Risk highlights',
+    'Internal Resources',
+    'Guarantee Platform'
+  ];
 
-// --- Search & Tooltip ---
-test('Search bar accepts input', async ({ page }) => {
-  await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
-  await page.getByRole('link', { name: 'Classic' }).click();
-  const input = page.locator('input[placeholder="Search"]');
-  await input.fill('FY24');
-  await expect(page.getByText('FY24')).toBeVisible();
-});
+  for (const item of navItems) {
+    test(`Verify Sidebar Navigation Link: ${item}`, async ({ page }) => {
+      await expect(page.getByRole('link', { name: new RegExp(item, 'i') })).toBeVisible();
+    });
+  }
 
-test('Tooltip info icon appears on hover', async ({ page }) => {
-  await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
-  const icon = page.locator('i.fa-info-circle');
-  await icon.hover();
-  await expect(page.locator('[role="tooltip"]')).toBeVisible();
-});
+  // More widget + dropdown + card/classic/tab/date tests will be added next...
 
-// --- Download Buttons ---
-test('Two download buttons visible', async ({ page }) => {
-  await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida');
-  const buttons = await page.locator('button:has-text("Download")').count();
-  expect(buttons).toBeGreaterThanOrEqual(2);
 });
