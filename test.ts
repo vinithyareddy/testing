@@ -1,25 +1,36 @@
-const dropdownOptions = ['All Indicators', 'Primary Metrics', 'Other Metrics of Interest'];
 
-for (const option of dropdownOptions) {
-  test(`Verify Dropdown Option: ${option}`, async ({ page }) => {
-    // Go to the page again to avoid context issues per iteration
-    await page.goto('https://mgmtdashboard.worldbank.org/operation_highlight/ibrdida', {
-      waitUntil: 'domcontentloaded'
-    });
 
-    // Wait for the dropdown to appear
-    const dropdown = page.locator('mat-select[formcontrolname="metricFilter"]');
-    await expect(dropdown).toBeVisible({ timeout: 10000 });
+test('Verify Tooltip Icon is Present', async ({ page }) => {
+  const tooltip = page.locator('i.fas.fa-info-circle');
+  await expect(tooltip).toBeVisible();
+  await expect(tooltip).toHaveScreenshot('oh-ibrd-ida-tooltip-icon.png');
+});
 
-    // Open the dropdown
-    await dropdown.click();
+// ----------------------------
+// ALL INDICATORS DROPDOWN OPTIONS
+// ----------------------------
 
-    // Get and verify the specific dropdown option
-    const optionItem = page.getByRole('option', { name: option });
-    await expect(optionItem).toBeVisible({ timeout: 5000 });
+test('Verify All Indicators Dropdown - All Indicators Option', async ({ page }) => {
+  const dropdown = page.getByRole('button', { name: /All Indicators/i });
+  await dropdown.click();
+  const allIndicatorsOption = page.getByRole('option', { name: /All Indicators/i });
+  await expect(allIndicatorsOption).toBeVisible();
+  await expect(allIndicatorsOption).toHaveScreenshot('oh-ibrd-ida-dropdown-all-indicators.png');
+});
 
-    // Screenshot and click the item
-    await expect(optionItem).toHaveScreenshot(`dropdown-option-${option.replace(/\s+/g, '-')}.png`);
-    await optionItem.click();
-  });
-}
+test('Verify All Indicators Dropdown - Primary Metrics Option', async ({ page }) => {
+  const dropdown = page.getByRole('button', { name: /All Indicators/i });
+  await dropdown.click();
+  const primaryOption = page.getByRole('option', { name: /Primary Metrics/i });
+  await expect(primaryOption).toBeVisible();
+  await expect(primaryOption).toHaveScreenshot('oh-ibrd-ida-dropdown-primary-metrics.png');
+});
+
+test('Verify All Indicators Dropdown - Other Metrics of Interest Option', async ({ page }) => {
+  const dropdown = page.getByRole('button', { name: /All Indicators/i });
+  await dropdown.click();
+  const otherOption = page.getByRole('option', { name: /Other Metrics of Interest/i });
+  await expect(otherOption).toBeVisible();
+  await expect(otherOption).toHaveScreenshot('oh-ibrd-ida-dropdown-other-metrics.png');
+});
+});
