@@ -1,10 +1,14 @@
 test('Verify Gross Outstanding Exposure Widget has Tab sections', async ({ page }) => {
-  // Make sure the widget is visible first
-  const widget = page.locator('app-commitments-guarantees');
+  // Ensure page is loaded fully
+  await page.goto('https://mgmta.estgp.worldbank.org/operation_highlight/miga');
+  await page.waitForLoadState('domcontentloaded');
+
+  // Use visible heading to scope the widget instead of custom tag
+  const widget = page.getByRole('heading', { name: 'Gross outstanding exposure' }).locator('..'); // parent wrapper
   await expect(widget).toBeVisible({ timeout: 10000 });
 
-  // Check each tab one by one
-  await expect(widget.getByRole('radio', { name: 'FY TO DATE' })).toBeVisible();
-  await expect(widget.getByRole('radio', { name: 'QUARTER' })).toBeVisible();
-  await expect(widget.getByRole('radio', { name: '3 YEARS AVG.' })).toBeVisible();
+  // Now check all tab buttons using role=radio
+  await expect(page.getByRole('radio', { name: 'FY TO DATE' })).toBeVisible();
+  await expect(page.getByRole('radio', { name: 'QUARTER' })).toBeVisible();
+  await expect(page.getByRole('radio', { name: '3 YEARS AVG.' })).toBeVisible();
 });
