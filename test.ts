@@ -1,13 +1,13 @@
-test('Verify Net Flows (IBRD) Widget has Correct Title', async ({ page }) => {
-  await page.goto('https://mgmtqa.asestg.worldbank.org/operation_highlight/ibrdida');
+test('Verify Loans Outstanding Widget Title Tooltip', async ({ page }) => {
+  await page.waitForTimeout(2000);
 
-  const widget = page.locator('app-net-flows');
-  await widget.scrollIntoViewIfNeeded();
-  await expect(widget).toBeVisible({ timeout: 10000 });
+  await page.locator('app-loan-equity-investment-outstanding').getByRole('link').click();
 
-  await expect(widget).toMatchAriaSnapshot(`
-    - text: Net Flows (IBRD)
-    - link:
-    - /url: javascript:;
+  await expect(page.locator('h3.popover-title')).toMatchAriaSnapshot(`
+    - heading "Outstanding Loans, Equity Investment, Guarantees Close" [level=3]:
+      - text: Outstanding Loans, Equity Investment, Guarantees
+      - button "Close"
   `);
+
+  await page.getByRole('button', { name: 'Close' }).click();
 });
