@@ -1,10 +1,18 @@
 test('Verify Net Flows (IBRD+IDA) Widget has Title', async ({ page }) => {
-  // Ensure correct tab is active before running snapshot
-  const ibrdTab = page.getByRole('tab', { name: /IBRD\+IDA/i });
-  await ibrdTab.click(); // Force switch to correct view
+  test.setTimeout(60000);
+  try {
+    await page.goto('https://mgmtqa.assetg.worldbank.org/operation_highlight/ibrdida');
+    await page.waitForLoadState('networkidle');
 
-  const widget = page.locator('#app-net-flows');
-  await expect(widget).toBeVisible(); // optional check
+    const ibrdTab = page.getByRole('tab', { name: /IBRD\+IDA/i });
+    await expect(ibrdTab).toBeVisible();
+    await ibrdTab.click();
 
-  await expect(widget).toMatchAriaSnapshot();
+    const widget = page.locator('#app-net-flows');
+    await expect(widget).toBeVisible();
+    await expect(widget).toMatchAriaSnapshot();
+  } catch (error) {
+    console.error('Error during Net Flows test:', error);
+    throw error;
+  }
 });
