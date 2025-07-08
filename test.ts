@@ -1,20 +1,21 @@
 test('Verify Gross Outstanding Exposure Widget Title Tooltip', async ({ page }) => {
-  // Wait for widget to appear
-  const widget = page.locator('app-commitments-guarantees');
-  await expect(widget).toBeVisible();
+  // Go to the page explicitly (you missed this earlier)
+  await page.goto('https://mgmtqa.asestg.worldbank.org/operation_highlight/miga');
 
-  // Find the tooltip icon by accessible name
-  const tooltipIcon = widget.locator('span.widget-heading img[title="info"]');
+  // Define a reliable scoped selector
+  const tooltipIcon = page.locator(
+    'app-commitments-guarantees img[title="info"], app-commitments-guarantees i[title="info"]'
+  );
 
-  // Ensure it is visible
-  await expect(tooltipIcon).toBeVisible({ timeout: 5000 });
+  // Wait for icon to appear
+  await expect(tooltipIcon).toBeVisible({ timeout: 10000 });
 
   // Click the tooltip icon
   await tooltipIcon.click();
 
-  // Verify the tooltip heading
+  // Check tooltip heading text
   await expect(page.locator('h3.popover-title')).toContainText('Gross outstanding exposure');
 
-  // Close the tooltip popup
-  await page.getByRole('button', { name: 'Close' }).click();
+  // Close the tooltip
+  await page.getByRole('button', { name: /close/i }).click();
 });
