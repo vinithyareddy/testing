@@ -1,25 +1,27 @@
 test('Verify Commitments Widget Title Tooltip', async ({ page }) => {
-  // Navigate first (if needed)
   await page.goto('https://mgmtqa.asestg.worldbank.org/operation_highlight/ibrd');
 
-  // Check if redirected to login
+  // Ensure authenticated
   if (page.url().includes('login.microsoftonline.com')) {
-    throw new Error('Not authenticated — redirected to login page.');
+    throw new Error('❌ Not authenticated — redirected to login page.');
   }
 
-  // Wait for the widget to be present and visible
-  const tooltipIcon = page.locator('app-commitments').getByRole('link');
+  const tooltipTrigger = page.locator('app-commitments').getByRole('link');
 
-  await expect(tooltipIcon).toBeVisible({ timeout: 10000 }); // wait max 10s
+  // Check the tooltip trigger is visible
+  await expect(tooltipTrigger).toBeVisible({ timeout: 10000 });
 
-  // Click the tooltip icon
-  await tooltipIcon.click();
+  // Click the ⓘ tooltip icon (wait for stability)
+  await tooltipTrigger.click();
 
-  // Assert the tooltip is shown with correct title
-  await expect(page.locator('h3.popover-title')).toHaveText(/Commitments/i, {
-    timeout: 5000,
-  });
+  const tooltipHeading = page.locator('h3.popover-title');
 
-  // Optionally: close it if needed (e.g., click the "Close" button)
-  await page.locator('button:has-text("Close")').click();
+  // Confirm tooltip appeared
+  await expect(tooltipHeading).toHaveText(/Commitments/i, { timeout: 5000 });
+
+  // Close button (optional — only if visible)
+  const closeButton = page.locator('button:has-text("Close")');
+  if (await closeButton.isVisible()) {
+    await closeButton.click();
+  }
 });
