@@ -1,26 +1,27 @@
 test('Verify Gross Disbursements Widget Title Tooltip', async ({ page }) => {
-  // 1. Go to the page
+  // Navigate to page
   await page.goto('https://mgmtqa.asestg.worldbank.org/operation_highlight/ibrd');
 
-  // 2. Wait for the widget title to ensure it's rendered
+  // Wait for widget title text to be visible
   const widget = page.locator('app-gross-disbursements');
-
   await expect(widget.getByText('Gross Disbursements')).toBeVisible({ timeout: 10000 });
 
-  // 3. Find the tooltip icon (ⓘ)
-  const tooltipIcon = widget.locator('i[class*=info], svg[aria-label="info"], .fa-info-circle'); // be flexible here
+  // Find the info icon inside the widget (try different fallback selectors)
+  const tooltipIcon = widget.locator('lift-popover i, lift-popover svg, lift-popover button, lift-popover a');
 
-  // Ensure tooltip icon is visible and click
-  await expect(tooltipIcon).toBeVisible({ timeout: 5000 });
-  await tooltipIcon.click();
+  // If multiple icons exist, you can also narrow by: .widget-heading lift-popover i
+  await expect(tooltipIcon.first()).toBeVisible({ timeout: 10000 });
 
-  // 4. Check the tooltip appears
+  // Click to open tooltip
+  await tooltipIcon.first().click();
+
+  // Assert tooltip content appears
   const tooltipTitle = page.locator('h3.popover-title');
   await expect(tooltipTitle).toContainText('Gross Disbursements', { timeout: 5000 });
 
-  // 5. Close the tooltip (optional)
-  const closeButton = page.locator('button:has-text("Close")');
-  if (await closeButton.isVisible()) {
-    await closeButton.click();
+  // Optional: close it
+  const closeBtn = page.getByRole('button', { name: 'Close' });
+  if (await closeBtn.isVisible()) {
+    await closeBtn.click();
   }
 });
