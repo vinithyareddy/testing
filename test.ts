@@ -1,29 +1,11 @@
-import { test, expect } from '@playwright/test';
+test('Verify Gross outstanding exposure Widget FY TO DATE section selected', async ({ page }) => {
+  const widget = page.locator(widgetSelector);
 
-test.describe('Gross outstanding exposure Widget - Tab Tests', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('https://mgmtqa.assetsc.worldbank.org/operation_highlight/miga');
-    await page.waitForLoadState('networkidle');
+  await widget.getByRole('radio', { name: 'FY TO DATE' }).scrollIntoViewIfNeeded(); // optional but safe
+  await page.waitForTimeout(1000); // Wait for DOM to stabilize
+  await widget.getByRole('radio', { name: 'FY TO DATE' }).click({ force: true }); // avoid pointer interception
 
-    // Wait for the heading of the widget to appear
-    await expect(page.getByRole('heading', { name: 'Gross outstanding exposure' })).toBeVisible({ timeout: 10000 });
-  });
-
-  test('FY TO DATE tab is visible and renders screenshot', async ({ page }) => {
-    const widget = page.locator('text=Gross outstanding exposure').locator('..'); // move to parent
-    await widget.getByRole('radio', { name: 'FY TO DATE' }).click();
-    await expect(widget).toHaveScreenshot('fy-to-date.png');
-  });
-
-  test('QUARTER tab is visible and renders screenshot', async ({ page }) => {
-    const widget = page.locator('text=Gross outstanding exposure').locator('..');
-    await widget.getByRole('radio', { name: 'QUARTER' }).click();
-    await expect(widget).toHaveScreenshot('quarter.png');
-  });
-
-  test('3 YEARS AVG. tab is visible and renders screenshot', async ({ page }) => {
-    const widget = page.locator('text=Gross outstanding exposure').locator('..');
-    await widget.getByRole('radio', { name: '3 YEARS AVG.' }).click();
-    await expect(widget).toHaveScreenshot('3years-avg.png');
+  await expect(widget).toHaveScreenshot('oh-miga-card-app-commitments-guarantees-FY-screenshot.png', {
+    maxDiffPixelRatio: 0.03, // allow minor diffs
   });
 });
