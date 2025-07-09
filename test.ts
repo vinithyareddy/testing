@@ -1,28 +1,26 @@
-test('Verify [Widget Name] Widget Title Tooltip', async ({ page }) => {
-  // 1. Navigate to the correct page
+test('Verify Loans Outstanding Widget Title Tooltip', async ({ page }) => {
+  // 1. Navigate to the page
   await page.goto('https://mgmtqa.asestg.worldbank.org/operation_highlight/ibrd');
 
-  // 2. Locate widget by app-* component name
-  const widget = page.locator('app-[widget-selector]'); // e.g., app-loan-equity-investment-outstanding
+  // 2. Locate widget
+  const widget = page.locator('app-loan-equity-investment-outstanding');
 
-  // 3. Ensure widget heading is visible (title like "Loans Outstanding")
-  await expect(widget.getByText('[Widget Title]')).toBeVisible({ timeout: 10000 }); // e.g., "Loans Outstanding"
+  // 3. Wait until the title is visible
+  await expect(widget.getByText('Loans Outstanding')).toBeVisible({ timeout: 10000 });
 
-  // 4. Scroll to ensure widget and tooltip icon are rendered
+  // 4. Scroll to ensure it's rendered
   await widget.scrollIntoViewIfNeeded();
 
-  // 5. Find tooltip icon (lift-popover i tag inside heading)
+  // 5. Find the tooltip icon
   const tooltipIcon = widget.locator('lift-popover i');
 
-  // 6. Wait for tooltip icon to be visible
+  // 6. Wait for the icon to be visible and click it
   await expect(tooltipIcon).toBeVisible({ timeout: 5000 });
-
-  // 7. Click the tooltip icon
   await tooltipIcon.click();
 
-  // 8. Validate the popover heading
-  await expect(page.locator('h3.popover-title')).toContainText('[Widget Title]', { timeout: 5000 });
+  // 7. Assert popover shows correct heading
+  await expect(page.locator('h3.popover-title')).toContainText('Loans Outstanding', { timeout: 5000 });
 
-  // 9. Click close button
+  // 8. Close the tooltip
   await page.getByRole('button', { name: 'Close' }).click();
 });
