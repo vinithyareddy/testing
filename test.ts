@@ -1,14 +1,17 @@
-test('Verify Sources Table Content for Known Department', async ({ page }) => {
+test('Verify Expand Plus Icon inside Sources Table', async ({ page }) => {
   const widget = page.locator('app-home-source-uses');
   await widget.waitFor({ state: 'visible', timeout: 10000 });
 
-  // Locate any row with 'ITSDG' text inside the widget, deeper search
-  const row = widget.locator(':scope >> text=ITSDG'); // searches deeper inside DOM
+  // Try to get any plus icon inside the widget
+  const plusIcon = widget.locator('i.fa-plus, span.fa-plus'); // covers both <i> and <span> cases
 
-  await expect(row).toBeVisible({ timeout: 5000 });
+  // If icon appears only on hover, scroll/hover first
+  await plusIcon.first().scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300); // allow any hover-based rendering
 
-  // Find a matching value in the same widget (e.g. 394.8 or similar)
-  const forecastValue = widget.locator('text=/394\.8M?/'); // Adjust pattern if needed
+  await expect(plusIcon.first()).toBeVisible({ timeout: 5000 });
 
-  await expect(forecastValue).toBeVisible();
+  // Click + capture screenshot
+  await plusIcon.first().click();
+  await expect(plusIcon.first()).toHaveScreenshot('sr-budget-glance-sources-plus-expanded.png');
 });
