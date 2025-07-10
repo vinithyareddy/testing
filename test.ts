@@ -1,17 +1,14 @@
-test('Verify Fullscreen Icon is Clickable in Sources Widget', async ({ page }) => {
-  // Wait for widget to load
+test('Verify Dropdown Icon beside Fullscreen in Sources Widget', async ({ page }) => {
+  // Wait for widget wrapper to load first
   await page.waitForSelector('app-home-source-uses', { timeout: 10000 });
 
-  // Use more specific class selector for icon
-  const fullscreenIcon = page.locator('app-home-source-uses i.fa-expand, app-home-source-uses .view_more');
+  // Locate the dropdown icon near fullscreen using role or class
+  const dropdownIcon = page.locator('app-home-source-uses .dropdown-toggle, app-home-source-uses i.fa-ellipsis-v');
 
-  // Make sure it's visible and click it
-  await expect(fullscreenIcon).toBeVisible({ timeout: 5000 });
-  await fullscreenIcon.click();
+  await expect(dropdownIcon).toBeVisible({ timeout: 5000 });
+  await dropdownIcon.click();
 
-  // Wait for fullscreen effect or any animation
   await page.waitForTimeout(500);
 
-  // Screenshot for validation
-  await expect(fullscreenIcon).toHaveScreenshot('sr-budget-glance-sources-fullscreen-icon.png');
+  await expect(dropdownIcon).toHaveScreenshot('sr-budget-glance-sources-dropdown-clicked.png');
 });
