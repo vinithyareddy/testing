@@ -1,12 +1,27 @@
-test('Verify Dropdown Icon beside Fullscreen in Sources Widget', async ({ page }) => {
+test('Verify Expand Icon is Clickable in Sources Widget', async ({ page }) => {
+  // Wait for the widget to be visible
   await page.waitForSelector('app-home-source-uses', { timeout: 10000 });
 
-  const dropdownIcon = page.locator('app-home-source-uses i[class*=ellipsis]');
+  // Scroll into view to avoid lazy load issues
+  const sourcesWidget = page.locator('app-home-source-uses');
+  await sourcesWidget.scrollIntoViewIfNeeded();
 
-  await expect(dropdownIcon).toBeVisible({ timeout: 5000 });
-  await dropdownIcon.click();
+  // Try locating the expand (fullscreen) icon using a smarter selector
+  const expandIcon = page.locator('app-home-source-uses img[title="Expand View"], app-home-source-uses img[alt*="Expand"], app-home-source-uses .bgt-collabse-state img');
 
-  await page.waitForTimeout(500);
+  await expect(expandIcon).toBeVisible({ timeout: 10000 });
 
-  await expect(dropdownIcon).toHaveScreenshot('sr-budget-glance-sources-dropdown-clicked.png');
+  // Click to expand
+  await expandIcon.click();
+  await page.waitForTimeout(1000); // wait for animation
+
+  // Screenshot after expand
+  await expect(expandIcon).toHaveScreenshot('sr-budget-glance-sources-expanded.png');
+
+  // Click again to collapse
+  await expandIcon.click();
+  await page.waitForTimeout(1000); // wait for collapse
+
+  // Final screenshot after collapsing
+  await expect(expandIcon).toHaveScreenshot('sr-budget-glance-sources-collapsed.png');
 });
