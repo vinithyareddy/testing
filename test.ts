@@ -1,14 +1,16 @@
-test('Verify Sources and Uses Table is Visible', async ({ page }) => {
-  // Wait for the widget container
+test('Verify Sources Table Content for Known Department', async ({ page }) => {
+  // Wait for the widget itself
   const widget = page.locator('app-home-source-uses');
   await widget.waitFor({ state: 'visible', timeout: 10000 });
 
-  // Locate the table inside the widget
-  const table = widget.locator('table');
+  // Find row containing a known department name — e.g., 'ITSDG' or 'ITSVD'
+  const row = widget.locator('tr', { hasText: 'ITSDG' }); // Update text as per actual
 
-  // Ensure it's visible
-  await expect(table).toBeVisible({ timeout: 5000 });
+  // Wait for that row to be visible
+  await expect(row).toBeVisible({ timeout: 5000 });
 
-  // Screenshot for validation
-  await expect(table).toHaveScreenshot('sr-budget-glance-sources-table-visible.png');
+  // Check for a known value — use regex if dynamic
+  const forecastValue = row.locator('td', { hasText: /^394\.8M$/ }); // or just '394.8'
+
+  await expect(forecastValue).toBeVisible();
 });
