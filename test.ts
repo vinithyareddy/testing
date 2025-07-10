@@ -1,14 +1,10 @@
-test('Verify View More Button is Visible and Clickable', async ({ page }) => {
-  const widget = page.locator('app-home-source-uses');
-  await widget.waitFor({ state: 'visible', timeout: 15000 });
+test('Verify BB Outcome by VPU Title is Visible', async ({ page }) => {
+  const widget = page.locator('app-outcome-by-vpu');
+  await widget.waitFor({ state: 'visible', timeout: 10000 });
 
-  // Confirm that data is rendered
-  await page.waitForSelector('app-home-source-uses table tbody tr', { timeout: 10000 });
+  // Simpler and stable way to get title
+  const title = widget.getByText('BB Outcome by VPU', { exact: true });
+  await expect(title).toBeVisible({ timeout: 10000 });
 
-  const viewMore = page.getByRole('button', { name: 'View More' });
-  await viewMore.scrollIntoViewIfNeeded();
-  await expect(viewMore).toBeVisible({ timeout: 10000 });
-
-  await viewMore.click();
-  await page.waitForTimeout(500); // Optional: expansion effect
+  await expect(title).toHaveScreenshot('sr-budget-glance-bb-outcome-by-vpu-title-visible.png');
 });
