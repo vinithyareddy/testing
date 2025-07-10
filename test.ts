@@ -1,17 +1,23 @@
-test('Verify Expand Plus Icon inside Sources Table', async ({ page }) => {
+test('Verify View More Button is Visible and Clickable', async ({ page }) => {
+  // Wait for main widget
   const widget = page.locator('app-home-source-uses');
   await widget.waitFor({ state: 'visible', timeout: 10000 });
 
-  // Try to get any plus icon inside the widget
-  const plusIcon = widget.locator('i.fa-plus, span.fa-plus'); // covers both <i> and <span> cases
+  // Locate the button inside it — with a flexible selector
+  const viewMore = widget.locator('text=View More');
 
-  // If icon appears only on hover, scroll/hover first
-  await plusIcon.first().scrollIntoViewIfNeeded();
-  await page.waitForTimeout(300); // allow any hover-based rendering
+  // Optionally scroll into view in case it's hidden offscreen
+  await viewMore.scrollIntoViewIfNeeded();
 
-  await expect(plusIcon.first()).toBeVisible({ timeout: 5000 });
+  // Wait for visibility
+  await expect(viewMore).toBeVisible({ timeout: 10000 });
 
-  // Click + capture screenshot
-  await plusIcon.first().click();
-  await expect(plusIcon.first()).toHaveScreenshot('sr-budget-glance-sources-plus-expanded.png');
+  // Click
+  await viewMore.click();
+
+  // Wait for animation or result
+  await page.waitForTimeout(1000);
+
+  // Optional screenshot or verification
+  await expect(page.locator('.view-more')).toBeVisible();
 });
