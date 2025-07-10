@@ -1,10 +1,14 @@
-test('Verify Sources and Uses Title is Visible', async ({ page }) => {
-  // Wait for the main widget to appear
+test('Verify Fullscreen Icon is Clickable in Sources Widget', async ({ page }) => {
+  // Wait for the Sources and Uses widget
   await page.waitForSelector('app-home-source-uses', { timeout: 10000 });
 
-  // Target the actual title using visible text
-  const title = page.locator('app-home-source-uses h5, app-home-source-uses span', { hasText: 'Sources and Uses' });
+  // Try locating the fullscreen icon using its aria-label or title, fallback to SVG or image role if needed
+  const fullscreenIcon = page.locator('app-home-source-uses button[title*="Full screen"], app-home-source-uses .view_more');
 
-  await expect(title).toBeVisible({ timeout: 10000 });
-  await expect(title).toHaveScreenshot('sr-budget-glance-sources-title-visible.png');
+  await expect(fullscreenIcon).toBeVisible({ timeout: 5000 });
+
+  await fullscreenIcon.click();
+  await page.waitForTimeout(500);
+
+  await expect(fullscreenIcon).toHaveScreenshot('sr-budget-glance-sources-fullscreen-icon.png');
 });
