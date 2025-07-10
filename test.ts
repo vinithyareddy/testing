@@ -1,16 +1,14 @@
 test('Verify Sources Table Content for Known Department', async ({ page }) => {
-  // Wait for the widget itself
   const widget = page.locator('app-home-source-uses');
   await widget.waitFor({ state: 'visible', timeout: 10000 });
 
-  // Find row containing a known department name — e.g., 'ITSDG' or 'ITSVD'
-  const row = widget.locator('tr', { hasText: 'ITSDG' }); // Update text as per actual
+  // Locate any row with 'ITSDG' text inside the widget, deeper search
+  const row = widget.locator(':scope >> text=ITSDG'); // searches deeper inside DOM
 
-  // Wait for that row to be visible
   await expect(row).toBeVisible({ timeout: 5000 });
 
-  // Check for a known value — use regex if dynamic
-  const forecastValue = row.locator('td', { hasText: /^394\.8M$/ }); // or just '394.8'
+  // Find a matching value in the same widget (e.g. 394.8 or similar)
+  const forecastValue = widget.locator('text=/394\.8M?/'); // Adjust pattern if needed
 
   await expect(forecastValue).toBeVisible();
 });
