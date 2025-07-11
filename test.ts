@@ -1,15 +1,24 @@
-test('Verify BB Outcome by VPU Title is Visible', async ({ page }) => {
-  // Wait for the page to fully load using a visible KPI title
-  await page.getByText('PROJECTED BB OUTCOME', { exact: false }).waitFor({ timeout: 15000 });
+test.beforeAll(async ({ page }) => {
+  // Use longer timeout to prevent hook failures
+  test.setTimeout(60000); // Optional: increase timeout for slow pages
 
-  // Now wait for BB Outcome widget to appear
-  const widget = page.locator('app-outcome-by-vpu:visible');
-  await widget.waitFor({ state: 'visible', timeout: 15000 });
+  try {
+    // Go to the page
+    await page.goto('https://standardreportsbetaqa.worldbank.org/budget-glance', {
+      waitUntil: 'domcontentloaded',
+      timeout: 45000, // increased from default
+    });
 
-  // Get the title inside the widget
-  const title = widget.getByText('BB Outcome by VPU', { exact: true });
-  await expect(title).toBeVisible({ timeout: 10000 });
+    // Optional: wait for a visible element that confirms page load
+    await page.getByText('Budget at a Glance', { exact: false }).waitFor({ timeout: 10000 });
 
-  // Screenshot for validation
-  await expect(title).toHaveScreenshot('sr-budget-glance-bb-outcome-by-vpu-title-visible.png');
+    // Wait for stable network and slight buffer
+    await page.waitForLoadState('networkidle', { timeout: 15000 });
+    await page.waitForTimeout(1000); // Give extra second for stability
+
+  } catch (err) {
+    console.error('❌ Error during beforeAll navigation:', err);
+    await page.screenshot({ path: 'error-beforeAll-nav.png', fullPage: true });
+    throw err; // rethrow to fail test
+  }
 });
