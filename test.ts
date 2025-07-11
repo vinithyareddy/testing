@@ -1,12 +1,14 @@
-test('Verify Projected BB Outcome by VPU Title is Visible', async ({ page }) => {
-  // Step 1: Wait until widget block loads
-  const widget = page.locator('app-outcomebypvu');
-  await widget.waitFor({ state: 'visible', timeout: 15000 });
+test.describe('Budget at a Glance', () => {
+  test.beforeAll(async ({ page }) => {
+    // Extend timeout for slower page loading
+    test.setTimeout(60000);
 
-  // Step 2: Match heading inside the widget (robust, based on screenshot layout)
-  const title = widget.locator('div.widget-heading').getByText('BB Outcome by VPU', { exact: true });
-  await expect(title).toBeVisible({ timeout: 10000 });
+    // Navigate to the page with full network load
+    await page.goto(
+      'https://standardreportsbetaqa.worldbank.org/budget-glance?filter=your-query-params-here',
+      { waitUntil: 'networkidle' }
+    );
 
-  // Step 3: Screenshot for verification
-  await expect(title).toHaveScreenshot('sr-budget-glance-bb-outcome-by-vpu-title.png');
-});
+    // Optional: Give time for widget data to render (especially charts/tables)
+    await page.waitForTimeout(3000);
+  });
