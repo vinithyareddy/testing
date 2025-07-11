@@ -1,27 +1,24 @@
-test('Verify default filter selections in filter summary bar', async ({ page }) => {
-  const filterButton = page.getByRole('button', { name: /filter/i });
-  await filterButton.click();
-  await page.waitForTimeout(1000); // wait for dropdown animation
+test('Verify Expand Icon is Clickable in Sources Widget', async ({ page }) => {
+  // Wait until table rows are present = data loaded
+  await page.waitForSelector('app-home-source-uses table tbody tr', { timeout: 20000 });
 
-  // Wait for fiscal year label to appear
-  await page.waitForSelector('text=Fiscal Year', { timeout: 10000 });
+  const widget = page.locator('app-home-source-uses');
+  await expect(widget).toBeVisible({ timeout: 5000 }); // now should work
 
-  // Check visible values
-  const fiscalYearTag = page.getByText('2025', { exact: false });
-  await expect(fiscalYearTag).toBeVisible({ timeout: 10000 });
+  const expandIcon = page.locator(
+    'app-home-source-uses img[title="Expand View"], app-home-source-uses img[alt*="Expand"], app-home-source-uses .bgt-collabse-state img'
+  ).first();
 
-  const vpuTag = page.getByText('ITSVP', { exact: false });
-  await expect(vpuTag).toBeVisible({ timeout: 10000 });
+  await expandIcon.scrollIntoViewIfNeeded();
+  await expect(expandIcon).toBeVisible({ timeout: 10000 });
 
-  const includeUnitTag = page.getByText('N', { exact: true }); // or more specific if needed
-  await expect(includeUnitTag).toBeVisible({ timeout: 10000 });
+  // Click to expand
+  await expandIcon.click();
+  await page.waitForTimeout(500);
+  await expect(expandIcon).toHaveScreenshot('sr-budget-glance-sources-expanded.png');
 
-  // Posting period: look for months (less brittle)
-  const months = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-  for (const month of months) {
-    await expect(page.getByText(month)).toBeVisible({ timeout: 10000 });
-  }
-
-  // Screenshot
-  await expect(page.locator('div')).toHaveScreenshot('sr-budget-glance-default-filter-tags.png');
+  // Click to collapse
+  await expandIcon.click();
+  await page.waitForTimeout(500);
+  await expect(expandIcon).toHaveScreenshot('sr-budget-glance-sources-collapsed.png');
 });
