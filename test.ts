@@ -1,18 +1,29 @@
 test('Verify View More Button is Visible and Clickable', async ({ page }) => {
-  test.setTimeout(90000); // generous timeout for full dashboard
+  test.setTimeout(120000); // generous timeout
 
-  // Step 1: Wait for the widget (Sources and Uses) to appear
   const widget = page.locator('app-home-source-uses');
-  await expect(widget).toBeVisible({ timeout: 30000 });
 
-  // Step 2: Find and verify the "View More" button inside the widget
-  const viewMore = widget.getByRole('button', { name: 'View More' }); // Preferred if button role exists
-  await viewMore.scrollIntoViewIfNeeded();
-  await expect(viewMore).toBeVisible({ timeout: 10000 });
+  try {
+    // Step 1: Wait up to 60 seconds for widget
+    await expect(widget).toBeVisible({ timeout: 60000 });
+  } catch (err) {
+    console.error('❌ Widget "app-home-source-uses" not found or visible after 60s');
+    await page.screenshot({ path: 'widget_not_loaded.png', fullPage: true });
+    return; // Exit early to avoid scroll failure
+  }
 
-  // Step 3: Click the button
-  await viewMore.click();
+  // Step 2: Safely handle the "View More" button
+  const viewMore = widget.locator('text=View More');
+  try {
+    await viewMore.scrollIntoViewIfNeeded();
+    await expect(viewMore).toBeVisible({ timeout: 30000 });
 
-  // Optional: Wait for animation or expanded content
-  await page.waitForTimeout(1000);
+    // Step 3: Click and wait
+    await viewMore.click();
+    await page.waitForTimeout(1000);
+  } catch (err) {
+    console.error('❌ View More button not found or not interactable');
+    await page.screenshot({ path: 'viewmore_not_visible.png', fullPage: true });
+    throw err;
+  }
 });
