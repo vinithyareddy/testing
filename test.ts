@@ -1,25 +1,18 @@
-test.beforeAll(async ({ browser }) => {
-  const context = await browser.newContext();
-  const page = await context.newPage();
-
-  // 🔍 Optional: Debug logs
-  page.on('console', msg => console.log('PAGE LOG:', msg.text()));
-  page.on('requestfailed', request =>
-    console.log('❌ Request Failed:', request.url(), request.failure()?.errorText)
-  );
-
-  // ⚠️ DON'T use waitUntil: 'networkidle' — may never resolve
-  await page.goto('https://standardreportsbetaqa.worldbank.org/budget-glance?filter=...', {
-    waitUntil: 'domcontentloaded', // just ensure DOM is ready
+test.beforeAll(async ({ page }) => {
+  await page.goto('https://standardreportsbetaqa.worldbank.org/budget-glance?...', {
+    waitUntil: 'load',
+    timeout: 60000,
   });
 
-  // ⏳ Give page time to settle (especially if spinner stays)
+  // Wait for key content (title or widget)
+  await page.waitForSelector('text=BB Outcome by VPU', {
+    timeout: 60000,
+    state: 'visible',
+  });
+
+  // Optional: wait for data rows to render
+  await page.waitForSelector('table >> text=ITSVP', { timeout: 60000 });
+
+  // Buffer just to be safe
   await page.waitForTimeout(3000);
-
-  // ✅ Use a reliable static element (title or heading)
-  await expect(page.getByText('Budget at a Glance', { exact: false })).toBeVisible({
-    timeout: 10000,
-  });
-
-  await context.close();
 });
