@@ -55,3 +55,28 @@ test('Verify Expand Icon is Clickable in Sources Widget', async ({ page }) => {
   await page.waitForTimeout(500);
   await expect(expandIcon).toHaveScreenshot('sr-budget-glance-sources-collapsed.png');
 });
+test('Verify default filter selections in filter summary bar', async ({ page }) => {
+  test.setTimeout(90000); // safe timeout for full banner load
+
+  const filterButton = page.getByRole('button', { name: /filter/i });
+  await filterButton.click();
+  await page.waitForTimeout(1000);
+
+  await page.waitForSelector('text=Fiscal Year', { timeout: 20000 });
+
+  const fiscalYearTag = page.getByText('2025', { exact: false });
+  await expect(fiscalYearTag).toBeVisible({ timeout: 10000 });
+
+  const vpuTag = page.getByText('ITSVP', { exact: false });
+  await expect(vpuTag).toBeVisible({ timeout: 10000 });
+
+  const includeUnitTag = page.getByText('N', { exact: true });
+  await expect(includeUnitTag).toBeVisible({ timeout: 10000 });
+
+  const months = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+  for (const month of months) {
+    await expect(page.getByText(month)).toBeVisible({ timeout: 10000 });
+  }
+
+  await expect(page.locator('div')).toHaveScreenshot('sr-budget-glance-default-filter-tags.png');
+});
