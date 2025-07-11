@@ -1,29 +1,29 @@
-test('Verify View More Button is Visible and Clickable', async ({ page }) => {
-  test.setTimeout(120000); // generous timeout
+test('Verify Filter Dropdown Shows Expected Options', async ({ page }) => {
+  // Step 1: Click the filter button to expand the dropdown
+  const filterButton = page.locator(
+    'lift-accordion-item .item-title-text' // Replace with your actual trigger class if needed
+  );
+  await filterButton.click();
 
-  const widget = page.locator('app-home-source-uses');
+  // Step 2: Wait briefly for dropdown animation/rendering
+  await page.waitForTimeout(1000); // Stabilize for animation
 
-  try {
-    // Step 1: Wait up to 60 seconds for widget
-    await expect(widget).toBeVisible({ timeout: 60000 });
-  } catch (err) {
-    console.error('❌ Widget "app-home-source-uses" not found or visible after 60s');
-    await page.screenshot({ path: 'widget_not_loaded.png', fullPage: true });
-    return; // Exit early to avoid scroll failure
-  }
+  // Step 3: Confirm each option is visible (use safer text-based selectors if possible)
+  const option1 = page.getByText('Fiscal Year', { exact: false });
+  const option2 = page.getByText('TISVP', { exact: false });
+  const option3 = page.getByText('Include Unit', { exact: false });
+  const option4 = page.getByText('Month', { exact: false }); // Adjust names if needed
 
-  // Step 2: Safely handle the "View More" button
-  const viewMore = widget.locator('text=View More');
-  try {
-    await viewMore.scrollIntoViewIfNeeded();
-    await expect(viewMore).toBeVisible({ timeout: 30000 });
+  await expect(option1).toBeVisible({ timeout: 10000 });
+  await expect(option2).toBeVisible({ timeout: 10000 });
+  await expect(option3).toBeVisible({ timeout: 10000 });
+  await expect(option4).toBeVisible({ timeout: 10000 });
 
-    // Step 3: Click and wait
-    await viewMore.click();
-    await page.waitForTimeout(1000);
-  } catch (err) {
-    console.error('❌ View More button not found or not interactable');
-    await page.screenshot({ path: 'viewmore_not_visible.png', fullPage: true });
-    throw err;
-  }
+  // Step 4: Take screenshot of full dropdown container
+  const dropdownContainer = page.locator(
+    'lift-accordion-item .accordion-body' // Or update with your actual container
+  );
+
+  await dropdownContainer.scrollIntoViewIfNeeded();
+  await expect(dropdownContainer).toHaveScreenshot('sr-budget-glance-filter-dropdown-options.png');
 });
