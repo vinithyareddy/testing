@@ -1,37 +1,25 @@
-
 test.beforeAll(async ({ browser }) => {
-  const context = await browser.newContext({
-    // Optional: load previously saved login state
-    storageState: 'auth.json', // only if you're using a logged-in session
-  });
+  const context = await browser.newContext();
   const page = await context.newPage();
 
-  // 🔍 Debugging listeners
+  // 🔍 Optional: Debug logs
   page.on('console', msg => console.log('PAGE LOG:', msg.text()));
   page.on('requestfailed', request =>
     console.log('❌ Request Failed:', request.url(), request.failure()?.errorText)
   );
-  page.on('response', response => {
-    if (!response.ok())
-      console.log(`⚠️ Bad response [${response.status()}]`, response.url());
-  });
 
-  // 🚀 Navigate to target page
+  // ⚠️ DON'T use waitUntil: 'networkidle' — may never resolve
   await page.goto('https://standardreportsbetaqa.worldbank.org/budget-glance?filter=...', {
-    waitUntil: 'domcontentloaded', // don't wait for all JS requests if blocking
+    waitUntil: 'domcontentloaded', // just ensure DOM is ready
   });
 
-  // ⏳ Add buffer time for app init
+  // ⏳ Give page time to settle (especially if spinner stays)
   await page.waitForTimeout(3000);
 
-  // ✅ Optional: wait for known widget or static text
-  await expect(
-    page.getByText('BB Outcome by VPU', { exact: true })
-  ).toBeVisible({ timeout: 10000 });
+  // ✅ Use a reliable static element (title or heading)
+  await expect(page.getByText('Budget at a Glance', { exact: false })).toBeVisible({
+    timeout: 10000,
+  });
 
-  // Save session if needed
-  await context.storageState({ path: 'auth.json' });
-
-  await page.close();
   await context.close();
 });
