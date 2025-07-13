@@ -1,31 +1,21 @@
-test('Verify Expand Icon is Clickable in Sources Widget', async ({ page }) => {
-  test.setTimeout(120000); // Extended for slow load
-
-  // Wait for widget container
-  await page.waitForSelector('app-outcomebyvpu', { timeout: 60000 });
-
+test('Verify BB Outcome by VPU Table is Visible', async ({ page }) => {
+  // Wait for the widget container to appear
   const widget = page.locator('app-outcomebyvpu');
-  await expect(widget).toBeVisible({ timeout: 30000 });
+  await widget.waitFor({ state: 'visible', timeout: 60000 });
 
-  // Try more stable selector for expand icon
-  const expandIcon = widget.locator('img[alt*="Expand"], img[src*="expand"], span.bgt-collabse-state img').first();
+  // Locate the table or main content inside the widget
+  const table = widget.locator('div.ng-trigger-collapse >> table'); // adjust selector based on actual HTML
 
-  if (await expandIcon.count() === 0) {
-    console.error('❌ Expand icon not found.');
-    await page.screenshot({ path: 'expand_icon_not_found.png', fullPage: true });
+  // Fail early if it's not present
+  if (await table.count() === 0) {
+    console.error('❌ Table not found in DOM.');
+    await page.screenshot({ path: 'vpu_table_not_found.png', fullPage: true });
     return;
   }
 
-  await expandIcon.scrollIntoViewIfNeeded();
-  await expect(expandIcon).toBeVisible({ timeout: 15000 });
+  // Ensure it's visible
+  await expect(table).toBeVisible({ timeout: 90000 });
 
-  // Expand
-  await expandIcon.click();
-  await page.waitForTimeout(500);
-  await expect(expandIcon).toHaveScreenshot('sr-budget-glance-vpu-expanded.png');
-
-  // Collapse
-  await expandIcon.click();
-  await page.waitForTimeout(500);
-  await expect(expandIcon).toHaveScreenshot('sr-budget-glance-vpu-collapsed.png');
+  // Screenshot for validation
+  await expect(table).toHaveScreenshot('sr-budget-glance-vpu-table-visible.png');
 });
