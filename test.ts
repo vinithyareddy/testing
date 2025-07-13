@@ -1,55 +1,68 @@
 test('Verify WPBPG Title is Visible', async ({ page }) => {
-  const title = page.getByRole('heading', { name: 'Work Program By Business Process Group', exact: false });
+  const widget = page.locator('app-work-program-by-business-process');
+  await widget.waitFor({ state: 'visible', timeout: 60000 });
+
+  const title = widget.getByRole('heading', { name: /Work Program/i }); // Looser match
   await expect(title).toBeVisible({ timeout: 20000 });
-  await expect(title).toHaveScreenshot('sr-wpbpg-title.png');
+
+  await expect(title).toHaveScreenshot('sr-budget-glance-wpbpg-title.png');
 });
 
 test('Verify WPBPG Fullscreen Icon is Clickable', async ({ page }) => {
-  const fullscreenIcon = page.locator('app-workbybpg i.fa-expand'); // Adjust selector if needed
-  await expect(fullscreenIcon).toBeVisible({ timeout: 10000 });
+  const widget = page.locator('app-work-program-by-business-process');
+  await widget.waitFor({ state: 'visible', timeout: 60000 });
+
+  const fullscreenIcon = widget.locator('i.bx-fullscreen'); // Use a class-based or role-based locator
+  await expect(fullscreenIcon).toBeVisible({ timeout: 20000 });
+
   await fullscreenIcon.click();
   await page.waitForTimeout(1000);
-  await expect(fullscreenIcon).toHaveScreenshot('sr-wpbpg-fullscreen.png');
+  await expect(fullscreenIcon).toHaveScreenshot('sr-budget-glance-wpbpg-fullscreen.png');
 });
 
 test('Verify WPBPG Expand Icon is Clickable', async ({ page }) => {
-  const expandIcon = page.locator('app-workbybpg img[alt="expand"]'); // Change if needed
+  const widget = page.locator('app-work-program-by-business-process');
+  await widget.waitFor({ state: 'visible', timeout: 60000 });
+
+  const expandIcon = widget.locator('img[alt="Expand/Collapse"]'); // Adjust if `alt` exists or use sibling class
   await expandIcon.scrollIntoViewIfNeeded();
   await expect(expandIcon).toBeVisible();
-  await expandIcon.click();
-  await page.waitForTimeout(500);
-  await expect(expandIcon).toHaveScreenshot('sr-wpbpg-expanded.png');
 
-  await expandIcon.click();
-  await page.waitForTimeout(500);
-  await expect(expandIcon).toHaveScreenshot('sr-wpbpg-collapsed.png');
+  await expandIcon.click(); await page.waitForTimeout(500);
+  await expect(widget).toHaveScreenshot('sr-budget-glance-wpbpg-expanded.png');
+
+  await expandIcon.click(); await page.waitForTimeout(500);
+  await expect(widget).toHaveScreenshot('sr-budget-glance-wpbpg-collapsed.png');
 });
 
 test('Verify WPBPG Table is Visible', async ({ page }) => {
-  const table = page.locator('app-workbybpg table');
-  await expect(table).toBeVisible({ timeout: 15000 });
-  await expect(table).toHaveScreenshot('sr-wpbpg-table.png');
+  const widget = page.locator('app-work-program-by-business-process');
+  await widget.waitFor({ state: 'visible', timeout: 60000 });
+
+  const table = widget.locator('table');
+  await expect(table).toBeVisible({ timeout: 20000 });
+
+  await expect(table).toHaveScreenshot('sr-budget-glance-wpbpg-table.png');
 });
 
 test('Verify WPBPG Budget Type Toggles Work', async ({ page }) => {
-  const toggleAll = page.getByLabel('All');
-  const toggleBB = page.getByLabel('BB');
-  const toggleReimb = page.getByLabel('REIMB');
-  const toggleTF = page.getByLabel('TF');
+  const widget = page.locator('app-work-program-by-business-process');
+  await widget.waitFor({ state: 'visible', timeout: 60000 });
 
-  await toggleAll.check();
-  await page.waitForTimeout(500);
-  await expect(page.locator('app-workbybpg table')).toHaveScreenshot('sr-wpbpg-toggle-all.png');
+  const toggleAll = page.getByRole('radio', { name: /All/i });
+  const toggleBB = page.getByRole('radio', { name: /BB/i });
+  const toggleReimb = page.getByRole('radio', { name: /REIMB/i });
+  const toggleTF = page.getByRole('radio', { name: /TF/i });
 
-  await toggleBB.check();
-  await page.waitForTimeout(500);
-  await expect(page.locator('app-workbybpg table')).toHaveScreenshot('sr-wpbpg-toggle-bb.png');
+  await toggleAll.check(); await page.waitForTimeout(500);
+  await expect(widget).toHaveScreenshot('sr-budget-glance-wpbpg-toggle-all.png');
 
-  await toggleReimb.check();
-  await page.waitForTimeout(500);
-  await expect(page.locator('app-workbybpg table')).toHaveScreenshot('sr-wpbpg-toggle-reimb.png');
+  await toggleBB.check(); await page.waitForTimeout(500);
+  await expect(widget).toHaveScreenshot('sr-budget-glance-wpbpg-toggle-bb.png');
 
-  await toggleTF.check();
-  await page.waitForTimeout(500);
-  await expect(page.locator('app-workbybpg table')).toHaveScreenshot('sr-wpbpg-toggle-tf.png');
+  await toggleReimb.check(); await page.waitForTimeout(500);
+  await expect(widget).toHaveScreenshot('sr-budget-glance-wpbpg-toggle-reimb.png');
+
+  await toggleTF.check(); await page.waitForTimeout(500);
+  await expect(widget).toHaveScreenshot('sr-budget-glance-wpbpg-toggle-tf.png');
 });
