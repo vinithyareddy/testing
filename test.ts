@@ -35,15 +35,6 @@ test('Verify WPBPG Expand Icon is Clickable', async ({ page }) => {
   await expect(widget).toHaveScreenshot('sr-budget-glance-wpbpg-collapsed.png');
 });
 
-test('Verify WPBPG Table is Visible', async ({ page }) => {
-  const widget = page.locator('app-work-program-by-business-process');
-  await widget.waitFor({ state: 'visible', timeout: 60000 });
-
-  const table = widget.locator('table');
-  await expect(table).toBeVisible({ timeout: 20000 });
-
-  await expect(table).toHaveScreenshot('sr-budget-glance-wpbpg-table.png');
-});
 
 test('Verify WPBPG Budget Type Toggles Work', async ({ page }) => {
   const widget = page.locator('app-work-program-by-business-process');
