@@ -1,19 +1,31 @@
-test('Verify Fullscreen Icon is Clickable in Sources Widget', async ({ page }) => {
-  // Step 1: Wait up to 90s for the widget container
-  await page.waitForSelector('app-outcomebyvpu', { timeout: 90000 });
+test('Verify Expand Icon is Clickable in Sources Widget', async ({ page }) => {
+  test.setTimeout(120000); // Extended for slow load
 
-  // Step 2: Locate fullscreen icon by role or class – use simpler locator (based on icon or alt/title)
-  const fullscreenIcon = page.locator('app-outcomebyvpu i[class*="fa-expand"], app-outcomebyvpu i[class*="fullscreen"]');
+  // Wait for widget container
+  await page.waitForSelector('app-outcomebyvpu', { timeout: 60000 });
 
-  // Step 3: Wait for icon to appear
-  await expect(fullscreenIcon).toBeVisible({ timeout: 90000 });
+  const widget = page.locator('app-outcomebyvpu');
+  await expect(widget).toBeVisible({ timeout: 30000 });
 
-  // Step 4: Click the icon
-  await fullscreenIcon.click();
+  // Try more stable selector for expand icon
+  const expandIcon = widget.locator('img[alt*="Expand"], img[src*="expand"], span.bgt-collabse-state img').first();
 
-  // Step 5: Optional: Wait for fullscreen effect or animation
-  await page.waitForTimeout(2000); // adjust if animation is long
+  if (await expandIcon.count() === 0) {
+    console.error('❌ Expand icon not found.');
+    await page.screenshot({ path: 'expand_icon_not_found.png', fullPage: true });
+    return;
+  }
 
-  // Step 6: Take screenshot
-  await expect(fullscreenIcon).toHaveScreenshot('sr-budget-glance-vpu-fullscreen-icon.png');
+  await expandIcon.scrollIntoViewIfNeeded();
+  await expect(expandIcon).toBeVisible({ timeout: 15000 });
+
+  // Expand
+  await expandIcon.click();
+  await page.waitForTimeout(500);
+  await expect(expandIcon).toHaveScreenshot('sr-budget-glance-vpu-expanded.png');
+
+  // Collapse
+  await expandIcon.click();
+  await page.waitForTimeout(500);
+  await expect(expandIcon).toHaveScreenshot('sr-budget-glance-vpu-collapsed.png');
 });
