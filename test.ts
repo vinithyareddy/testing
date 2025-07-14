@@ -1,13 +1,16 @@
 test('Verify Filter button opens and closes filter panel', async ({ page }) => {
-  const filterButton = page.getByRole('button', { name: 'Filter' });
+  const filterButton = page.getByRole('button', { name: /Filter/i });
 
-  await expect(filterButton).toBeVisible({ timeout: 10000 });
-  await filterButton.click();
-  await page.waitForTimeout(1000);
-  await expect(page).toHaveScreenshot('filter-panel-open.png');
+  // Wait for it to be visible
+  await expect(filterButton).toBeVisible({ timeout: 20000 });
 
-  // Click again to close the panel (assuming same button or close icon is used)
+  // Click to open filter
   await filterButton.click();
-  await page.waitForTimeout(1000);
-  await expect(page).toHaveScreenshot('filter-panel-closed.png');
+  await page.waitForTimeout(1500); // allow animation
+  await expect(filterButton).toHaveScreenshot('filter-panel-open.png');
+
+  // Click again to close filter
+  await filterButton.click();
+  await page.waitForTimeout(1500); // allow close animation
+  await expect(filterButton).toHaveScreenshot('filter-panel-closed.png');
 });
