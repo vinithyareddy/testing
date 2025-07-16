@@ -109,3 +109,48 @@ test('Verify Dropdown Option Can Be Selected and Applied', async ({ page }) => {
   await page.waitForTimeout(1500);
   await expect(filterTag).toHaveScreenshot('sr-budget-glance-filter-applied.png');
 });
+
+
+
+test('Verify Dropdown Option Can Be Selected and Applied', async ({ page }) => {
+  test.setTimeout(240000);
+
+  // Step 1: Go to Budget at a Glance page
+  await page.goto('https://standardreportsbetaqa.worldbank.org/budget-glance?...');
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(5000); // buffer
+
+  // Step 2: Open Filters panel
+  const filterPanel = page.locator('text=Filters');
+  await filterPanel.click();
+  await page.waitForTimeout(2000);
+
+  // Step 3: Expand dropdown (e.g., Fund Center)
+  const dropdownLabel = page.locator('text=Fund Center');
+  await dropdownLabel.click();
+  await page.waitForTimeout(1000);
+
+  // ✅ Step 4: Locate and check first visible checkbox
+  const firstCheckbox = page.locator(
+    'app-budget-glance-filters-panel input[type="checkbox"]'
+  ).first();
+  await firstCheckbox.waitFor({ state: 'visible', timeout: 10000 });
+  await firstCheckbox.check(); // Playwright will scroll if needed
+
+  // ✅ Take screenshot immediately after check
+  await page.waitForTimeout(1000);
+  await expect(firstCheckbox).toHaveScreenshot('sr-budget-glance-checkbox-checked.png');
+
+  // Step 5: Click Apply
+  const applyBtn = page.getByRole('button', { name: 'Apply' });
+  await expect(applyBtn).toBeVisible({ timeout: 10000 });
+  await applyBtn.click();
+
+  // Step 6: Wait for tag to appear showing the filter applied
+  const filterTag = page.locator('.filter-tag, .chip, .tag-pill').first();
+  await filterTag.waitFor({ state: 'visible', timeout: 15000 });
+
+  // Step 7: Screenshot the state after apply
+  await page.waitForTimeout(1500);
+  await expect(page).toHaveScreenshot('sr-budget-glance-filter-action.png');
+});
