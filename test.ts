@@ -1,20 +1,20 @@
-test('Verify Sources and Uses Table is Visible', async ({ page }) => {
-  // Step 1: Wait for the widget container to appear
-  const widget = page.locator('app-home-source-uses');
-  await widget.waitFor({ state: 'visible', timeout: 15000 });
+test('Verify Filter button opens and closes filter panel', async ({ page }) => {
+  // Corrected selector for filter button (custom-styled)
+  const filterButton = page.locator('label:has-text("Filter")'); // Matches the outer label with Filter text
 
-  // Step 2: Try to locate the table inside the widget with a stable selector
-  const table = widget.locator('table');
+  await expect(filterButton).toBeVisible({ timeout: 10000 });
+  await filterButton.click();
+  await page.waitForTimeout(1000); // Optional wait for animation
 
-  // Step 3: Wait until table is rendered with at least 1 row
-  await expect(table.locator('tr')).toHaveCountGreaterThan(0, { timeout: 15000 });
+  await expect(page).toHaveScreenshot('sr-budget-glance-filter-panel-open.png');
 
-  // Optional debug screenshot before checking visibility
-  await page.screenshot({ path: 'debug-sources-table-before-assert.png', fullPage: false });
+  // Correct close icon using i inside span
+  const closeIcon = page.locator('app-budget-refiner .refiner-header div:nth-child(2) > span > i');
+  await expect(closeIcon).toBeVisible({ timeout: 10000 });
 
-  // Step 4: Ensure table is visible
-  await expect(table).toBeVisible();
+  // Take screenshot before closing if needed
+  await closeIcon.click();
+  await page.waitForTimeout(1000);
 
-  // Step 5: Screenshot for validation
-  await expect(table).toHaveScreenshot('sr-budget-glance-sources-table-visible.png');
+  await expect(page).toHaveScreenshot('sr-budget-glance-filter-panel-closed.png');
 });
