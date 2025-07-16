@@ -1,30 +1,25 @@
-test('Verify Fullscreen Icon is Clickable in Sources Widget', async ({ page }) => {
-  // Extend default test timeout
+test('Verify default filter selections in filter summary bar', async ({ page }) => {
   test.setTimeout(90000);
 
-  // Wait for the widget to be attached and visible
-  const widget = page.locator('app-home-source-uses');
-  await widget.waitFor({ state: 'visible', timeout: 60000 });
-
-  // Scroll into view and ensure layout is stable
-  await widget.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(1000); // wait for render to settle
-
-  // Locate fullscreen expand icon
-  const expandIcon = page.locator(
-    'app-home-source-uses img[title="Expand"], app-home-source-uses img[alt*="Expand"], app-home-source-uses .bgt-collabse-state img'
+  // Open dropdown if collapsed
+  const dropdownToggle = page.locator(
+    'body > app-root > internal-framework-root > div.content-wrapper > div > div > div.col-md.layout-wrapper > app-budget-glance > app-budget-top-header > div.container-fluid.banner-sticky.mt-n2.mb-n4.pl-0.pr-0 > div > app-budget-banner-section > div > lift-accordion > div > lift-accordion-item > div > a'
   );
 
-  await expect(expandIcon).toBeVisible({ timeout: 10000 });
-  await expandIcon.click();
+  await dropdownToggle.waitFor({ state: 'visible', timeout: 20000 });
+  await dropdownToggle.scrollIntoViewIfNeeded();
+  await dropdownToggle.click(); // ensures section is open
 
-  // Wait for expanded view
-  await page.waitForTimeout(1000); // adjust if needed
+  // Now wait for the dropdown content section
+  const dropdownSection = page.locator(
+    'body > app-root > internal-framework-root > div.content-wrapper > div > div > div.col-md.layout-wrapper > app-budget-glance > app-budget-top-header > div.container-fluid.banner-sticky.mt-n2.mb-n4.pl-0.pr-0 > div > app-budget-banner-section > div > lift-accordion > div > lift-accordion-item > div > div'
+  );
 
-  // Take screenshot of expanded state
-  await expect(widget).toHaveScreenshot('sr-budget-glance-sources-expanded.png');
+  await dropdownSection.waitFor({ state: 'attached', timeout: 30000 });
+  await expect(dropdownSection).toBeVisible({ timeout: 30000 });
 
-  // Collapse the widget back
-  await expandIcon.click();
-  await page.waitForTimeout(500);
+  // Take screenshot or continue assertions
+  await dropdownSection.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(1000);
+  await expect(dropdownSection).toHaveScreenshot('sr-budget-glance-default-filter-tags.png');
 });
