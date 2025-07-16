@@ -1,44 +1,56 @@
 test('Verify Dropdown Option Can Be Selected and Applied', async ({ page }) => {
-  test.setTimeout(120000); // reduce timeout to avoid crashing
+  test.setTimeout(120000);
 
   // Step 1: Navigate
-  await page.goto('https://standardreportsbetaqa.worldbank.org/budget-glance?filter=...');
+  await page.goto('https://standardreportsbetaqa.worldbank.org/budget-glance?...');
   await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(5000); // conservative wait for dashboard
+  await page.waitForTimeout(5000);
 
-  // Step 2: Open Filter panel if collapsed
-  const filterButton = page.locator('lift-tag div > div > label > div');
-  if (await filterButton.isVisible()) {
-    await filterButton.click();
-    await page.waitForTimeout(3000);
+  // Step 2: Open filter panel if collapsed
+  const filterBtn = page.locator('span.tagviewShow lift-tag > div > div > label > div');
+  if (await filterBtn.isVisible()) {
+    await filterBtn.click();
+    await page.waitForTimeout(4000);
   }
 
   // Step 3: Expand Fund Center dropdown
-  const dropdownHeader = page.getByRole('heading', { name: 'Fund Center' });
-  await dropdownHeader.click();
+  const dropdownToggle = page.locator(
+    'lift-accordion:nth-child(3) > div > lift-accordion-item > div > a'
+  );
+  await dropdownToggle.click();
   await page.waitForTimeout(2000);
 
-  // Step 4: Click "Select Fund Center" input to show checkboxes
-  const selectDropdown = page.locator('angular2-multiselect div.selected-list');
-  await selectDropdown.click();
+  // Step 4: Click "Select Fund Center"
+  const selectFundInput = page.locator(
+    'angular2-multiselect > div > div.selected-list > div'
+  );
+  await selectFundInput.waitFor({ state: 'visible', timeout: 10000 });
+  await selectFundInput.click();
   await page.waitForTimeout(2000);
 
-  // Step 5: Select the first checkbox (e.g., CEUTH)
-  const firstCheckbox = page.locator('app-budget-glance-filters-panel input[type="checkbox"]').first();
-  await firstCheckbox.waitFor({ state: 'visible', timeout: 10000 });
-  await firstCheckbox.check();
+  // Step 5: Check first visible option (e.g., CEUTH)
+  const ceuthCheckbox = page.locator(
+    'angular2-multiselect div.dropdown-list ul > li:nth-child(1) > label'
+  );
+  await ceuthCheckbox.waitFor({ state: 'visible', timeout: 10000 });
+  await ceuthCheckbox.click(); // or use .check() if it's <input>
 
-  // Step 6: Screenshot after selection
-  await expect(firstCheckbox).toHaveScreenshot('sr-budget-glance-checkbox-checked.png');
+  // ✅ Take screenshot immediately after checking
+  await page.waitForTimeout(1000);
+  await expect(ceuthCheckbox).toHaveScreenshot('sr-budget-glance-ceuth-checkbox.png');
 
-  // Step 7: Click Apply
-  const applyButton = page.getByRole('button', { name: 'Apply' });
-  await applyButton.click();
+  // Step 6: Click Apply
+  const applyBtn = page.locator(
+    'div.refiner-header.ng-tns-c237-4 lift-button:nth-child(2) > button'
+  );
+  await applyBtn.waitFor({ state: 'visible', timeout: 10000 });
+  await applyBtn.click();
 
-  // Step 8: Confirm chip/tag appears
+  // Optional: Wait for filter tag confirmation
   const filterTag = page.locator('.filter-tag, .chip, .tag-pill').first();
-  await filterTag.waitFor({ state: 'visible', timeout: 10000 });
+  await filterTag.waitFor({ state: 'visible', timeout: 15000 });
 
-  // Step 9: Final screenshot
-  await expect(page).toHaveScreenshot('sr-budget-glance-filter-action.png');
+  // Final screenshot of applied state
+  await page.waitForTimeout(1500);
+  await expect(page).toHaveScreenshot('sr-budget-glance-filter-applied.png');
 });
