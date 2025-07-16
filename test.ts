@@ -1,19 +1,17 @@
-test('Verify BB outcome by VPU Table is Visible', async ({ page }) => {
-  // Step 1: Navigate to the page
-  await page.goto('https://standardreportsbetaqa.worldbank.org/budget-glance'); // Adjust if dynamic
-
-  // Step 2: Wait for the widget to be visible
-  const widget = page.locator('app-outcomebyvpu');
+test('Verify Sources and Uses Table is Visible', async ({ page }) => {
+  // Step 1: Wait for the Sources and Uses widget to appear
+  const widget = page.locator('app-home-source-uses');
   await widget.waitFor({ state: 'visible', timeout: 15000 });
 
-  // Step 3: Scroll the widget into view
-  await widget.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(1000); // Allow rendering
+  // Step 2: Wait for the specific table inside the widget to load
+  const table = page.locator(
+    'app-home-source-uses >>> div.TableView table'
+  );
+  await table.waitFor({ state: 'visible', timeout: 10000 });
 
-  // Step 4: Locate any <table> inside the widget
-  const table = widget.locator('table');
-  await table.waitFor({ state: 'visible', timeout: 12000 });
+  // Step 3: Assert table is visible
+  await expect(table).toBeVisible();
 
-  // Step 5: Screenshot the widget when table is visible
-  await expect(widget).toHaveScreenshot('sr-budget-glance-bb-outcome-vpu-visible.png');
+  // Step 4: Screenshot for validation
+  await expect(table).toHaveScreenshot('sr-budget-glance-sources-table-visible.png');
 });
