@@ -70,3 +70,42 @@ test('Close Filter Tab', async ({ page }) => {
   await page.waitForTimeout(4000);
   await expect(closeIcon).toHaveScreenshot('sr-budget-glance-filter-closeicon.png');
 });
+
+test('Verify Dropdown Option Can Be Selected and Applied', async ({ page }) => {
+  test.setTimeout(240000); // allow full load time
+
+  // Step 1: Navigate to page
+  await page.goto('https://standardreportsbetaqa.worldbank.org/budget-glance?...');
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(5000); // buffer
+
+  // Step 2: Click Filters tab if it's collapsed
+  const filterPanel = page.locator('text=Filters');
+  if (await filterPanel.isVisible()) {
+    await filterPanel.click(); // Only if it's a button/tab
+    await page.waitForTimeout(2000);
+  }
+
+  // Step 3: Expand "Fund Center" dropdown (or replace with any dropdown label)
+  const dropdownLabel = page.locator('text=Fund Center'); // visible label
+  await dropdownLabel.click(); // expands dropdown
+
+  // Step 4: Select the first checkbox in the list
+  const firstCheckbox = page.locator('app-budget-glance-filters-panel input[type="checkbox"]').first();
+  await firstCheckbox.waitFor({ state: 'visible', timeout: 10000 });
+  await firstCheckbox.check(); // Playwright handles scrolling
+  await page.waitForTimeout(1000); // buffer
+
+  // Step 5: Click Apply
+  const applyBtn = page.locator('button', { hasText: 'Apply' });
+  await expect(applyBtn).toBeVisible({ timeout: 10000 });
+  await applyBtn.click();
+
+  // Step 6: Wait for top filter tag to update (e.g., a chip with selected value)
+  const filterTag = page.locator('.filter-tag, .tag-pill, .fnt-toggle').first(); // Adjust selector if needed
+  await filterTag.waitFor({ state: 'visible', timeout: 15000 });
+
+  // Step 7: Screenshot the summary bar where filter shows
+  await page.waitForTimeout(1500);
+  await expect(filterTag).toHaveScreenshot('sr-budget-glance-filter-applied.png');
+});
