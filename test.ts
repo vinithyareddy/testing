@@ -1,32 +1,78 @@
-test('Verify EF Widget in $M and $K modes', async ({ page }) => {
-  test.setTimeout(180000);
+import { test, expect } from '@playwright/test';
 
-  const currencyToggle = page.locator('text=$K'); // First click to $K
-  await expect(currencyToggle).toBeVisible({ timeout: 10000 });
-  await currencyToggle.click();
-
-  await page.waitForTimeout(1000);
-
-  const efwidgetM = page.locator('app-home-top-header-widgets > div > div:nth-child(3) > div');
-  await expect(efwidgetM).toBeVisible({ timeout: 10000 });
-  await efwidgetM.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(2000);
-  await expect(efwidgetM).toHaveScreenshot('sr-budget-glance-ef-widget-M-mode.png', {
-    timeout: 10000,
-    animations: 'disabled',
+test.describe('Side Nav Menu Navigation', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('https://standardreportsbetaqa.worldbank.org/budget-glance');
+    await page.waitForLoadState('domcontentloaded');
   });
 
-  // Re-toggle to $M
-  const currencyToggleBack = page.locator('text=$M');
-  await currencyToggleBack.click();
-  await page.waitForTimeout(2000);
+  test('Budget at a Glance link navigates correctly', async ({ page }) => {
+    const link = page.getByRole('link', { name: 'Budget at a Glance' });
+    await expect(link).toBeVisible();
+    await link.click();
+    await expect(page).toHaveURL(/budget-glance/);
+  });
 
-  const efwidgetK = page.locator('app-home-top-header-widgets > div > div:nth-child(3) > div');
-  await expect(efwidgetK).toBeVisible({ timeout: 10000 });
-  await efwidgetK.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(2000);
-  await expect(efwidgetK).toHaveScreenshot('sr-budget-glance-ef-widget-K-mode.png', {
-    timeout: 10000,
-    animations: 'disabled',
+  test('Sources & Uses link navigates correctly', async ({ page }) => {
+    const link = page.getByRole('link', { name: 'Sources & Uses' });
+    await expect(link).toBeVisible();
+    await link.click();
+    await expect(page).toHaveURL(/sources-uses/);
+  });
+
+  test('WPA link navigates correctly', async ({ page }) => {
+    const link = page.getByRole('link', { name: 'WPA' });
+    await expect(link).toBeVisible();
+    await link.click();
+    await expect(page).toHaveURL(/wpa/);
+  });
+
+  test('Budget & Expenses link navigates correctly', async ({ page }) => {
+    const link = page.getByRole('link', { name: 'Budget & Expenses' });
+    await expect(link).toBeVisible();
+    await link.click();
+    await expect(page).toHaveURL(/budget-expenses/);
+  });
+
+  test('Collaboration link navigates correctly', async ({ page }) => {
+    const link = page.getByRole('link', { name: 'Collaboration' });
+    await expect(link).toBeVisible();
+    await link.click();
+    await expect(page).toHaveURL(/collaboration/);
+  });
+
+  test('Commitment Balance link navigates correctly', async ({ page }) => {
+    const link = page.getByRole('link', { name: 'Commitment Balance' });
+    await expect(link).toBeVisible();
+    await link.click();
+    await expect(page).toHaveURL(/commitment-balance/);
+  });
+
+  test('TRS & Staff Cost link navigates correctly', async ({ page }) => {
+    const link = page.getByRole('link', { name: 'TRS & Staff cost' });
+    await expect(link).toBeVisible();
+    await link.click();
+    await expect(page).toHaveURL(/trs-staff-cost/);
+  });
+
+  test('Travel link navigates correctly', async ({ page }) => {
+    const link = page.getByRole('link', { name: 'Travel' });
+    await expect(link).toBeVisible();
+    await link.click();
+    await expect(page).toHaveURL(/travel/);
+  });
+
+  test('External Funds link navigates correctly', async ({ page }) => {
+    const link = page.getByRole('link', { name: 'External funds' });
+    await expect(link).toBeVisible();
+    await link.click();
+    await expect(page).toHaveURL(/external-funds/);
+  });
+
+  test('HR Reports for BPS staff link navigates correctly', async ({ page }) => {
+    const link = page.getByRole('link', { name: 'HR Reports for BPS staff' });
+    await expect(link).toBeVisible();
+    await link.click();
+    await expect(page).toHaveURL(/hr-reports/);
   });
 });
