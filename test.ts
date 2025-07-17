@@ -1,56 +1,22 @@
-test('Verify Dropdown Option Can Be Selected and Applied', async ({ page }) => {
-  test.setTimeout(120000);
-
-  // Step 1: Navigate
-  await page.goto('https://standardreportsbetaqa.worldbank.org/budget-glance?...');
+test('Expand Sources and Uses row and take screenshot', async ({ page }) => {
+  // Step 1: Go to the page
+  await page.goto('https://standardreportsbetaqa.worldbank.org/budget-glance?filter=%5B%22bg1%255~2025%22,%22bg1%252~ITSVP%22,%22bgi%251~N%22,%22bgp%254~1%22,%22bgp%254~2%22,%22bgp%254~3%22,%22bgp%254~4%22,%22bgp%254~5%22,%22bgp%254~6%22,%22bgp%254~7%22,%22bgp%254~8%22,%22bgp%254~9%22,%22bgp%254~10%22,%22bgp%254~11%22,%22bgp%254~12%22%5D');
   await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(5000); // let dashboard finish rendering
 
-  // Step 2: Open filter panel if collapsed
-  const filterBtn = page.locator('span.tagviewShow lift-tag > div > div > label > div');
-  if (await filterBtn.isVisible()) {
-    await filterBtn.click();
-    await page.waitForTimeout(4000);
-  }
+  // Step 2: Wait for the Sources and Uses widget to load
+  const widget = page.locator('app-home-source-uses');
+  await expect(widget).toBeVisible({ timeout: 10000 });
 
-  // Step 3: Expand Fund Center dropdown
-  const dropdownToggle = page.locator(
-    'lift-accordion:nth-child(3) > div > lift-accordion-item > div > a'
-  );
-  await dropdownToggle.click();
-  await page.waitForTimeout(2000);
+  // Step 3: Click the plus icon in the second row
+  const plusIcon = widget.locator('table tbody tr:nth-child(2) td.pointer i');
+  await plusIcon.waitFor({ state: 'visible', timeout: 5000 });
+  await plusIcon.click();
 
-  // Step 4: Click "Select Fund Center"
-  const selectFundInput = page.locator(
-    'angular2-multiselect > div > div.selected-list > div'
-  );
-  await selectFundInput.waitFor({ state: 'visible', timeout: 10000 });
-  await selectFundInput.click();
-  await page.waitForTimeout(2000);
+  // Step 4: Wait for the expanded row (third row) to appear
+  const expandedRow = widget.locator('table tbody tr:nth-child(3)');
+  await expect(expandedRow).toBeVisible({ timeout: 5000 });
 
-  // Step 5: Check first visible option (e.g., CEUTH)
-  const ceuthCheckbox = page.locator(
-    'angular2-multiselect div.dropdown-list ul > li:nth-child(1) > label'
-  );
-  await ceuthCheckbox.waitFor({ state: 'visible', timeout: 10000 });
-  await ceuthCheckbox.click(); // or use .check() if it's <input>
-
-  // ✅ Take screenshot immediately after checking
-  await page.waitForTimeout(1000);
-  await expect(ceuthCheckbox).toHaveScreenshot('sr-budget-glance-ceuth-checkbox.png');
-
-  // Step 6: Click Apply
-  const applyBtn = page.locator(
-    'div.refiner-header.ng-tns-c237-4 lift-button:nth-child(2) > button'
-  );
-  await applyBtn.waitFor({ state: 'visible', timeout: 10000 });
-  await applyBtn.click();
-
-  // Optional: Wait for filter tag confirmation
-  const filterTag = page.locator('.filter-tag, .chip, .tag-pill').first();
-  await filterTag.waitFor({ state: 'visible', timeout: 15000 });
-
-  // Final screenshot of applied state
-  await page.waitForTimeout(1500);
-  await expect(page).toHaveScreenshot('sr-budget-glance-filter-applied.png');
+  // Step 5: Take screenshot of the expanded widget/table
+  await widget.screenshot({ path: 'sr-budget-glance-expanded-row.png' });
 });
