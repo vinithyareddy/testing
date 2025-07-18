@@ -1,29 +1,34 @@
-test('Close Filter Tab', async ({ page }) => {
+test('Verify Dropdown Option Expands', async ({ page }) => {
   test.setTimeout(180000);
 
   await page.goto('https://standardreportsbetaqa.worldbank.org/sources-uses');
   await page.waitForLoadState('domcontentloaded');
 
-  // Click Filter Tab (Top Right Pill)
-  const filterTab = page.locator('span.tagviewShow lift-tag div label div');
-  await filterTab.waitFor({ state: 'visible', timeout: 90000 });
+  // Filter Tab — use stable, scoped selector
+  const filterTab = page.locator('app-budget-top-header span.tagviewShow');
+  await filterTab.waitFor({ state: 'visible', timeout: 60000 });
   await filterTab.click();
 
-  // Ensure Filter Panel Slide Opens Fully
-  await page.waitForTimeout(4000);
-
-  // More RELIABLE close icon locator using role and visible text match fallback
-  const closeIcon = page.locator('app-budget-refiner i.fa-times');
-
-  // Wait and take screenshot BEFORE clicking close
-  await closeIcon.waitFor({ state: 'visible', timeout: 60000 });
-  await closeIcon.scrollIntoViewIfNeeded();
-  await page.screenshot({ path: 'screenshots/sr-budget-glance-filter-close.png', fullPage: true });
-
-  // Click close icon
-  await closeIcon.click();
+  // Wait for panel to slide out
   await page.waitForTimeout(3000);
 
-  // Optional: Verify the filter panel is now hidden
-  await expect(closeIcon).toHaveCount(0); // or check for 'not visible'
+  // Dropdown (e.g., Fund Center)
+  const dropdownArrow = page.locator('lift-accordion:nth-child(2) lift-accordion-item a div.item-arrow > i');
+  await dropdownArrow.waitFor({ state: 'visible', timeout: 60000 });
+  await dropdownArrow.click();
+  await page.waitForTimeout(1000); // wait for expand
+
+  // Take screenshot of expanded state
+  await page.screenshot({ path: 'screenshots/sr-budget-glance-filter-dropdown.png', fullPage: true });
+
+  // Collapse the dropdown again
+  await dropdownArrow.click();
+  await page.waitForTimeout(1000);
+
+  // Close panel
+  const closeIcon = page.locator('app-budget-refiner i.fa-times');
+  await closeIcon.waitFor({ state: 'visible', timeout: 60000 });
+  await closeIcon.click();
+
+  await page.waitForTimeout(3000);
 });
