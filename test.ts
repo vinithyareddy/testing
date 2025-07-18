@@ -1,24 +1,29 @@
-test('Verify Forecast Sources and Uses Values Are Visible', async ({ page }) => {
-  await page.goto('https://standardreportsbetaqa.worldbank.org/source-uses?...'); // your URL here
+test('Close Filter Tab', async ({ page }) => {
+  test.setTimeout(180000);
 
-  // Wait for page to finish rendering
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(2000);
+  await page.goto('https://standardreportsbetaqa.worldbank.org/sources-uses');
+  await page.waitForLoadState('domcontentloaded');
 
-  // Use more generic selectors — anchor on known text content or role if possible
-  const sourcesValue = page.locator('text=Forecast Sources'); // Finds card with 'Forecast Sources'
-  const usesValue = page.locator('text=Forecast Uses');       // Finds card with 'Forecast Uses'
+  // Click Filter Tab (Top Right Pill)
+  const filterTab = page.locator('span.tagviewShow lift-tag div label div');
+  await filterTab.waitFor({ state: 'visible', timeout: 90000 });
+  await filterTab.click();
 
-  await sourcesValue.scrollIntoViewIfNeeded();
-  await expect(sourcesValue).toBeVisible({ timeout: 10000 });
+  // Ensure Filter Panel Slide Opens Fully
+  await page.waitForTimeout(4000);
 
-  await usesValue.scrollIntoViewIfNeeded();
-  await expect(usesValue).toBeVisible({ timeout: 10000 });
+  // More RELIABLE close icon locator using role and visible text match fallback
+  const closeIcon = page.locator('app-budget-refiner i.fa-times');
 
-  await expect(sourcesValue).toHaveScreenshot('sr-sources-forecast-value.png', {
-    animations: 'disabled',
-  });
-  await expect(usesValue).toHaveScreenshot('sr-sources-uses-value.png', {
-    animations: 'disabled',
-  });
+  // Wait and take screenshot BEFORE clicking close
+  await closeIcon.waitFor({ state: 'visible', timeout: 60000 });
+  await closeIcon.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: 'screenshots/sr-budget-glance-filter-close.png', fullPage: true });
+
+  // Click close icon
+  await closeIcon.click();
+  await page.waitForTimeout(3000);
+
+  // Optional: Verify the filter panel is now hidden
+  await expect(closeIcon).toHaveCount(0); // or check for 'not visible'
 });
