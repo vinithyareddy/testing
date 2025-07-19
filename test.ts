@@ -4,15 +4,17 @@ test('Verify Sources and Uses Table is Visible', async ({ page }) => {
   await page.goto('https://standardreportsbetaqa.worldbank.org/sources-uses');
   await page.waitForLoadState('networkidle');
 
-  const widget = page.locator('app-source-users');
+  // Wait for the overall widget
+  const widget = page.locator('#Dashboard > div > div > div:nth-child(1) > div > app-source-users > div');
   await expect(widget).toBeVisible({ timeout: 20000 });
 
-  // Wait for ANY table inside widget — avoids brittle selector logic
+  // Now select the actual <table> inside that widget
   const table = widget.locator('table');
 
-  // Retry until the first table row exists and is visible
-  await expect(table.locator('tbody tr')).first().toBeVisible({ timeout: 20000 });
+  // Make sure table and at least one row is rendered
+  const firstRow = table.locator('tbody tr').first();
+  await expect(firstRow).toBeVisible({ timeout: 20000 });
 
-  // Now confirm full table screenshot
+  // Take screenshot once it's fully rendered
   await expect(table).toHaveScreenshot('sr-sources-uses-table-visible.png');
 });
