@@ -1,14 +1,18 @@
-test('Verify Projected BB Outcome Title is Visible', async ({ page }) => {
-  test.setTimeout(60000); // extend total test timeout for slow pages
+test('Verify Sources and Uses Table is Visible', async ({ page }) => {
+  test.setTimeout(60000);
 
   await page.goto('https://standardreportsbetaqa.worldbank.org/sources-uses');
-  await page.waitForLoadState('domcontentloaded'); // wait for initial load
-  await page.waitForTimeout(3000); // buffer for async UI
+  await page.waitForLoadState('networkidle');
 
-  const title = page.locator('div.budget-box-h1'); // use shorter selector if unique
+  const widget = page.locator('app-source-users');
+  await expect(widget).toBeVisible({ timeout: 20000 });
 
-  await title.waitFor({ state: 'visible', timeout: 15000 });
+  // Wait for ANY table inside widget — avoids brittle selector logic
+  const table = widget.locator('table');
 
-  await expect(title).toBeVisible();
-  await expect(title).toHaveScreenshot('sr-sources-uses-projected-bb-outcome-title.png');
+  // Retry until the first table row exists and is visible
+  await expect(table.locator('tbody tr')).first().toBeVisible({ timeout: 20000 });
+
+  // Now confirm full table screenshot
+  await expect(table).toHaveScreenshot('sr-sources-uses-table-visible.png');
 });
