@@ -1,17 +1,25 @@
-test('Verify Fullscreen Icon is Clickable in Sources Widget', async ({ page }) => {
-  test.setTimeout(60000);
+test('Verify sources widget Expand Icon is Clickable', async ({ page }) => {
+  test.setTimeout(120000);
 
-  await page.goto('https://standardreportsbetaqa.worldbank.org/sources-uses', {
-    timeout: 90000,
-    waitUntil: 'domcontentloaded',
-  });
+  await page.goto('https://standardreportsbetaqa.worldbank.org/sources-uses');
+  await page.waitForLoadState('domcontentloaded');
 
-  const sourcesTitle = page.locator('text=Sources And Uses').nth(1); // pick the correct index after inspecting
-  await expect(sourcesTitle).toBeVisible({ timeout: 20000 });
+  const widget = page.locator('app-source-users'); // simpler & robust
+  await widget.waitFor({ state: 'visible', timeout: 60000 });
 
-  const fullscreenIcon = page.locator('app-source-uses i.fa-expand'); // Adjust selector as needed
-  await fullscreenIcon.waitFor({ state: 'visible', timeout: 15000 });
-  await fullscreenIcon.click();
+  await widget.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(1000);
 
+  // Use relative locator inside widget
+  const expandIcon = widget.locator('span.bgt-collabse-state img'); // use class name if unique
+
+  await expect(expandIcon).toBeVisible({ timeout: 15000 });
+
+  await expandIcon.click();
+  await page.waitForTimeout(1000);
+
+  await expect(widget).toHaveScreenshot('sr-sources-uses-widget-expanded.png');
+
+  await expandIcon.click();
   await page.waitForTimeout(1000);
 });
