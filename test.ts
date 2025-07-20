@@ -1,8 +1,14 @@
-test('Fixed Expenses widget is visible', async ({ page }) => {
+test('Fixed Expenses widget is loaded with data', async ({ page }) => {
   const widget = page.locator('app-uses-breakdown >> nth=0');
   await expect(widget).toBeVisible();
-  await expect(widget).toHaveScreenshot('sr-sources-uses-fixed-expenses-widget.png');
+
+  // Wait for actual data to render inside the chart: e.g., axis label or bar value
+  const chart = widget.locator('div.highcharts-container text');
+  await expect(chart.first()).toBeVisible({ timeout: 10000 });
+
+  await expect(widget).toHaveScreenshot('fixed-expenses-widget.png');
 });
+
 
 test('Fixed Expenses title is visible', async ({ page }) => {
   const title = page.locator('text=Fixed Expenses: Actuals Vs Forecast');
