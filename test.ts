@@ -1,12 +1,13 @@
-test('Check Uses graph is visible', async ({ page }) => {
+test('Check S&U graph is visible', async ({ page }) => {
   const widget = page.locator('app-uses-breakdown');
   await widget.scrollIntoViewIfNeeded();
 
-  const usesTab = page.locator('#mat-button-toggle-2');
-  await usesTab.click();
+  const suTab = page.getByRole('tab', { name: 'S&U' });
+  await suTab.click();
 
-  const chart = widget.locator('div.highcharts-container').nth(0); // scoping and indexing
-  await expect(chart).toBeVisible({ timeout: 10000 });
+  // Select the second highcharts container inside the widget
+  const graph = widget.locator('div.highcharts-container').nth(1);
 
-  await expect(chart).toHaveScreenshot('sr-uses-by-fund-grp-uses-graph.png');
+  await expect(graph).toBeVisible({ timeout: 10000 });
+  await expect(graph).toHaveScreenshot('sr-fixed-vs-variable-su-graph.png');
 });
