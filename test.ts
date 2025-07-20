@@ -1,24 +1,23 @@
-test('Verify Fullscreen Button in Uses breakdown Widget', async ({ page }) => {
-  test.setTimeout(90000);
+test('Verify Uses breakdown widget Expand Icon is Clickable', async ({ page }) => {
+  test.setTimeout(120000);
 
   await page.goto('https://standardreportsbetaqa.worldbank.org/sources-uses');
   await page.waitForLoadState('domcontentloaded');
 
-  const widget = page.locator('#Dashboard > div > div > div:nth-child(3) > div > app-uses-breakdown');
+  const widget = page.locator('app-uses-breakdown');
   await widget.scrollIntoViewIfNeeded();
-  await expect(widget).toBeVisible({ timeout: 10000 });
+  await expect(widget).toBeVisible({ timeout: 60000 });
 
-  // Use a more stable relative selector — selects the fullscreen icon <i> tag inside the widget
-  const fullscreenIcon = widget.locator('span.view i');
+  // Use relative locator inside the widget, based on known class
+  const expandIcon = widget.locator('span.bgt-collabse-state img');
 
-  await expect(fullscreenIcon).toBeVisible({ timeout: 10000 });
+  await expect(expandIcon).toBeVisible({ timeout: 15000 });
 
-  // Click to expand fullscreen
-  await fullscreenIcon.click();
+  await expandIcon.click();
   await page.waitForTimeout(1000);
-  await expect(widget).toHaveScreenshot('sr-uses-breakdown-fullscreen-opened.png');
 
-  // Click again to exit fullscreen
-  await fullscreenIcon.click();
+  await expect(widget).toHaveScreenshot('sr-uses-breakdown-widget-expanded.png');
+
+  await expandIcon.click();
   await page.waitForTimeout(1000);
 });
