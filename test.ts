@@ -1,13 +1,12 @@
-test('Check S&U graph is visible', async ({ page }) => {
+test('Check F&V graph is visible', async ({ page }) => {
   const widget = page.locator('app-uses-breakdown');
   await widget.scrollIntoViewIfNeeded();
 
-  const suTab = page.getByRole('tab', { name: 'S&U' });
-  await suTab.click();
+  const fvTab = page.getByRole('tab', { name: 'F&V' });
+  await fvTab.click();
 
-  // Select the second highcharts container inside the widget
-  const graph = widget.locator('div.highcharts-container').nth(1);
+  const graph = widget.locator('div.chart-fv'); // scoped to widget
 
   await expect(graph).toBeVisible({ timeout: 10000 });
-  await expect(graph).toHaveScreenshot('sr-fixed-vs-variable-su-graph.png');
+  await expect(graph).toHaveScreenshot('sr-fixed-vs-variable-fv-graph.png');
 });
