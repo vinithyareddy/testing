@@ -5,9 +5,8 @@ test('Check Uses graph is visible', async ({ page }) => {
   const usesTab = page.locator('#mat-button-toggle-2');
   await usesTab.click();
 
-  // Updated: Target a stable class used in all highcharts containers
-  const graph = widget.locator('div.highcharts-container');
+  const chart = widget.locator('div.highcharts-container').nth(0); // scoping and indexing
+  await expect(chart).toBeVisible({ timeout: 10000 });
 
-  await expect(graph).toBeVisible({ timeout: 10000 });
-  await expect(graph).toHaveScreenshot('sr-uses-by-fund-grp-uses-graph.png');
+  await expect(chart).toHaveScreenshot('sr-uses-by-fund-grp-uses-graph.png');
 });
