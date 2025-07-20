@@ -2,9 +2,9 @@ test('Check KPIs block 1 (FY24 Actual, FY25 Forecast, Difference)', async ({ pag
   const widget = page.locator('app-uses-breakdown >> nth=0');
   await widget.scrollIntoViewIfNeeded();
 
-  const fy24 = page.getByText('FY24 Actual', { exact: false });
-  const fy25 = page.getByText('FY25 Forecast', { exact: false });
-  const diff = page.getByText('Difference', { exact: false });
+  const fy24 = widget.getByText('FY24 Actual', { exact: false });
+  const fy25 = widget.getByText('FY25 Forecast', { exact: false });
+  const diff = widget.getByText('Difference', { exact: false });
 
   await expect(fy24).toBeVisible();
   await expect(fy25).toBeVisible();
