@@ -1,61 +1,61 @@
-test('Check title of Uses by Fund Group (YTD)', async ({ page }) => {
+test('Check title of Fixed Vs Variable', async ({ page }) => {
   const widget = page.locator('app-uses-breakdown');
   await widget.scrollIntoViewIfNeeded();
-  const title = page.locator('#Dashboard > div > div > div:nth-child(3) > div > app-uses-breakdown > div > div > div > div.ng-tns-c244-2.ng-trigger.ng-trigger-collapse > div:nth-child(2) > div.col-md-6.pr-0.ng-tns-c244-2 > div > div.row.mt-2.ng-tns-c244-2.ng-star-inserted > div.col-md-8.widget-heading.pl-4.pr-0.ng-tns-c244-2.ng-star-inserted');
+  const title = page.getByText('Fixed Vs Variable');
   await expect(title).toBeVisible();
-  await expect(title).toHaveScreenshot('uses-breakdown-uses-title.png');
+  await expect(title).toHaveScreenshot('fv-title.png');
 });
 
-test('Click on Uses tab', async ({ page }) => {
-  const usesTab = page.locator('#mat-button-toggle-2');
-  await usesTab.scrollIntoViewIfNeeded();
-  await usesTab.click();
-  await expect(usesTab).toHaveScreenshot('uses-breakdown-uses-tab.png');
+test('Click on F&V tab', async ({ page }) => {
+  const fvTab = page.getByRole('tab', { name: 'F&V' });
+  await fvTab.scrollIntoViewIfNeeded();
+  await fvTab.click();
+  await expect(fvTab).toHaveScreenshot('fv-tab-clicked.png');
 });
 
-test('Click on Sources tab', async ({ page }) => {
-  const sourcesTab = page.locator('#mat-button-toggle-3');
-  await sourcesTab.scrollIntoViewIfNeeded();
-  await sourcesTab.click();
-  await expect(sourcesTab).toHaveScreenshot('uses-breakdown-sources-tab.png');
+test('Click on S&U tab', async ({ page }) => {
+  const suTab = page.getByRole('tab', { name: 'S&U' });
+  await suTab.scrollIntoViewIfNeeded();
+  await suTab.click();
+  await expect(suTab).toHaveScreenshot('su-tab-clicked.png');
 });
 
-test('Check Uses graph is visible', async ({ page }) => {
-  const usesTab = page.locator('#mat-button-toggle-2');
-  await usesTab.click();
-  const graph = page.locator('#highcharts-91nbeyi-441 > svg > rect.highcharts-background');
+test('Check F&V graph is visible', async ({ page }) => {
+  const fvTab = page.getByRole('tab', { name: 'F&V' });
+  await fvTab.click();
+  const graph = page.locator('div.chart-fv'); // update selector if needed
   await expect(graph).toBeVisible();
-  await expect(graph).toHaveScreenshot('uses-breakdown-uses-graph.png');
+  await expect(graph).toHaveScreenshot('fv-graph.png');
 });
 
-test('Check Sources graph is visible', async ({ page }) => {
-  const sourcesTab = page.locator('#mat-button-toggle-3');
-  await sourcesTab.click();
-  const graph = page.locator('#Dashboard > div > div > div:nth-child(3) > div > app-uses-breakdown > div > div > div > div.ng-tns-c244-2.ng-trigger.ng-trigger-collapse > div:nth-child(2) > div.col-md-6.pr-0.ng-tns-c244-2 > div > div:nth-child(2)');
+test('Check S&U graph is visible', async ({ page }) => {
+  const suTab = page.getByRole('tab', { name: 'S&U' });
+  await suTab.click();
+  const graph = page.locator('div.chart-su'); // update selector if needed
   await expect(graph).toBeVisible();
-  await expect(graph).toHaveScreenshot('uses-breakdown-sources-graph.png');
+  await expect(graph).toHaveScreenshot('su-graph.png');
 });
 
-test('Check Uses graph in M and K currency', async ({ page }) => {
+test('Check F&V graph in M and K currency', async ({ page }) => {
   const toggle = page.locator('body > app-root > internal-framework-root > div.content-wrapper > div > div > div.col-md.layout-wrapper > app-source-uses > app-budget-top-header > div.container-fluid.sticky.BudgetTopHeaderBgView > div > div:nth-child(2) > div.col-lg-4.col-md-4 > span.toggle-view-top.pr-2 > span:nth-child(2) > lift-toggle > div > label > span');
-  const usesTab = page.locator('#mat-button-toggle-2');
-  await usesTab.click();
+  const fvTab = page.getByRole('tab', { name: 'F&V' });
+  await fvTab.click();
 
-  await toggle.click(); // switch to K
-  await expect(usesTab).toHaveScreenshot('uses-breakdown-uses-k-currency.png');
+  await toggle.click(); // to K
+  await expect(fvTab).toHaveScreenshot('fv-k-currency.png');
 
-  await toggle.click(); // switch back to M
-  await expect(usesTab).toHaveScreenshot('uses-breakdown-uses-m-currency.png');
+  await toggle.click(); // to M
+  await expect(fvTab).toHaveScreenshot('fv-m-currency.png');
 });
 
-test('Check Sources graph in M and K currency', async ({ page }) => {
+test('Check S&U graph in M and K currency', async ({ page }) => {
   const toggle = page.locator('body > app-root > internal-framework-root > div.content-wrapper > div > div > div.col-md.layout-wrapper > app-source-uses > app-budget-top-header > div.container-fluid.sticky.BudgetTopHeaderBgView > div > div:nth-child(2) > div.col-lg-4.col-md-4 > span.toggle-view-top.pr-2 > span:nth-child(2) > lift-toggle > div > label > span');
-  const sourcesTab = page.locator('#mat-button-toggle-3');
-  await sourcesTab.click();
+  const suTab = page.getByRole('tab', { name: 'S&U' });
+  await suTab.click();
 
-  await toggle.click(); // switch to K
-  await expect(sourcesTab).toHaveScreenshot('uses-breakdown-sources-k-currency.png');
+  await toggle.click(); // to K
+  await expect(suTab).toHaveScreenshot('su-k-currency.png');
 
-  await toggle.click(); // switch back to M
-  await expect(sourcesTab).toHaveScreenshot('uses-breakdown-sources-m-currency.png');
+  await toggle.click(); // to M
+  await expect(suTab).toHaveScreenshot('su-m-currency.png');
 });
