@@ -5,7 +5,9 @@ test('Verify Final Plans vs Actuals Title is Visible', async ({ page }) => {
 });
 
 test('Verify Menu Tab Click Works', async ({ page }) => {
-  const menuTab = page.locator('#mat-button-toggle-84-button');
+  const widget = page.locator('app-final-plans-fundgroup');
+
+  const menuTab = widget.locator('#mat-button-toggle-84-button');
   await expect(menuTab).toBeVisible({ timeout: 10000 });
 
   await menuTab.click();
