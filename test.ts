@@ -1,22 +1,25 @@
-test('Verify Sources and Uses Table is Visible', async ({ page }) => {
-  test.setTimeout(60000); // Increase timeout for slow-loading dashboards
+test('Expand icon in Uses breakdown widget table rows', async ({ page }) => {
+  test.setTimeout(60000);
 
+  // Go to the page
   await page.goto('https://standardreportsbetaqa.worldbank.org/sources-uses');
-
-  // Wait until everything on the page has fully loaded
   await page.waitForLoadState('networkidle');
 
-  // Locate the main widget
-  const widget = page.locator('#Dashboard > div > div > div:nth-child(1) > div > app-source-users > div');
+  // Locate the widget
+  const widget = page.locator('app-uses-breakdown');
+  await widget.scrollIntoViewIfNeeded();
+  await expect(widget).toBeVisible({ timeout: 10000 });
 
-  await widget.scrollIntoViewIfNeeded(); // Ensure it's on screen
-  await expect(widget).toBeVisible({ timeout: 20000 });
+  // Use relative locator inside the widget
+  const expandIcon = widget.locator('table tbody tr:nth-child(3) td.pointer i');
 
-  // Locate the table inside the widget
-  const table = widget.locator('table');
+  // Ensure icon is visible
+  await expandIcon.scrollIntoViewIfNeeded();
+  await expect(expandIcon).toBeVisible({ timeout: 10000 });
 
-  // Make sure the table exists and is visible before screenshotting
-  await expect(table).toBeVisible({ timeout: 10000 });
-  await table.scrollIntoViewIfNeeded();
-  await expect(table).toHaveScreenshot('sr-sources-uses-table-visible.png');
+  // Click the icon to expand (optional, if just visual state is needed)
+  await expandIcon.click();
+
+  // Screenshot after expanding
+  await expect(widget).toHaveScreenshot('sr-sources-uses-expanded-row.png');
 });
