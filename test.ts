@@ -1,12 +1,10 @@
-test('Verify Table Tab Click Works', async ({ page }) => {
-  const widget = page.locator('app-final-plans-fundgroup');
-  await expect(widget).toBeVisible({ timeout: 10000 });
+test('Verify Bar Graph is Visible in Menu Tab', async ({ page }) => {
+  const graph = page.locator('#Dashboard app-final-plans-fundgroup .ng-trigger-collapse');
+  await expect(graph).toBeVisible({ timeout: 10000 });
 
-  // Second toggle button — likely the table view
-  const tableTab = widget.locator('mat-button-toggle-group button').nth(1);
+  // Wait for chart data like a bar or label to appear
+  const bar = graph.locator('text, .bar, .apexcharts-bar, .highcharts-point').first(); // customize based on your chart lib
+  await expect(bar).toBeVisible({ timeout: 10000 });
 
-  await expect(tableTab).toBeVisible({ timeout: 10000 });
-  await tableTab.click();
-
-  await expect(tableTab).toHaveScreenshot('sr-fp-vs-actual-fundgroup-table-tab.png');
+  await expect(graph).toHaveScreenshot('sr-fp-vs-actual-fundgroup-graph-visible.png');
 });
