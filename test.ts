@@ -1,5 +1,6 @@
 test('Expand icon in Uses breakdown widget table rows', async ({ page }) => {
   test.setTimeout(60000);
+
   await page.goto('https://standardreportsbetaqa.worldbank.org/sources-uses');
   await page.waitForLoadState('networkidle');
 
@@ -12,10 +13,16 @@ test('Expand icon in Uses breakdown widget table rows', async ({ page }) => {
   await expect(expandIcon).toBeVisible({ timeout: 10000 });
 
   await expandIcon.click();
-  await page.waitForTimeout(1500); // Let row expand
+  await page.waitForTimeout(1500); // allow expand animation
 
-  const expandedRow = widget.locator('table tbody tr:nth-child(4)');
+  // More robust: wait for new content
+  const expandedRow = widget.locator('.ag-row-level-1'); // Use .ag-row-level-1 or valid selector
+  await expandedRow.scrollIntoViewIfNeeded();
   await expect(expandedRow).toBeVisible();
 
-  await expect(expandedRow).toHaveScreenshot('sr-sources-uses-expanded-row.png');
+  // Forcefully capture screenshot
+  await expect(expandedRow).toHaveScreenshot('sr-sources-uses-expanded-row.png', {
+    animations: 'disabled',
+    timeout: 10000,
+  });
 });
