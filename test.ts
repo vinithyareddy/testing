@@ -1,28 +1,33 @@
-test('Expand icon in Uses breakdown widget table rows', async ({ page }) => {
-  test.setTimeout(60000);
 
-  await page.goto('https://standardreportsbetaqa.worldbank.org/sources-uses');
-  await page.waitForLoadState('networkidle');
+  // Click on "Filters" tab
+  const filterTab = page.locator('text=Filter');
+  await filterTab.click();
+  await page.waitForTimeout(1000);
 
-  const widget = page.locator('app-uses-breakdown');
-  await widget.scrollIntoViewIfNeeded();
-  await expect(widget).toBeVisible({ timeout: 10000 });
+  // Expand "Source of Funds" accordion section using its label text
+  const sourceOfFundsToggle = page.locator('text=Source of Funds');
+  await expect(sourceOfFundsToggle).toBeVisible({ timeout: 10000 });
+  await sourceOfFundsToggle.click();
 
-  const expandIcon = widget.locator('table tbody tr:nth-child(3) td.pointer i');
-  await expandIcon.scrollIntoViewIfNeeded();
-  await expect(expandIcon).toBeVisible({ timeout: 10000 });
+  // Wait for checkboxes to appear (e.g., TF, BB, etc.)
+  const tfCheckbox = page.locator('label:has-text("TF") input[type="checkbox"]');
+  await expect(tfCheckbox).toBeVisible({ timeout: 10000 });
 
-  await expandIcon.click();
-  await page.waitForTimeout(1500); // allow expand animation
+  // Click the TF checkbox
+  await tfCheckbox.check(); // or `.click()` if check doesn't work
 
-  // More robust: wait for new content
-  const expandedRow = widget.locator('.ag-row-level-1'); // Use .ag-row-level-1 or valid selector
-  await expandedRow.scrollIntoViewIfNeeded();
-  await expect(expandedRow).toBeVisible();
+  await page.waitForTimeout(1000); // let the UI register
 
-  // Forcefully capture screenshot
-  await expect(expandedRow).toHaveScreenshot('sr-sources-uses-expanded-row.png', {
-    animations: 'disabled',
+  // Take screenshot after checkbox selection
+  const filterPanel = page.locator('.refremi-sticky-refremi-sidebar'); // Adjust class if needed
+  await expect(filterPanel).toHaveScreenshot('sr-wpa-filter-panel-fund-center-option-check.png', {
     timeout: 10000,
+    animations: 'disabled',
   });
-});
+
+  // Click on "Apply" button
+  const applyBtn = page.locator('button:has-text("Apply")');
+  await applyBtn.click();
+
+  await page.waitForTimeout(3000); // Wait for filter to apply
+
