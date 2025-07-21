@@ -1,25 +1,22 @@
-test('report row dropdown in table', async ({ page }) => {
-  // Step 1: Go to Reports tab
-  const reportsTab = page.locator('#REPORTS > a > span');
-  await reportsTab.scrollIntoViewIfNeeded();
-  await reportsTab.click();
+test('Verify Sources and Uses Table is Visible', async ({ page }) => {
+  test.setTimeout(60000); // Increase timeout for slow-loading dashboards
 
-  // Step 2: Click the table icon
-  const tableIcon = page.locator('#Reports > div > app-budget-reports-grid > div > div > div > ul > li > img');
-  await tableIcon.scrollIntoViewIfNeeded();
-  await expect(tableIcon).toBeVisible();
-  await tableIcon.click();
+  await page.goto('https://standardreportsbetaqa.worldbank.org/sources-uses');
 
-  // Step 3: Wait for table group row dropdown icon to appear
-  const dropdownIcon = page.locator('.ag-row-group .ag-group-contracted'); // more robust
+  // Wait until everything on the page has fully loaded
+  await page.waitForLoadState('networkidle');
 
-  await dropdownIcon.first().waitFor({ state: 'visible', timeout: 10000 }); // wait for dropdown to appear
-  await dropdownIcon.first().scrollIntoViewIfNeeded();
-  await dropdownIcon.first().click();
+  // Locate the main widget
+  const widget = page.locator('#Dashboard > div > div > div:nth-child(1) > div > app-source-users > div');
 
-  // Step 4: Wait for expanded row to appear (indicates click worked)
-  await page.waitForSelector('.ag-group-expanded', { timeout: 5000 });
+  await widget.scrollIntoViewIfNeeded(); // Ensure it's on screen
+  await expect(widget).toBeVisible({ timeout: 20000 });
 
-  // Step 5: Screenshot the clicked dropdown
-  await expect(dropdownIcon.first()).toHaveScreenshot('sr-sources-uses-reports-dropdown-clicked.png');
+  // Locate the table inside the widget
+  const table = widget.locator('table');
+
+  // Make sure the table exists and is visible before screenshotting
+  await expect(table).toBeVisible({ timeout: 10000 });
+  await table.scrollIntoViewIfNeeded();
+  await expect(table).toHaveScreenshot('sr-sources-uses-table-visible.png');
 });
