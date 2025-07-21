@@ -1,12 +1,12 @@
-test('Verify Menu Tab Click Works', async ({ page }) => {
+test('Verify Table Tab Click Works', async ({ page }) => {
   const widget = page.locator('app-final-plans-fundgroup');
   await expect(widget).toBeVisible({ timeout: 10000 });
 
-  // Look for toggle button with icon (assumes menu view has a bar chart icon)
-  const menuTab = widget.locator('mat-button-toggle-group button').first(); // or `.nth(0)`
-  
-  await expect(menuTab).toBeVisible({ timeout: 10000 });
-  await menuTab.click();
+  // Second toggle button — likely the table view
+  const tableTab = widget.locator('mat-button-toggle-group button').nth(1);
 
-  await expect(menuTab).toHaveScreenshot('sr-fp-vs-actual-fundgroup-menu-tab.png');
+  await expect(tableTab).toBeVisible({ timeout: 10000 });
+  await tableTab.click();
+
+  await expect(tableTab).toHaveScreenshot('sr-fp-vs-actual-fundgroup-table-tab.png');
 });
