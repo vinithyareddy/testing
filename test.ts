@@ -1,12 +1,12 @@
-test('Verify Fullscreen Icon Clickable', async ({ page }) => {
-  // Wait for widget to load
+test('Verify Menu Tab Click Works', async ({ page }) => {
   const widget = page.locator('app-final-plans-fundgroup');
   await expect(widget).toBeVisible({ timeout: 10000 });
 
-  // Relaxed selector using role or i tag inside .view span
-  const fullscreenIcon = widget.locator('span.view i');
+  // Look for toggle button with icon (assumes menu view has a bar chart icon)
+  const menuTab = widget.locator('mat-button-toggle-group button').first(); // or `.nth(0)`
+  
+  await expect(menuTab).toBeVisible({ timeout: 10000 });
+  await menuTab.click();
 
-  await expect(fullscreenIcon).toBeVisible({ timeout: 10000 });
-  await fullscreenIcon.click();
-  await expect(fullscreenIcon).toHaveScreenshot('sr-fp-vs-actual-fundgroup-fullscreen.png');
+  await expect(menuTab).toHaveScreenshot('sr-fp-vs-actual-fundgroup-menu-tab.png');
 });
