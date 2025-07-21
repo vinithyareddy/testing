@@ -5,7 +5,7 @@ test('Verify Final Plans vs Actuals Title is Visible', async ({ page }) => {
 });
 
 test('Verify Menu Tab Click Works', async ({ page }) => {
-  const menuTab = page.locator('#mat-button-toggle-84-button > span');
+  const menuTab = page.locator('#mat-button-toggle-84-button'); // corrected selector
   await expect(menuTab).toBeVisible({ timeout: 10000 });
   await menuTab.click();
   await expect(menuTab).toHaveScreenshot('sr-fp-vs-actual-fundgroup-menu-tab.png');
