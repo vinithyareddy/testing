@@ -1,19 +1,21 @@
-test('Verify View More Click Works', async ({ page }) => {
-  const widget = page.locator('app-final-plans-fundgroup');
-  const viewMore = widget.locator('text=View More');
-
-  // Ensure widget loads
+test('verify view more - drag row bar option', async ({ page }) => {
+  const widget = page.locator('app-temp-code');
+  await widget.scrollIntoViewIfNeeded();
   await expect(widget).toBeVisible({ timeout: 10000 });
+
+  // Use .first() to guard against missing node list
+  const viewMore = page.locator('#Dashboard app-temp-code .ng-trigger-collapse > div:nth-child(2) > div').first();
+
+  // Wait for View More button to actually appear in DOM
+  await expect(viewMore).toHaveCount(1, { timeout: 15000 }); // NEW: ensure element exists
+  await viewMore.scrollIntoViewIfNeeded();
   await expect(viewMore).toBeVisible({ timeout: 10000 });
 
-  // Smoothly scroll into view to avoid glitching
-  await viewMore.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(500); // Let layout stabilize
-
-  // Click safely
   await viewMore.click();
 
-  // Verify next page or modal (adjust as needed)
-  await page.waitForTimeout(1000); // Optional: wait after click
-  await page.screenshot({ path: 'sr-fp-vs-actual-fundgroup-viewmore.png' });
+  // Wait for next page widget (drag bar) to appear
+  const dragRowBar = page.locator('div.ag-column-drop-wrapper > div:nth-child(1)');
+  await expect(dragRowBar).toBeVisible({ timeout: 15000 });
+
+  await expect(dragRowBar).toHaveScreenshot('sr-wpa-temp-code-view-more-dragrowbar-option.png');
 });
