@@ -1,21 +1,14 @@
-test('verify view more - drag row bar option', async ({ page }) => {
-  const widget = page.locator('app-temp-code');
+test('Verify Expand Icon Click', async ({ page }) => {
+  const widget = page.locator('app-wpa-exceptions');
+
+  // Scroll and wait for widget to load
   await widget.scrollIntoViewIfNeeded();
   await expect(widget).toBeVisible({ timeout: 10000 });
 
-  // Use .first() to guard against missing node list
-  const viewMore = page.locator('#Dashboard app-temp-code .ng-trigger-collapse > div:nth-child(2) > div').first();
+  // Now find expand icon based on its stable parent structure
+  const expandIcon = widget.locator('span.bpdt-collapse-state');  // Shortened robust selector
+  await expect(expandIcon).toBeVisible({ timeout: 15000 });
 
-  // Wait for View More button to actually appear in DOM
-  await expect(viewMore).toHaveCount(1, { timeout: 15000 }); // NEW: ensure element exists
-  await viewMore.scrollIntoViewIfNeeded();
-  await expect(viewMore).toBeVisible({ timeout: 10000 });
-
-  await viewMore.click();
-
-  // Wait for next page widget (drag bar) to appear
-  const dragRowBar = page.locator('div.ag-column-drop-wrapper > div:nth-child(1)');
-  await expect(dragRowBar).toBeVisible({ timeout: 15000 });
-
-  await expect(dragRowBar).toHaveScreenshot('sr-wpa-temp-code-view-more-dragrowbar-option.png');
+  await expandIcon.click();
+  await expect(expandIcon).toHaveScreenshot('sr-wpa-exception-expand-icon.png');
 });
