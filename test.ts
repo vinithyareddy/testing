@@ -1,19 +1,19 @@
-test('Verify First Row Dropdown Expand', async ({ page }) => {
-  // Step 1: Click "View More"
-  const viewMoreButton = page.locator('#Dashboard app-missing-time .ng-trigger-collapse div:nth-child(2) > div');
+test('Verify Graph Tab Button (Menu Tab)', async ({ page }) => {
+  // Make sure full page and widget area is loaded
+  await page.waitForSelector('#Dashboard', { timeout: 15000 });
 
-  await expect(viewMoreButton).toBeVisible({ timeout: 10000 });
-  await viewMoreButton.scrollIntoViewIfNeeded();
-  await viewMoreButton.click();
+  const widget = page.locator('app-time-in-error');
+  await expect(widget).toBeVisible({ timeout: 10000 });
 
-  // Step 2: Wait for table to load
-  const firstRowDropdown = page.locator('span.ag-icon.ag-icon-tree-closed').first();
+  // Use unique selector for tab
+  const menuTab = page.locator('button#mat-button-toggle-150-button');
+  await expect(menuTab).toBeVisible({ timeout: 10000 });
 
-  await expect(firstRowDropdown).toBeVisible({ timeout: 20000 });
+  await menuTab.click();
 
-  // Step 3: Click dropdown
-  await firstRowDropdown.click();
+  // Validate that graph is rendered
+  const graph = widget.locator('.inner-cart-box'); // based on DOM
+  await expect(graph).toBeVisible({ timeout: 10000 });
 
-  // Step 4: Screenshot
-  await expect(firstRowDropdown).toHaveScreenshot('sr-trs-overview-missing-time-first-row-dropdown.png');
+  await expect(widget).toHaveScreenshot('sr-trs-overview-time-in-error-menu-tab.png');
 });
