@@ -1,14 +1,19 @@
-test('Verify Data Table', async ({ page }) => {
-  // Step 1: Click "View More" inside the widget
-  const viewMoreButton = page.locator('app-missing-time >> text=View More');
-  await viewMoreButton.waitFor({ state: 'visible', timeout: 15000 });
+test('Verify First Row Dropdown Expand', async ({ page }) => {
+  // Step 1: Click "View More"
+  const viewMoreButton = page.locator('#Dashboard app-missing-time .ng-trigger-collapse div:nth-child(2) > div');
+
+  await expect(viewMoreButton).toBeVisible({ timeout: 10000 });
   await viewMoreButton.scrollIntoViewIfNeeded();
   await viewMoreButton.click();
 
-  // Step 2: Wait for table to render (ag-grid root)
-  const table = page.locator('.ag-root.ag-unselectable.ag-layout-normal'); // Use class-based selector for resilience
-  await table.waitFor({ state: 'visible', timeout: 20000 });
+  // Step 2: Wait for table to load
+  const firstRowDropdown = page.locator('span.ag-icon.ag-icon-tree-closed').first();
 
-  // Step 3: Screenshot of data table
-  await expect(table).toHaveScreenshot('sr-trs-overview-missing-time-data-table.png');
+  await expect(firstRowDropdown).toBeVisible({ timeout: 20000 });
+
+  // Step 3: Click dropdown
+  await firstRowDropdown.click();
+
+  // Step 4: Screenshot
+  await expect(firstRowDropdown).toHaveScreenshot('sr-trs-overview-missing-time-first-row-dropdown.png');
 });
