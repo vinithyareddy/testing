@@ -1,4 +1,7 @@
 test('Verify Graph Tab Button (Menu Tab)', async ({ page }) => {
+  // Wait for page and dashboard to be fully rendered
+  await page.waitForSelector('#Dashboard', { timeout: 15000 });
+
   // Scope inside Time in Error widget
   const widget = page.locator('app-time-in-error');
   await expect(widget).toBeVisible({ timeout: 10000 });
