@@ -1,14 +1,29 @@
-test('Fixed Expenses bar graph is visible', async ({ page }) => {
-  const chartHeader = page.locator('text=Fixed Expenses: Actuals Vs Forecast').first();
-  await chartHeader.scrollIntoViewIfNeeded();
-  await expect(chartHeader).toBeVisible({ timeout: 10000 });
+test('report row dropdown in table', async ({ page }) => {
+  // Step 1: Click the Reports tab
+  const reportsTab = page.locator('#REPORTS > a > span');
+  await reportsTab.scrollIntoViewIfNeeded();
+  await reportsTab.click();
 
-  // Grab chart near the header — get only the first matching chart to avoid strict mode violation
-  const chart = chartHeader.locator('..').locator('..').locator('div:has(svg.highcharts-root)').first();
-  await expect(chart).toBeVisible({ timeout: 10000 });
+  // Wait for report tab content to load fully
+  await expect(page.locator('text=Sources and Uses Breakdown Summary Report')).toBeVisible({ timeout: 10000 });
 
-  // Take screenshot
-  await expect(chart).toHaveScreenshot('sr-sources-uses-breakdown-fixed-expenses-bar-graph.png', {
-    animations: 'disabled',
+  // Step 2: Click table icon to open the report
+  const tableIcon = page.locator('#Reports img'); // Simpler selector
+  await tableIcon.scrollIntoViewIfNeeded();
+  await expect(tableIcon).toBeVisible();
+  await tableIcon.click();
+
+  // Step 3: Wait for ag-grid table and dropdown to appear
+  const dropdownIcon = page.locator('.ag-group-contracted'); // Generic selector is safer
+  await dropdownIcon.first().waitFor({ state: 'visible', timeout: 10000 });
+  await dropdownIcon.first().scrollIntoViewIfNeeded();
+  await dropdownIcon.first().click();
+
+  // Step 4: Wait for row to expand
+  await page.waitForSelector('.ag-group-expanded', { timeout: 5000 });
+
+  // Step 5: Screenshot the dropdown result
+  await expect(page).toHaveScreenshot('sr-sources-uses-reports-dropdown-clicked.png', {
+    animations: 'disabled'
   });
 });
