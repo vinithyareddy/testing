@@ -1,21 +1,13 @@
-test('Verify Drag Row Group Bar', async ({ page }) => {
-  // Correct: locate the right "Time in Error" widget
+test('Verify Expand Icon in Widget', async ({ page }) => {
+  // Select the correct instance of app-time-in-error (overview tab)
   const widget = page.locator('app-time-in-error').nth(1);
-  await expect(widget).toBeVisible();
 
-  // Scope View More inside that widget
-  const viewMoreButton = widget.locator('text=View More');
+  // Scope down to the expand icon inside the widget
+  const expandIcon = widget.locator('.bgt-text-end span:nth-child(4) img');
 
-  await viewMoreButton.scrollIntoViewIfNeeded();
-  await expect(viewMoreButton).toBeVisible({ timeout: 5000 });
-  await viewMoreButton.click();
+  // Optional: give time for widget animations/load
+  await expandIcon.scrollIntoViewIfNeeded();
+  await expect(expandIcon).toBeVisible({ timeout: 10000 });
 
-  // Wait for report to load (may need extra wait if slow)
-  await page.waitForSelector('app-rm-ag-report', { timeout: 15000 });
-
-  // Now look for the drag row bar
-  const dragRowBar = page.locator('app-rm-ag-report .ag-column-drop-wrapper > div').first();
-
-  await expect(dragRowBar).toBeVisible({ timeout: 10000 });
-  await expect(dragRowBar).toHaveScreenshot('sr-trs-overview-time-in-error-drag-row-bar.png');
+  await expect(expandIcon).toHaveScreenshot('sr-trs-overview-time-in-error-expand-icon.png');
 });
