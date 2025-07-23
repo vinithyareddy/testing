@@ -1,14 +1,26 @@
-test('Verify Filter Dropdown in Missing Time Widget', async ({ page }) => {
-  // Step 1: Locate the widget
-  const widget = page.locator('app-missing-time');
+test('Verify Wrap Text Checkbox in Missing Time Report', async ({ page }) => {
+  test.setTimeout(120000); // Extend timeout
 
-  // Step 2: Wait until widget is visible
-  await expect(widget).toBeVisible({ timeout: 15000 });
+  // Wait for the Missing Time widget to appear
+  const missingTimeWidget = page.locator('app-missing-time');
+  await expect(missingTimeWidget).toBeVisible({ timeout: 15000 });
 
-  // Step 3: Inside that widget, locate the dropdown
-  const dropdown = widget.locator('ng-select');
+  // Locate 'View More' button (use text instead of brittle nth-child)
+  const viewMore = missingTimeWidget.getByRole('link', { name: /view more/i });
 
-  // Step 4: Wait for dropdown and take screenshot
-  await expect(dropdown).toBeVisible({ timeout: 10000 });
-  await expect(dropdown).toHaveScreenshot('sr-trs-overview-missing-time-filter-dropdown.png');
+  // Scroll and click
+  await viewMore.scrollIntoViewIfNeeded();
+  await expect(viewMore).toBeVisible();
+  await viewMore.click();
+
+  // Wait for navigation to report view
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(2000); // Allow extra for rendering
+
+  // Locate Wrap Text checkbox
+  const wrapCheckbox = page.locator('text=Wrap Text').locator('input[type="checkbox"]');
+  await expect(wrapCheckbox).toBeVisible({ timeout: 10000 });
+
+  // Screenshot of checkbox
+  await expect(wrapCheckbox).toHaveScreenshot('sr-trs-overview-missing-time-wrap-text.png');
 });
