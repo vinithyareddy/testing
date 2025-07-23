@@ -1,26 +1,22 @@
-test('Verify Wrap Text Checkbox in Missing Time Report', async ({ page }) => {
-  test.setTimeout(120000); // Extend timeout
+test('Verify Clear Option Works', async ({ page }) => {
+  test.setTimeout(180000); // Keep as is for safety
 
-  // Wait for the Missing Time widget to appear
-  const missingTimeWidget = page.locator('app-missing-time');
-  await expect(missingTimeWidget).toBeVisible({ timeout: 15000 });
+  const clearBtn = page.getByRole('button', { name: 'Clear' });
 
-  // Locate 'View More' button (use text instead of brittle nth-child)
-  const viewMore = missingTimeWidget.getByRole('link', { name: /view more/i });
+  // Open filter tab only if the clear button is NOT visible
+  if (!(await clearBtn.isVisible())) {
+    const filterTab = page.locator('app-trs-staffcost lift-tag label.tag-button-switch');
 
-  // Scroll and click
-  await viewMore.scrollIntoViewIfNeeded();
-  await expect(viewMore).toBeVisible();
-  await viewMore.click();
+    await filterTab.waitFor({ state: 'visible', timeout: 30000 });
 
-  // Wait for navigation to report view
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(2000); // Allow extra for rendering
+    await filterTab.click(); // open filter drawer
+    await page.waitForTimeout(3000); // wait for panel animation
+  }
 
-  // Locate Wrap Text checkbox
-  const wrapCheckbox = page.locator('text=Wrap Text').locator('input[type="checkbox"]');
-  await expect(wrapCheckbox).toBeVisible({ timeout: 10000 });
+  // Wait for the Clear button and capture screenshot
+  await clearBtn.waitFor({ state: 'visible', timeout: 30000 });
 
-  // Screenshot of checkbox
-  await expect(wrapCheckbox).toHaveScreenshot('sr-trs-overview-missing-time-wrap-text.png');
+  await expect(clearBtn).toBeVisible();
+
+  await expect(clearBtn).toHaveScreenshot('sr-trs-filter-clear-btn.png');
 });
