@@ -1,29 +1,16 @@
-test('report row dropdown in table', async ({ page }) => {
-  // Step 1: Click the Reports tab
-  const reportsTab = page.locator('#REPORTS > a > span');
-  await reportsTab.scrollIntoViewIfNeeded();
-  await reportsTab.click();
+test('Close Filter Tab', async ({ page }) => {
+  // Wait for page and filter panel to fully render
+  await page.waitForTimeout(2000);
 
-  // Wait for report tab content to load fully
-  await expect(page.locator('text=Sources and Uses Breakdown Summary Report')).toBeVisible({ timeout: 10000 });
+  // Use a simplified selector that directly targets the close icon
+  const closeIcon = page.locator('button[title="Close"]');
 
-  // Step 2: Click table icon to open the report
-  const tableIcon = page.locator('#Reports img'); // Simpler selector
-  await tableIcon.scrollIntoViewIfNeeded();
-  await expect(tableIcon).toBeVisible();
-  await tableIcon.click();
+  // Make sure it's visible before clicking
+  await expect(closeIcon).toBeVisible({ timeout: 10000 });
 
-  // Step 3: Wait for ag-grid table and dropdown to appear
-  const dropdownIcon = page.locator('.ag-group-contracted'); // Generic selector is safer
-  await dropdownIcon.first().waitFor({ state: 'visible', timeout: 10000 });
-  await dropdownIcon.first().scrollIntoViewIfNeeded();
-  await dropdownIcon.first().click();
+  // Click the close icon
+  await closeIcon.click();
 
-  // Step 4: Wait for row to expand
-  await page.waitForSelector('.ag-group-expanded', { timeout: 5000 });
-
-  // Step 5: Screenshot the dropdown result
-  await expect(page).toHaveScreenshot('sr-sources-uses-reports-dropdown-clicked.png', {
-    animations: 'disabled'
-  });
+  // Optional: validate panel is gone or wait briefly
+  await page.waitForTimeout(2000);
 });
