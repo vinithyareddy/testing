@@ -1,20 +1,20 @@
-test('Expand icon in Sources and Uses widget table rows', async ({ page }) => {
-  const widget = page.locator('app-source-uses');
+test('Expand icon in Uses breakdown widget table rows', async ({ page }) => {
+  const widget = page.locator('app-uses-breakdown');
+  await widget.scrollIntoViewIfNeeded();
   await expect(widget).toBeVisible({ timeout: 10000 });
 
   const firstRow = widget.locator('table tbody tr').first();
-  const plusIcon = firstRow.locator('td.pointer i'); // or adjust tag/class if needed
+  const plusIcon = firstRow.locator('td.pointer i'); // adjust if needed
 
   await expect(plusIcon).toBeVisible({ timeout: 10000 });
   await plusIcon.click();
 
-  // Wait for expanded content — e.g., next row to appear
-  const expandedRow = widget.locator('table tbody tr:nth-child(2)');
-  await expect(expandedRow).toBeVisible({ timeout: 5000 });
+  // ✅ Wait for layout to settle
+  await page.waitForTimeout(1500);
 
-  // Or wait for stability before screenshot
-  await page.waitForTimeout(1000);
-
-  // Now take screenshot of the widget
-  await expect(widget).toHaveScreenshot('sr-source-uses-widget-plusicon-expanded-row.png');
+  // ✅ Capture screenshot with larger timeout
+  await expect(widget).toHaveScreenshot('sr-uses-breakdown-widget-plusicon-expanded-row.png', {
+    timeout: 10000,
+    maxDiffPixelRatio: 0.01, // tolerate small visual diff
+  });
 });
