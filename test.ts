@@ -1,16 +1,15 @@
-test('Close Filter Tab', async ({ page }) => {
-  // Wait for page and filter panel to fully render
-  await page.waitForTimeout(2000);
+test('Verify VPU Group Dropdown Expands', async ({ page }) => {
+  test.setTimeout(60000);
 
-  // Use a simplified selector that directly targets the close icon
-  const closeIcon = page.locator('button[title="Close"]');
+  // Wait for filter tab to be visible
+  const filterTab = page.locator('app-budget-refiner');
+  await filterTab.waitFor({ state: 'visible', timeout: 10000 });
 
-  // Make sure it's visible before clicking
-  await expect(closeIcon).toBeVisible({ timeout: 10000 });
+  // Locate and click the VPU Group dropdown icon
+  const vpuDropdown = page.locator('i.fa-angle-down.ng-star-inserted');
+  await vpuDropdown.first().scrollIntoViewIfNeeded();
+  await vpuDropdown.first().click();
 
-  // Click the close icon
-  await closeIcon.click();
-
-  // Optional: validate panel is gone or wait briefly
-  await page.waitForTimeout(2000);
+  // Wait for dropdown to expand (check for content that appears after click)
+  await expect(page.locator('text=Select a VPU Group')).toBeVisible(); // adjust this text if needed
 });
