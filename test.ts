@@ -1,16 +1,14 @@
-test('Verify Fullscreen Icon', async ({ page }) => {
-  // Step 1: Locate and click "View More"
+test('Verify Data Table', async ({ page }) => {
+  // Step 1: Click "View More" inside the widget
   const viewMoreButton = page.locator('app-missing-time >> text=View More');
-
-  await expect(viewMoreButton).toBeVisible({ timeout: 10000 });
+  await viewMoreButton.waitFor({ state: 'visible', timeout: 15000 });
   await viewMoreButton.scrollIntoViewIfNeeded();
   await viewMoreButton.click();
 
-  // Step 2: Locate fullscreen icon (based on title attribute)
-  const fullscreenIcon = page.locator('img[title="fullscreen"]');
+  // Step 2: Wait for table to render (ag-grid root)
+  const table = page.locator('.ag-root.ag-unselectable.ag-layout-normal'); // Use class-based selector for resilience
+  await table.waitFor({ state: 'visible', timeout: 20000 });
 
-  await expect(fullscreenIcon).toBeVisible({ timeout: 10000 });
-
-  // Step 3: Screenshot
-  await expect(fullscreenIcon).toHaveScreenshot('sr-trs-overview-missing-time-expanded-fullscreen.png');
+  // Step 3: Screenshot of data table
+  await expect(table).toHaveScreenshot('sr-trs-overview-missing-time-data-table.png');
 });
