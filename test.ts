@@ -1,18 +1,20 @@
 test('Verify Graph Tab Button (Menu Tab)', async ({ page }) => {
-  await page.goto('<your_url>');
-  await page.waitForSelector('#Dashboard', { timeout: 15000 });
-
+  // Scope inside Time in Error widget
   const widget = page.locator('app-time-in-error');
-  await expect(widget).toBeVisible();
+  await expect(widget).toBeVisible({ timeout: 10000 });
 
-  // Use role or aria-label
-  const menuTab = page.getByRole('button', { name: 'T' });
-  await expect(menuTab).toBeVisible();
-  await menuTab.click();
+  // Select the 📊 menu button inside the toggle group (avoid dynamic IDs)
+  const menuTab = widget.locator('button.mat-button-toggle-button').filter({
+    has: page.locator('span.mat-button-toggle-label-content'),
+  });
 
-  // Graph inside the widget
-  const graph = widget.locator('svg.highcharts-root');
-  await expect(graph).toBeVisible();
+  await expect(menuTab.first()).toBeVisible({ timeout: 10000 });
+  await menuTab.first().click();
 
+  // Wait for the chart SVG to render (Highcharts SVG element)
+  const chart = widget.locator('svg.highcharts-root');
+  await expect(chart).toBeVisible({ timeout: 10000 });
+
+  // Screenshot the widget after graph renders
   await expect(widget).toHaveScreenshot('sr-trs-overview-time-in-error-menu-tab.png');
 });
