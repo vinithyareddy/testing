@@ -1,23 +1,17 @@
-test('Verify Graph Tab Button (Menu Tab)', async ({ page }) => {
-  // Wait for page and dashboard to be fully rendered
+test('Verify Expand Icon in Widget', async ({ page }) => {
+  // Wait until the Dashboard is fully loaded
   await page.waitForSelector('#Dashboard', { timeout: 15000 });
 
-  // Scope inside Time in Error widget
+  // Locate the Time in Error widget container
   const widget = page.locator('app-time-in-error');
+
   await expect(widget).toBeVisible({ timeout: 10000 });
 
-  // Select the 📊 menu button inside the toggle group (avoid dynamic IDs)
-  const menuTab = widget.locator('button.mat-button-toggle-button').filter({
-    has: page.locator('span.mat-button-toggle-label-content'),
-  });
+  // Wait specifically for the expand icon to appear within the widget
+  const expandIcon = widget.locator('img[src*="arrow_down.png"]'); // safer than deep nth-child
 
-  await expect(menuTab.first()).toBeVisible({ timeout: 10000 });
-  await menuTab.first().click();
+  await expect(expandIcon).toBeVisible({ timeout: 10000 });
 
-  // Wait for the chart SVG to render (Highcharts SVG element)
-  const chart = widget.locator('svg.highcharts-root');
-  await expect(chart).toBeVisible({ timeout: 10000 });
-
-  // Screenshot the widget after graph renders
-  await expect(widget).toHaveScreenshot('sr-trs-overview-time-in-error-menu-tab.png');
+  // Screenshot only when icon is confirmed visible
+  await expect(expandIcon).toHaveScreenshot('sr-trs-overview-time-in-error-expand-icon.png');
 });
