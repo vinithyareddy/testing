@@ -2,20 +2,19 @@ test('Expand icon in Sources and Uses widget table rows', async ({ page }) => {
   const widget = page.locator('app-source-uses');
   await expect(widget).toBeVisible({ timeout: 10000 });
 
-  // Locate the first row in the table using role and relative path
   const firstRow = widget.locator('table tbody tr').first();
+  const plusIcon = firstRow.locator('td.pointer i'); // or adjust tag/class if needed
 
-  // Now locate the plus icon within the first row using tag or class
-  const plusIcon = firstRow.locator('td.pointer i'); // assuming <i> is used for the plus icon
-
-  // Ensure the icon is visible before clicking
   await expect(plusIcon).toBeVisible({ timeout: 10000 });
-
   await plusIcon.click();
 
-  // Wait for expansion
-  await page.waitForTimeout(1000); // shorter wait after click
+  // Wait for expanded content — e.g., next row to appear
+  const expandedRow = widget.locator('table tbody tr:nth-child(2)');
+  await expect(expandedRow).toBeVisible({ timeout: 5000 });
 
-  // Take screenshot of the entire widget with expanded row
-  await expect(widget).toHaveScreenshot('sr-source-uses-widget-expanded-row.png');
+  // Or wait for stability before screenshot
+  await page.waitForTimeout(1000);
+
+  // Now take screenshot of the widget
+  await expect(widget).toHaveScreenshot('sr-source-uses-widget-plusicon-expanded-row.png');
 });
