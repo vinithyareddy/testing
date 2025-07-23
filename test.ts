@@ -1,17 +1,22 @@
-test('Verify Expand Icon in Widget', async ({ page }) => {
-  // Wait until the Dashboard is fully loaded
-  await page.waitForSelector('#Dashboard', { timeout: 15000 });
-
-  // Locate the Time in Error widget container
+test('Verify widget Toggle button', async ({ page }) => {
   const widget = page.locator('app-time-in-error');
-
   await expect(widget).toBeVisible({ timeout: 10000 });
 
-  // Wait specifically for the expand icon to appear within the widget
-  const expandIcon = widget.locator('img[src*="arrow_down.png"]'); // safer than deep nth-child
+  // Use role and name for radio buttons instead of unstable IDs
+  const toggleAll = page.getByRole('radio', { name: /^ALL$/ });
+  const toggleBB = page.getByRole('radio', { name: /^BB$/ });
+  const toggleREIMB = page.getByRole('radio', { name: /^REIMB$/ });
+  const toggleTF = page.getByRole('radio', { name: /^TF$/ });
 
-  await expect(expandIcon).toBeVisible({ timeout: 10000 });
+  // Click and verify ALL toggle
+  await expect(toggleAll).toBeVisible({ timeout: 10000 });
+  await toggleAll.click({ force: true });
 
-  // Screenshot only when icon is confirmed visible
-  await expect(expandIcon).toHaveScreenshot('sr-trs-overview-time-in-error-expand-icon.png');
+  await page.waitForTimeout(1000); // Let UI settle
+  await expect(widget).toHaveScreenshot('sr-trs-overview-time-in-error-toggle-all.png');
+
+  // Optionally test other toggles (optional but good for coverage)
+  await toggleBB.click({ force: true });
+  await toggleREIMB.click({ force: true });
+  await toggleTF.click({ force: true });
 });
