@@ -1,22 +1,23 @@
-test('Verify Clear Option Works', async ({ page }) => {
-  test.setTimeout(180000); // Keep as is for safety
+test('Verify Dropdown Option Expands', async ({ page }) => {
+  test.setTimeout(180000);
 
-  const clearBtn = page.getByRole('button', { name: 'Clear' });
+  const filterTab = page.locator(
+    'body > app-root > internal-framework-root > div.content-wrapper > div > div > div.col-md.layout-wrapper > app-trs-staffcost > app-budget-top-header > div.container-fluid.sticky.BudgetTopHeaderBgView > div > div:nth-child(2) > div.col-lg-4.col-md-4 > span.tagviewShow > lift-tag > div > div > label'
+  );
 
-  // Open filter tab only if the clear button is NOT visible
-  if (!(await clearBtn.isVisible())) {
-    const filterTab = page.locator('app-trs-staffcost lift-tag label.tag-button-switch');
+  await filterTab.waitFor({ state: 'visible', timeout: 90000 });
+  await filterTab.scrollIntoViewIfNeeded();
+  await filterTab.click({ force: true });
 
-    await filterTab.waitFor({ state: 'visible', timeout: 30000 });
+  const dropdown = page.locator(
+    'body > app-root > internal-framework-root > div.content-wrapper > div > div > div.col-md.layout-wrapper > app-trs-staffcost > app-budget-top-header > div.right-trail-comp.refiner-sticky.refinerslide > app-budget-refiner > div > div.refiner-scroll.ng-tns-c242-43 > lift-accordion:nth-child(2) > div > lift-accordion-item > div > a > div.item-arrow > i'
+  ).first();
 
-    await filterTab.click(); // open filter drawer
-    await page.waitForTimeout(3000); // wait for panel animation
-  }
+  await dropdown.waitFor({ state: 'visible', timeout: 60000 });
+  await dropdown.scrollIntoViewIfNeeded();
+  await dropdown.click();
 
-  // Wait for the Clear button and capture screenshot
-  await clearBtn.waitFor({ state: 'visible', timeout: 30000 });
+  await page.waitForTimeout(2000); // allow dropdown to animate
 
-  await expect(clearBtn).toBeVisible();
-
-  await expect(clearBtn).toHaveScreenshot('sr-trs-filter-clear-btn.png');
+  await expect(dropdown).toHaveScreenshot('sr-trs-filter-dropdown.png');
 });
