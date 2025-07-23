@@ -1,13 +1,18 @@
-test('Verify Expand Icon in Widget', async ({ page }) => {
-  // Select the correct instance of app-time-in-error (overview tab)
-  const widget = page.locator('app-time-in-error').nth(1);
+test('Verify Graph Tab Button (Menu Tab)', async ({ page }) => {
+  await page.goto('<your_url>');
+  await page.waitForSelector('#Dashboard', { timeout: 15000 });
 
-  // Scope down to the expand icon inside the widget
-  const expandIcon = widget.locator('.bgt-text-end span:nth-child(4) img');
+  const widget = page.locator('app-time-in-error');
+  await expect(widget).toBeVisible();
 
-  // Optional: give time for widget animations/load
-  await expandIcon.scrollIntoViewIfNeeded();
-  await expect(expandIcon).toBeVisible({ timeout: 10000 });
+  // Use role or aria-label
+  const menuTab = page.getByRole('button', { name: 'T' });
+  await expect(menuTab).toBeVisible();
+  await menuTab.click();
 
-  await expect(expandIcon).toHaveScreenshot('sr-trs-overview-time-in-error-expand-icon.png');
+  // Graph inside the widget
+  const graph = widget.locator('svg.highcharts-root');
+  await expect(graph).toBeVisible();
+
+  await expect(widget).toHaveScreenshot('sr-trs-overview-time-in-error-menu-tab.png');
 });
