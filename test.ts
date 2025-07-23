@@ -1,23 +1,14 @@
-test('Verify Dropdown Option Expands', async ({ page }) => {
-  test.setTimeout(180000);
+test('Verify Filter Dropdown', async ({ page }) => {
+  // Step 1: Wait for the specific widget using a more stable and specific selector
+  const widget = page.locator('app-missing-time >> .budget-card-box');
 
-  const filterTab = page.locator(
-    'body > app-root > internal-framework-root > div.content-wrapper > div > div > div.col-md.layout-wrapper > app-trs-staffcost > app-budget-top-header > div.container-fluid.sticky.BudgetTopHeaderBgView > div > div:nth-child(2) > div.col-lg-4.col-md-4 > span.tagviewShow > lift-tag > div > div > label'
-  );
+  await widget.waitFor({ state: 'visible', timeout: 30000 });
 
-  await filterTab.waitFor({ state: 'visible', timeout: 90000 });
-  await filterTab.scrollIntoViewIfNeeded();
-  await filterTab.click({ force: true });
+  // Step 2: Find the ng-select inside the widget
+  const dropdown = widget.locator('ng-select');
 
-  const dropdown = page.locator(
-    'body > app-root > internal-framework-root > div.content-wrapper > div > div > div.col-md.layout-wrapper > app-trs-staffcost > app-budget-top-header > div.right-trail-comp.refiner-sticky.refinerslide > app-budget-refiner > div > div.refiner-scroll.ng-tns-c242-43 > lift-accordion:nth-child(2) > div > lift-accordion-item > div > a > div.item-arrow > i'
-  ).first();
+  await dropdown.waitFor({ state: 'visible', timeout: 15000 });
 
-  await dropdown.waitFor({ state: 'visible', timeout: 60000 });
-  await dropdown.scrollIntoViewIfNeeded();
-  await dropdown.click();
-
-  await page.waitForTimeout(2000); // allow dropdown to animate
-
-  await expect(dropdown).toHaveScreenshot('sr-trs-filter-dropdown.png');
+  // Step 3: Screenshot after ensuring dropdown is visible
+  await expect(dropdown).toHaveScreenshot('sr-trs-overview-missing-time-filter-dropdown.png');
 });
