@@ -1,31 +1,21 @@
-test('Verify widget Toggle button', async ({ page }) => {
-  // Wait for the text "Time in Error" — proves widget rendered
-  await page.getByText('Time in Error', { exact: true }).waitFor({ state: 'visible', timeout: 15000 });
+test('Verify Drag Row Group Bar', async ({ page }) => {
+  // Correct: locate the right "Time in Error" widget
+  const widget = page.locator('app-time-in-error').nth(1);
+  await expect(widget).toBeVisible();
 
-  const widget = page.locator('app-time-in-error');
-  await expect(widget).toBeVisible({ timeout: 10000 });
+  // Scope View More inside that widget
+  const viewMoreButton = widget.locator('text=View More');
 
-  // Stable radio button selectors
-  const toggleAll = page.locator('mat-radio-button[aria-label="All"]');
-  const toggleBB = page.locator('mat-radio-button[aria-label="BB"]');
-  const toggleReimb = page.locator('mat-radio-button[aria-label="REIMB"]');
-  const toggleTF = page.locator('mat-radio-button[aria-label="TF"]');
+  await viewMoreButton.scrollIntoViewIfNeeded();
+  await expect(viewMoreButton).toBeVisible({ timeout: 5000 });
+  await viewMoreButton.click();
 
-  // Click All
-  await expect(toggleAll).toBeVisible({ timeout: 10000 });
-  await toggleAll.click({ force: true });
-  await page.waitForTimeout(1000);
-  await expect(widget).toHaveScreenshot('sr-trs-overview-time-in-error-toggle-all.png');
+  // Wait for report to load (may need extra wait if slow)
+  await page.waitForSelector('app-rm-ag-report', { timeout: 15000 });
 
-  await toggleBB.click({ force: true });
-  await page.waitForTimeout(1000);
-  await expect(widget).toHaveScreenshot('sr-trs-overview-time-in-error-toggle-bb.png');
+  // Now look for the drag row bar
+  const dragRowBar = page.locator('app-rm-ag-report .ag-column-drop-wrapper > div').first();
 
-  await toggleReimb.click({ force: true });
-  await page.waitForTimeout(1000);
-  await expect(widget).toHaveScreenshot('sr-trs-overview-time-in-error-toggle-reimb.png');
-
-  await toggleTF.click({ force: true });
-  await page.waitForTimeout(1000);
-  await expect(widget).toHaveScreenshot('sr-trs-overview-time-in-error-toggle-tf.png');
+  await expect(dragRowBar).toBeVisible({ timeout: 10000 });
+  await expect(dragRowBar).toHaveScreenshot('sr-trs-overview-time-in-error-drag-row-bar.png');
 });
