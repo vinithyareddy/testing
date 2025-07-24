@@ -1,19 +1,22 @@
-test('report export excel option', async ({ page }) => {
-  // Click Reports tab
-  const reportsTab = page.locator('#REPORTS a span', { hasText: 'REPORTS' });
+test('Verify report row dropdown in table', async ({ page }) => {
+  // Step 1: Click Reports tab
+  const reportsTab = page.locator('#REPORTS > a > span');
+  await reportsTab.waitFor({ state: 'visible', timeout: 10000 });
   await reportsTab.click();
 
-  // Wait for the table icon to be present and click it
+  // Step 2: Click Report Icon
   const tableIcon = page.locator('img.img-report-icon.p-3.ng-star-inserted');
-  await tableIcon.scrollIntoViewIfNeeded();
-  await expect(tableIcon).toBeVisible({ timeout: 10000 });
-  await tableIcon.click();
+  await tableIcon.first().waitFor({ state: 'visible', timeout: 10000 });
+  await tableIcon.first().click();
 
-  // Wait for export option to appear
-  const exportExcel = page.locator('img[alt="Export Excel"]');
-  await expect(exportExcel).toBeVisible({ timeout: 10000 });
+  // Step 3: Wait for AG Grid table to render fully
+  const firstRowDropdownIcon = page.locator('span.ag-icon.ag-icon-tree-closed');
+  await firstRowDropdownIcon.first().waitFor({ state: 'visible', timeout: 15000 });
 
-  // Screenshot the parent container instead of only the image
-  const exportContainer = exportExcel.locator('..'); // parent li
-  await expect(exportContainer).toHaveScreenshot('sr-wpa-reports-export-excel-visible.png');
+  // Step 4: Click dropdown icon in first row
+  await firstRowDropdownIcon.first().scrollIntoViewIfNeeded();
+  await firstRowDropdownIcon.first().click();
+
+  // Step 5: Capture screenshot
+  await expect(page).toHaveScreenshot('sr-trs-reports-dropdown-clicked.png');
 });
