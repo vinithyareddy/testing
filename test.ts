@@ -1,26 +1,29 @@
-test('verify view more - row dropdown', async ({ page }) => {
-  // Wait for widget to be visible
+test('Verify widget Toggle button', async ({ page }) => {
   const widget = page.locator('app-plans-by-bussiness-process');
-  await widget.waitFor({ state: 'visible', timeout: 15000 });
-  await widget.scrollIntoViewIfNeeded();
+  await widget.waitFor({ state: 'visible', timeout: 60000 });
 
-  // Click "View More"
-  const viewMore = page.getByText('View More', { exact: true });
-  await viewMore.waitFor({ state: 'visible', timeout: 10000 });
-  await viewMore.click();
+  const toggleAll = page.locator('#mat-radio-22-input');
+  const toggleBB = page.locator('#mat-radio-23-input');
+  const toggleReimb = page.locator('#mat-radio-24-input');
+  const toggleTF = page.locator('#mat-radio-25-input');
 
-  // Wait for ag-grid table to appear
-  const agTable = page.locator('ag-grid-angular');
-  await agTable.waitFor({ state: 'visible', timeout: 15000 });
+  await toggleAll.waitFor({ state: 'visible', timeout: 10000 });
+  await toggleAll.check({ force: true });
+  await page.waitForTimeout(1000);
+  await expect(widget).toHaveScreenshot('sr-fp-vs-actual-businessprocess-toggle-all.png');
 
-  // Wait for dropdown icon in the first row (generic, non-brittle selector)
-  const dropdownIcon = agTable.locator('span.ag-group-contracted >> nth=0');
-  await dropdownIcon.waitFor({ state: 'visible', timeout: 10000 });
+  await toggleBB.waitFor({ state: 'visible', timeout: 10000 });
+  await toggleBB.check({ force: true });
+  await page.waitForTimeout(1000);
+  await expect(widget).toHaveScreenshot('sr-fp-vs-actual-businessprocess-toggle-bb.png');
 
-  // Scroll and click
-  await dropdownIcon.scrollIntoViewIfNeeded();
-  await dropdownIcon.click();
+  await toggleReimb.waitFor({ state: 'visible', timeout: 10000 });
+  await toggleReimb.check({ force: true });
+  await page.waitForTimeout(1000);
+  await expect(widget).toHaveScreenshot('sr-fp-vs-actual-businessprocess-toggle-reimb.png');
 
-  // Screenshot after clicking dropdown
-  await expect(page).toHaveScreenshot('sr-fp-vs-actual-businessprocess-view-more-dropdown-clicked.png');
+  await toggleTF.waitFor({ state: 'visible', timeout: 10000 });
+  await toggleTF.check({ force: true });
+  await page.waitForTimeout(1000);
+  await expect(widget).toHaveScreenshot('sr-fp-vs-actual-businessprocess-toggle-tf.png');
 });
