@@ -1,28 +1,20 @@
-test('Verify Expand Icon Click', async ({ page }) => {
-  // Wait for the whole widget region
-  const widget = page.locator('app-temp-code');
+test('Verify Expand Icon Click - WPA Allocations Outside VPU widget', async ({ page }) => {
+  // Wait for the widget container to appear (not the Shadow DOM element itself)
+  const widgetContainer = page.locator('app-wpa-allocations');
+  await expect(widgetContainer).toBeAttached({ timeout: 10000 });
 
-  // Ensure the widget is attached to the DOM before interaction
-  await expect(widget).toHaveCount(1, { timeout: 10000 });
+  // Scroll the actual card inside the widget, not the tag itself (it is invisible directly)
+  const visibleCard = page.locator('div.budget-box-chart.ng-tns-c351066303-240'); // <- update ID if dynamic
+  await visibleCard.scrollIntoViewIfNeeded();
+  await expect(visibleCard).toBeVisible({ timeout: 10000 });
 
-  // Scroll the widget into view (safe fallback in case it's below viewport)
-  await widget.scrollIntoViewIfNeeded();
-
-  // Optional wait for rendering after scroll
-  await page.waitForTimeout(500);
-
-  // Use reliable selector for the expand arrow
-  const expandIcon = page.locator('app-temp-code span.bgt-collabse-state img');
-
-  // Wait until the expand icon becomes visible
+  // Locate the expand arrow inside header
+  const expandIcon = page.locator('span.bgt-collabse-state.pl-2.ng-tns-c351066303-240.ng-star-inserted img');
   await expect(expandIcon).toBeVisible({ timeout: 10000 });
 
-  // Click the expand icon
+  // Click the icon
   await expandIcon.click();
 
-  // Wait for potential expansion animation (optional)
-  await page.waitForTimeout(1000);
-
-  // Capture screenshot
-  await expect(expandIcon).toHaveScreenshot('sr-wpa-temp-code-expand-icon.png');
+  // Screenshot after click
+  await expect(expandIcon).toHaveScreenshot('sr-fp-vs-actual-wpa-allocations-expand-icon.png');
 });
