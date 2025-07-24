@@ -1,25 +1,24 @@
-test('verify view more - row dropdown', async ({ page }) => {
-  // Wait for the widget to be visible
-  const widget = page.locator('app-plans-vs-business-process');
-  await expect(widget).toBeVisible({ timeout: 10000 });
-  await widget.scrollIntoViewIfNeeded();
+test('verify view more - wraptext option', async ({ page }) => {
 
-  // Wait for and click "View More"
-  const viewMore = widget.getByText('View More', { exact: true });
+  // Scroll into the widget
+  const widget = page.locator('app-plans-by-business-process');
+  await widget.scrollIntoViewIfNeeded();
+  await expect(widget).toBeVisible({ timeout: 10000 });
+
+  // Click on "View More" inside the widget
+  const viewMore = page.locator('app-plans-by-business-process >> text=View More');
   await expect(viewMore).toBeVisible({ timeout: 10000 });
-  await viewMore.scrollIntoViewIfNeeded();
   await viewMore.click();
 
-  // Wait for dropdown icon to appear dynamically (replaces hardcoded 12s wait)
-  const dropdownIcon = page.locator(
-    'div.ag-center-cols-container .ag-cell-focus span.ag-icon'
-  );
-  await expect(dropdownIcon.first()).toBeVisible({ timeout: 15000 });
+  // Wait for navigation/load (safe fallback)
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(5000); // allow any transitions
 
-  // Scroll and click
-  await dropdownIcon.first().scrollIntoViewIfNeeded();
-  await dropdownIcon.first().click();
+  // Locate "Wrap Text" checkbox
+  const wrapTextCheckbox = page.locator('input[type="checkbox"]:right-of(:text("Wrap Text"))');
+  await expect(wrapTextCheckbox).toBeVisible({ timeout: 10000 });
 
-  // Screenshot for confirmation
-  await expect(page).toHaveScreenshot('sr-fp-vs-actual-businessprocess-view-more-dropdown-clicked.png');
+  // Click and verify
+  await wrapTextCheckbox.click();
+  await expect(wrapTextCheckbox).toHaveScreenshot('sr-fp-vs-actual-businessprocess-view-more-wrapcheckbox-option.png');
 });
