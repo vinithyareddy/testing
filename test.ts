@@ -1,17 +1,13 @@
-test('verify view more - full screen option', async ({ page }) => {
-  const widget = page.locator('app-wpa-allocations');
+test('verify view more - table', async ({ page }) => {
+  const widget = page.locator('div.budget-box-chart.ng-star-inserted:has-text("WPA Allocations Outside VPU")');
   await expect(widget).toBeVisible({ timeout: 10000 });
-
-  const viewMore = page.locator('div.viewmore.pointer');
-
-  await viewMore.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(500); // Let layout stabilize
+  const viewMore = page.locator('div.viewmore.pointer.mt-3.pt-2.ng-star-inserted');
   await expect(viewMore).toBeVisible({ timeout: 10000 });
-
+  await viewMore.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(500);
   await viewMore.click();
-  await page.waitForTimeout(1000);
-
-  const fullscreen = page.locator('li:nth-child(1) img'); // Simpler selector
-  await expect(fullscreen).toBeVisible();
-  await expect(fullscreen).toHaveScreenshot('sr-fp-vs-actual-wpa-allocations-view-more-fullscreen-option.png');
+  const table = page.locator('div.ag-root.ag-unselectable.ag-layout-normal');
+  await page.waitForTimeout(2000); 
+  await expect(table).toBeVisible({ timeout: 15000 });
+  await expect(table).toHaveScreenshot('sr-fp-vs-actual-wpa-allocations-view-more-table-visible.png');
 });
