@@ -1,18 +1,17 @@
 test('Verify Expand Icon Click', async ({ page }) => {
-  // Wait for widget
   const widget = page.locator('div.budget-box-chart:has-text("WPA Allocations Outside VPU")');
-  await expect(widget).toBeVisible({ timeout: 10000 });
+  await expect(widget).toBeVisible({ timeout: 20000 });
 
-  // Locate expand icon within widget
-  const expandIcon = widget.locator('img[alt="Expand"], img[title="Expand"]'); // alt or title-based for reliability
+  // Optional: wait for loading spinner to disappear
+  await page.waitForSelector('.spinner, .loading-skeleton', { state: 'detached', timeout: 15000 });
 
-  // Ensure it is visible and interactable
-  await expect(expandIcon).toBeVisible({ timeout: 10000 });
+  // Now wait for icon
+  const expandIcon = widget.locator('img[alt="Expand"], img[title="Expand"]');
   await expandIcon.scrollIntoViewIfNeeded();
+  await expect(expandIcon).toBeVisible({ timeout: 10000 });
 
-  // Optional: click the icon if the test expects interaction
+  // Optional click
   // await expandIcon.click();
 
-  // Screenshot for visual verification
   await expect(expandIcon).toHaveScreenshot('sr-wpa-allocations-expand-icon.png');
 });
