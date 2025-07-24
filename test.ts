@@ -1,14 +1,27 @@
-test('verify view more - export excel option', async ({ page }) => {
-  const widget = page.locator('#Dashboard app-wpa-allocations');
-  const viewMore = page.locator('div.viewmore.pointer.mt-3.p-2.ng-star-inserted'); // Specific class-based
-  const exportExcel = page.locator('li img[title="Export Excel"]'); // Targeting icon inside list
+test('verify View More - Full Screen option from WPA Allocations Outside VPU', async ({ page }) => {
+  // Wait for the correct widget container (4th widget as per your DOM)
+  const widget = page.locator('#Dashboard > div > div > div:nth-child(4) > div');
 
-  await expect(widget).toBeVisible({ timeout: 15000 });
-  await viewMore.scrollIntoViewIfNeeded();
+  await expect(widget).toBeVisible({ timeout: 10000 });
+
+  // Grab the correct View More button — specifically the one inside this widget
+  const viewMore = widget.getByRole('button', { name: 'View More' }).first();
+
   await expect(viewMore).toBeVisible({ timeout: 10000 });
+
+  // Scroll and click View More
+  await viewMore.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300);
   await viewMore.click();
 
-  await page.waitForLoadState('networkidle'); // Wait for navigation/transition
-  await expect(exportExcel).toBeVisible({ timeout: 10000 });
-  await expect(exportExcel).toHaveScreenshot('sr-fp-vs-actual-wpa-allocations-view-more-exportexcel-option.png');
+  // Wait for navigation to the next page
+  await page.waitForLoadState('networkidle');
+
+  // Ensure Full Screen button appears — use partial match on class if needed
+  const fullscreen = page.locator('li:nth-child(1) >> img[title="Zoom"]');
+
+  await expect(fullscreen).toBeVisible({ timeout: 10000 });
+
+  // Screenshot of the full-screen icon option
+  await expect(fullscreen).toHaveScreenshot('sr-wpa-viewmore-fullscreen-option.png');
 });
