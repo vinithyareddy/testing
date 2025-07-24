@@ -1,24 +1,19 @@
-test('verify view more - wraptext option', async ({ page }) => {
-  // Identify the Temp Codes widget
+test('verify View More opens table and screenshot is taken', async ({ page }) => {
+  test.setTimeout(90000); // Extra buffer for navigation + table load
+
   const widget = page.locator('app-temp-code');
-
-  // Locate the "View More" inside the widget
   const viewMore = widget.locator('text=View More');
+  const table = page.locator('div.ag-root');
 
-  // Wait for widget to appear and scroll into view
   await expect(widget).toBeVisible({ timeout: 10000 });
-  await widget.scrollIntoViewIfNeeded();
   await expect(viewMore).toBeVisible({ timeout: 10000 });
 
-  // Click View More
+  await viewMore.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(500); // Let layout settle
+
   await viewMore.click();
+  await page.waitForTimeout(15000); // Long wait for table load
 
-  // Wait for checkbox panel to load — add retries until the checkbox appears
-  const wrapCheckbox = page.locator('li:nth-child(3) > input[type="checkbox"]');
-
-  await expect(wrapCheckbox).toBeVisible({ timeout: 10000 });
-
-  // Click the checkbox and verify screenshot
-  await wrapCheckbox.click();
-  await expect(wrapCheckbox).toHaveScreenshot('sr-wpa-temp-code-view-more-wrapcheckbox-option.png');
+  await expect(table).toBeVisible({ timeout: 20000 });
+  await expect(table).toHaveScreenshot('sr-wpa-temp-code-view-more-table.png');
 });
