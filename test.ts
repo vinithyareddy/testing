@@ -1,15 +1,24 @@
-test('Verify Expand Icon Click', async ({ page }) => {
-  // Step 1: Scroll to WPA Exception widget
-  const widget = page.locator('app-wpa-exceptions');
-  await widget.scrollIntoViewIfNeeded();
+test('verify view more - wraptext option', async ({ page }) => {
+  // Identify the Temp Codes widget
+  const widget = page.locator('app-temp-code');
+
+  // Locate the "View More" inside the widget
+  const viewMore = widget.locator('text=View More');
+
+  // Wait for widget to appear and scroll into view
   await expect(widget).toBeVisible({ timeout: 10000 });
-await page.waitForTimeout(10000);
-  // Step 2: Use a precise selector for the expand icon
-  const expandIcon = widget.locator('span[class*="bgt-collabse-state"]'); // More robust than exact class
+  await widget.scrollIntoViewIfNeeded();
+  await expect(viewMore).toBeVisible({ timeout: 10000 });
 
-  // Step 3: Ensure visible before clicking
-  await expandIcon.waitFor({ state: 'visible', timeout: 15000 });
+  // Click View More
+  await viewMore.click();
 
-  await page.waitForTimeout(1000); // for dropdown to open
-  await expect(expandIcon).toHaveScreenshot('sr-wpa-exception-expand-icon.png');
+  // Wait for checkbox panel to load — add retries until the checkbox appears
+  const wrapCheckbox = page.locator('li:nth-child(3) > input[type="checkbox"]');
+
+  await expect(wrapCheckbox).toBeVisible({ timeout: 10000 });
+
+  // Click the checkbox and verify screenshot
+  await wrapCheckbox.click();
+  await expect(wrapCheckbox).toHaveScreenshot('sr-wpa-temp-code-view-more-wrapcheckbox-option.png');
 });
