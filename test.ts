@@ -1,34 +1,14 @@
-test('Verify View More - WrapText Option', async ({ page }) => {
-  // Wait for the dashboard to load fully
-  await page.waitForSelector('text=WPA Expenditure Summary', { timeout: 20000 });
+test('verify view more - export excel option', async ({ page }) => {
+  const widget = page.locator('#Dashboard app-wpa-allocations');
+  const viewMore = page.locator('div.viewmore.pointer.mt-3.p-2.ng-star-inserted'); // Specific class-based
+  const exportExcel = page.locator('li img[title="Export Excel"]'); // Targeting icon inside list
 
-  // Select the WPA widget by its content or unique section
-  const widget = page.locator('app-wpa-allocations:has-text("WPA Allocations Outside VPU")');
-  await expect(widget).toBeVisible({ timeout: 10000 });
-
-  // Scroll widget into view safely
-  await widget.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(500);
-
-  // Click 'View More' inside the widget
-  const viewMore = widget.locator('text=View More');
-  await expect(viewMore).toBeVisible({ timeout: 5000 });
+  await expect(widget).toBeVisible({ timeout: 15000 });
+  await viewMore.scrollIntoViewIfNeeded();
+  await expect(viewMore).toBeVisible({ timeout: 10000 });
   await viewMore.click();
 
-  // Wait for route transition to next page
-  await page.waitForLoadState('networkidle');
-
-  // Confirm you landed on the WrapText section using a known header
-  await expect(page.locator('text=WPA allocations outside the VPU')).toBeVisible({ timeout: 10000 });
-
-  // Find and click on Wrap Text checkbox
-  const wraptextCheckbox = page.locator('text=Wrap Text').locator('xpath=..').locator('input[type="checkbox"]');
-  await expect(wraptextCheckbox).toBeVisible({ timeout: 5000 });
-  await wraptextCheckbox.click();
-
-  // Wait for visual update
-  await page.waitForTimeout(1000);
-
-  // Screenshot the checkbox interaction
-  await expect(wraptextCheckbox).toHaveScreenshot('sr-fp-vs-actual-wpa-allocations-view-more-wrapcheckbox-option.png');
+  await page.waitForLoadState('networkidle'); // Wait for navigation/transition
+  await expect(exportExcel).toBeVisible({ timeout: 10000 });
+  await expect(exportExcel).toHaveScreenshot('sr-fp-vs-actual-wpa-allocations-view-more-exportexcel-option.png');
 });
