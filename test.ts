@@ -1,24 +1,25 @@
-test('verify view more - table', async ({ page }) => {
-  // Wait for widget to be visible
-  const widget = page.locator('app-burnrate');
+test('verify view more - row dropdown', async ({ page }) => {
+  // Wait for the widget to be visible
+  const widget = page.locator('app-plans-vs-business-process');
   await expect(widget).toBeVisible({ timeout: 10000 });
-
-  // Scroll into widget
   await widget.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(1000);
 
-  // Click on 'View More'
+  // Wait for and click "View More"
   const viewMore = widget.getByText('View More', { exact: true });
   await expect(viewMore).toBeVisible({ timeout: 10000 });
+  await viewMore.scrollIntoViewIfNeeded();
   await viewMore.click();
 
-  // Wait for grid/table to load after view more
-  const table = page.locator('div.ag-root.ag-unselectable.ag-layout-normal');
+  // Wait for dropdown icon to appear dynamically (replaces hardcoded 12s wait)
+  const dropdownIcon = page.locator(
+    'div.ag-center-cols-container .ag-cell-focus span.ag-icon'
+  );
+  await expect(dropdownIcon.first()).toBeVisible({ timeout: 15000 });
 
-  // Wait up to 20s for table to appear
-  await expect(table).toBeVisible({ timeout: 20000 });
+  // Scroll and click
+  await dropdownIcon.first().scrollIntoViewIfNeeded();
+  await dropdownIcon.first().click();
 
-  // Take screenshot once fully loaded
-  await page.waitForTimeout(2000);
-  await expect(table).toHaveScreenshot('sr-fp-vs-actual-responsible-view-view-more-table-visible.png');
+  // Screenshot for confirmation
+  await expect(page).toHaveScreenshot('sr-fp-vs-actual-businessprocess-view-more-dropdown-clicked.png');
 });
