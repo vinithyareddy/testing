@@ -1,20 +1,15 @@
-test('Verify Expand Icon Click - WPA Allocations Outside VPU widget', async ({ page }) => {
-  // Wait for the widget container to appear (not the Shadow DOM element itself)
-  const widgetContainer = page.locator('app-wpa-allocations');
-  await expect(widgetContainer).toBeAttached({ timeout: 10000 });
+test('Verify Table is Visible', async ({ page }) => {
+  const widgetWrapper = page.locator('app-wpa-allocations');
+  await expect(widgetWrapper).toBeVisible({ timeout: 15000 });
 
-  // Scroll the actual card inside the widget, not the tag itself (it is invisible directly)
-  const visibleCard = page.locator('div.budget-box-chart.ng-tns-c351066303-240'); // <- update ID if dynamic
-  await visibleCard.scrollIntoViewIfNeeded();
-  await expect(visibleCard).toBeVisible({ timeout: 10000 });
+  const tableContainer = widgetWrapper.locator('div.TableView');
 
-  // Locate the expand arrow inside header
-  const expandIcon = page.locator('span.bgt-collabse-state.pl-2.ng-tns-c351066303-240.ng-star-inserted img');
-  await expect(expandIcon).toBeVisible({ timeout: 10000 });
+  // Scroll and wait for possible animation after expand
+  await tableContainer.scrollIntoViewIfNeeded();
+  await expect(tableContainer).toBeVisible({ timeout: 10000 });
 
-  // Click the icon
-  await expandIcon.click();
+  const table = tableContainer.locator('table');
+  await expect(table).toBeVisible({ timeout: 10000 });
 
-  // Screenshot after click
-  await expect(expandIcon).toHaveScreenshot('sr-fp-vs-actual-wpa-allocations-expand-icon.png');
+  await expect(table).toHaveScreenshot('sr-fp-vs-actual-wpa-allocations-table-visible.png');
 });
