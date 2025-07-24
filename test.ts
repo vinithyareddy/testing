@@ -1,22 +1,19 @@
-test('Verify widget Toggle button', async ({ page }) => {
-  const widget = page.locator('app-time-in-error');
-  await expect(widget).toBeVisible({ timeout: 10000 });
+test('report export excel option', async ({ page }) => {
+  // Click Reports tab
+  const reportsTab = page.locator('#REPORTS a span', { hasText: 'REPORTS' });
+  await reportsTab.click();
 
-  // Use role and name for radio buttons instead of unstable IDs
-  const toggleAll = page.getByRole('radio', { name: /^ALL$/ });
-  const toggleBB = page.getByRole('radio', { name: /^BB$/ });
-  const toggleREIMB = page.getByRole('radio', { name: /^REIMB$/ });
-  const toggleTF = page.getByRole('radio', { name: /^TF$/ });
+  // Wait for the table icon to be present and click it
+  const tableIcon = page.locator('img.img-report-icon.p-3.ng-star-inserted');
+  await tableIcon.scrollIntoViewIfNeeded();
+  await expect(tableIcon).toBeVisible({ timeout: 10000 });
+  await tableIcon.click();
 
-  // Click and verify ALL toggle
-  await expect(toggleAll).toBeVisible({ timeout: 10000 });
-  await toggleAll.click({ force: true });
+  // Wait for export option to appear
+  const exportExcel = page.locator('img[alt="Export Excel"]');
+  await expect(exportExcel).toBeVisible({ timeout: 10000 });
 
-  await page.waitForTimeout(1000); // Let UI settle
-  await expect(widget).toHaveScreenshot('sr-trs-overview-time-in-error-toggle-all.png');
-
-  // Optionally test other toggles (optional but good for coverage)
-  await toggleBB.click({ force: true });
-  await toggleREIMB.click({ force: true });
-  await toggleTF.click({ force: true });
+  // Screenshot the parent container instead of only the image
+  const exportContainer = exportExcel.locator('..'); // parent li
+  await expect(exportContainer).toHaveScreenshot('sr-wpa-reports-export-excel-visible.png');
 });
