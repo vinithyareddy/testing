@@ -1,14 +1,14 @@
-// Expand accordion first
-const sourceAccordion = page.getByText('Source of Funds', { exact: true });
-await sourceAccordion.click();
+test('Verify Filters Summary Bar displays correct tags', async ({ page }) => {
+  // Wait for page to load completely
+  await page.goto('https://standardreportsbeta.worldbank.org/...');
 
-// Wait for toggle/arrow inside that accordion (use class or relative selector)
-const sourceOfFundsToggle = page.locator('app-budget-refiner lift-accordion-item:has-text("Source of Funds") .item-arrow');
-await expect(sourceOfFundsToggle).toBeVisible({ timeout: 10000 });
+  // Wait for the banner section with filters
+  const filtersSummaryBar = page.locator('div.app-budget-banner-section .lift-accordion-item');
+  await expect(filtersSummaryBar).toBeVisible({ timeout: 10000 });
 
-// Click or continue as needed
-await sourceOfFundsToggle.click(); // if needed
+  // Optional: check a specific tag
+  await expect(page.getByText('Cost Obj Responsible VPU')).toBeVisible();
 
-// Then handle checkbox appearance
-const bbCheckbox = page.getByLabel('BB');
-await bbCheckbox.check();
+  // Take a screenshot for validation
+  await filtersSummaryBar.screenshot({ path: 'sr-wpa-filters-summary-bar.png' });
+});
