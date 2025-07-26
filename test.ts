@@ -1,20 +1,12 @@
-const viewmore = page.locator('dashboard-app-burndate >> div.ng-trigger-collapse >> div:nth-child(2) > div');
+test('Verify Expand Icon Click', async ({ page }) => {
+  await page.waitForTimeout(8000); // Wait for widget to load
 
-// Scroll into view
-await viewmore.scrollIntoViewIfNeeded();
+  const widget = page.locator('app-burnrate'); // Confirm this loads the whole widget
+  await expect(widget).toBeVisible({ timeout: 10000 });
 
-// Freeze page scroll
-await page.evaluate(() => {
-  document.body.style.overflow = 'hidden';
-});
+  const expandIcon = page.locator('img[src*="collapse-expand"]');
+  await expect(expandIcon).toBeVisible({ timeout: 10000 });
 
-// Wait for layout to settle
-await page.waitForTimeout(1000);
-
-// Click after stable scroll
-await viewmore.click();
-
-// Unfreeze scroll
-await page.evaluate(() => {
-  document.body.style.overflow = 'auto';
+  await expandIcon.click();
+  await expect(expandIcon).toHaveScreenshot('sr-fp-vs-actual-responsible-expand-icon.png');
 });
