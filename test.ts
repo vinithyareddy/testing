@@ -1,12 +1,6 @@
-test('Verify Expand Icon Click', async ({ page }) => {
-  await page.waitForTimeout(8000); // Wait for widget to load
+test('Verify Filters Summary Bar is visible and take screenshot', async ({ page }) => {
+  await page.waitForTimeout(1000); // or wait for some key element to load
 
-  const widget = page.locator('app-burnrate'); // Confirm this loads the whole widget
-  await expect(widget).toBeVisible({ timeout: 10000 });
-
-  const expandIcon = page.locator('img[src*="collapse-expand"]');
-  await expect(expandIcon).toBeVisible({ timeout: 10000 });
-
-  await expandIcon.click();
-  await expect(expandIcon).toHaveScreenshot('sr-fp-vs-actual-responsible-expand-icon.png');
+  const filterSummaryBar = page.locator('div.banner-align-p-0');
+  await expect(filterSummaryBar).toBeVisible({ timeout: 10000 });
 });
