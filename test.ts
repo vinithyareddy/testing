@@ -1,13 +1,18 @@
-test('Verify Fullscreen Icon is Clickable in Sources Widget', async ({ page }) => {
-  const widget = page.locator('app-source-users .card');
+test('Verify Sources and Uses Table is Visible', async ({ page }) => {
+  // Optional wait in case page or widget is loading
+  await page.waitForTimeout(1000);
+
+  // Step 1: Make sure the main widget is loaded
+  const widget = page.locator('app-sources-breakdown');
   await expect(widget).toBeVisible({ timeout: 10000 });
 
-  const fullscreenIcon = page.locator('app-source-users span.view').first();
-  await expect(fullscreenIcon).toBeVisible();
-  await fullscreenIcon.click();
+  // Step 2: Find the actual AG Grid table
+  const table = page.locator('div.ag-root.ag-unselectable.ag-layout-normal');
+  await expect(table).toBeVisible({ timeout: 10000 });
 
-  await page.waitForTimeout(2000);
+  // Optional scroll if needed
+  await table.scrollIntoViewIfNeeded();
 
-  // Capture only the top widget (not the full screen)
-  await widget.screenshot({ path: 'sr-sources-uses-widget-fullscreen.png' });
+  // Step 3: Take a screenshot of the table only
+  await table.screenshot({ path: 'sr-sources-uses-sources-breakdown-table-visible.png' });
 });
