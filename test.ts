@@ -1,8 +1,6 @@
-test('Verify Filters Summary Bar is visible and take screenshot', async ({ page }) => {
-  await page.waitForTimeout(2000); // give time for data to load
+const fullscreenIcon = page.locator('span.view >> img');
+await expect(fullscreenIcon).toBeVisible({ timeout: 10000 });
 
-  const filterSummaryBar = page.locator('[class*="banner-align-p-0"]');
-  await expect(filterSummaryBar).toBeVisible({ timeout: 15000 });
-
-  await filterSummaryBar.screenshot({ path: 'sr-budget-expenses-filter-summary-bar-open.png' });
-});
+await fullscreenIcon.click();
+await page.waitForTimeout(3000);
+await expect(page).toHaveScreenshot('sr-sources-uses-widget-fullscreen.png');
