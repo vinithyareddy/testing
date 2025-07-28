@@ -1,14 +1,14 @@
-test('Verify Menu Tab Click Works', async ({ page }) => {
-  await page.goto('https://standardreportsbetaqa.worldbank.org/work-program', {
-    waitUntil: 'networkidle',
-    timeout: 60000
-  });
-  const widget = page.locator('app-final-plans-budgetclass');
+test('Expand icon in Sources and Uses widget table rows', async ({ page }) => {
+  const widget = page.locator('app-source-uses');
   await expect(widget).toBeVisible({ timeout: 15000 });
-  const menuTab = widget.locator('mat-button-toggle-group button').first();
-  await expect(menuTab).toBeVisible({ timeout: 15000 });
-  await menuTab.scrollIntoViewIfNeeded();
-  await menuTab.click();
-  await page.waitForTimeout(500);
-  await expect(menuTab).toHaveScreenshot('sr-fp-vs-actual-budgetclass-menu-tab.png');
+  const firstRow = widget.locator('table tbody tr').first();
+  await expect(firstRow).toBeVisible({ timeout: 15000 });
+  const plusIcon = firstRow.locator('td.pointer i');
+  await expect(plusIcon).toHaveCount(1, { timeout: 10000 });
+  await expect(plusIcon).toBeVisible({ timeout: 10000 });
+  await plusIcon.scrollIntoViewIfNeeded();
+  await plusIcon.click();
+  const expandedRow = widget.locator('table tbody tr:nth-child(2)');
+  await expect(expandedRow).toBeVisible({ timeout: 10000 });
+  await expect(widget).toHaveScreenshot('sr-source-uses-widget-plusicon-expanded-row.png');
 });
