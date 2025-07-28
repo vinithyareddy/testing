@@ -1,46 +1,18 @@
-test('Validate World Bank Group text is visible', async ({ page }) => {
-  const footerText = page.locator('footer >> text=World Bank Group');
-  await expect(footerText).toBeVisible();
-  await footerText.screenshot({ path: 'footer-world-bank-group.png' });
-});
+test('Close Filter Tab', async ({ page }) => {
+  await page.goto('https://standardreportsbetaqa.worldbank.org/sources-uses', {
+    waitUntil: 'networkidle',
+    timeout: 60000
+  });
 
-test('Click World Bank link and take screenshot', async ({ page }) => {
-  const link = page.getByRole('link', { name: 'World Bank' });
-  await link.click();
-  await page.waitForLoadState('networkidle');
-  await page.screenshot({ path: 'footer-link-world-bank.png' });
-});
+  const filterTab = page.locator('div.tag-btn', { hasText: 'Filter' });
+  await expect(filterTab).toBeVisible({ timeout: 15000 });
+  await filterTab.click();
 
-test('Click IFC link and take screenshot', async ({ page }) => {
-  const link = page.getByRole('link', { name: 'IFC' });
-  await link.click();
-  await page.waitForLoadState('networkidle');
-  await page.screenshot({ path: 'footer-link-ifc.png' });
-});
+  const closeIcon = page.locator('app-budget-refiner i.fa-times');
+  await expect(closeIcon).toBeVisible({ timeout: 20000 });
 
-test('Click MIGA link and take screenshot', async ({ page }) => {
-  const link = page.getByRole('link', { name: 'MIGA' });
-  await link.click();
-  await page.waitForLoadState('networkidle');
-  await page.screenshot({ path: 'footer-link-miga.png' });
-});
+  await closeIcon.scrollIntoViewIfNeeded();
+  await expect(closeIcon).toHaveScreenshot('sr-sources-uses-filter-close.png');
 
-test('Click ICSID link and take screenshot', async ({ page }) => {
-  const link = page.getByRole('link', { name: 'ICSID' });
-  await link.click();
-  await page.waitForLoadState('networkidle');
-  await page.screenshot({ path: 'footer-link-icsid.png' });
-});
-
-test('Validate Emergency Contact text is visible', async ({ page }) => {
-  const contactText = page.locator('footer >> text=Emergency Contact Number (US) (202) 458-8888');
-  await expect(contactText).toBeVisible();
-  await contactText.screenshot({ path: 'footer-emergency-contact.png' });
-});
-
-test('Validate © 2025 World Bank Group text is visible', async ({ page }) => {
-  const copyright =
-    page.locator('footer >> text=© 2025 The World Bank Group. All Rights Reserved');
-  await expect(copyright).toBeVisible();
-  await copyright.screenshot({ path: 'footer-copyright.png' });
+  await closeIcon.click();
 });
