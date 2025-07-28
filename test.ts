@@ -1,18 +1,24 @@
-test('Close Filter Tab', async ({ page }) => {
-  await page.goto('https://standardreportsbetaqa.worldbank.org/sources-uses', {
-    waitUntil: 'networkidle',
-    timeout: 60000
-  });
+test('Expand icon in Sources and Uses widget table rows', async ({ page }) => {
+  // Wait for widget itself
+  const widget = page.locator('app-source-uses');
+  await expect(widget).toBeVisible({ timeout: 10000 });
 
-  const filterTab = page.locator('div.tag-btn', { hasText: 'Filter' });
-  await expect(filterTab).toBeVisible({ timeout: 15000 });
-  await filterTab.click();
+  // Wait for at least one table row to be rendered inside the widget
+  const firstRow = widget.locator('table tbody tr').first();
+  await expect(firstRow).toBeVisible({ timeout: 10000 });
 
-  const closeIcon = page.locator('app-budget-refiner i.fa-times');
-  await expect(closeIcon).toBeVisible({ timeout: 20000 });
+  // Wait for the plus icon in the row
+  const plusIcon = firstRow.locator('td.pointer i');
+  await expect(plusIcon).toBeVisible({ timeout: 10000 });
 
-  await closeIcon.scrollIntoViewIfNeeded();
-  await expect(closeIcon).toHaveScreenshot('sr-sources-uses-filter-close.png');
+  // Interact
+  await plusIcon.scrollIntoViewIfNeeded();
+  await plusIcon.click();
 
-  await closeIcon.click();
+  // Wait for the expansion row (child row) to appear – optional but useful
+  const expandedRow = widget.locator('table tbody tr:nth-child(2)');
+  await expect(expandedRow).toBeVisible({ timeout: 10000 });
+
+  // Screenshot after row expanded
+  await expect(widget).toHaveScreenshot('sr-source-uses-widget-plusicon-expanded-row.png');
 });
