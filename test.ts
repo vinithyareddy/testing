@@ -1,21 +1,14 @@
-test('Verify Final Plans vs Actuals by Responsible View (BB only) Title is Visible', async ({ page }) => {
-  // Navigate with networkidle to ensure complete load
+test('Verify Menu Tab Click Works', async ({ page }) => {
   await page.goto('https://standardreportsbetaqa.worldbank.org/work-program', {
     waitUntil: 'networkidle',
     timeout: 60000
   });
-
-  // Wait for the widget container
-  const widget = page.locator('app-burnrate');
+  const widget = page.locator('app-final-plans-budgetclass');
   await expect(widget).toBeVisible({ timeout: 15000 });
-
-  // Target the title within the widget
-  const title = widget.locator('.widget-heading.pointer');
-  await expect(title).toBeVisible({ timeout: 15000 });
-
-  // Ensure it's scrolled into view before screenshot
-  await title.scrollIntoViewIfNeeded();
-
-  // Capture screenshot
-  await expect(title).toHaveScreenshot('sr-fp-vs-actual-responsible-view-title-visible.png');
+  const menuTab = widget.locator('mat-button-toggle-group button').first();
+  await expect(menuTab).toBeVisible({ timeout: 15000 });
+  await menuTab.scrollIntoViewIfNeeded();
+  await menuTab.click();
+  await page.waitForTimeout(500);
+  await expect(menuTab).toHaveScreenshot('sr-fp-vs-actual-budgetclass-menu-tab.png');
 });
