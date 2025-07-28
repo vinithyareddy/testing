@@ -1,15 +1,21 @@
-test('Verify Data Table', async ({ page }) => {
-  // Wait for the ag-grid root element to appear
-  const table = page.locator('body app-rm-ag-report .ag-root');
-  await expect(table).toBeVisible({ timeout: 10000 });
+test('Verify Final Plans vs Actuals by Business Process Title is Visible', async ({ page }) => {
+  // Safe navigation
+  await page.goto('https://standardreportsbetaqa.worldbank.org/work-program', {
+    waitUntil: 'networkidle',
+    timeout: 60000
+  });
 
-  // Wait for the first row inside ag-grid to be rendered to ensure grid is populated
-  const firstRow = page.locator('body app-rm-ag-report .ag-center-cols-container .ag-row').first();
-  await expect(firstRow).toBeVisible({ timeout: 10000 });
+  // Wait for the widget container to be visible
+  const widget = page.locator('#Dashboard app-plans-by-bussiness-process');
+  await expect(widget).toBeVisible({ timeout: 15000 });
 
-  // Scroll the table into view to make sure it's renderable
-  await table.scrollIntoViewIfNeeded();
+  // Wait for the title inside the widget
+  const title = widget.locator('.widget-heading.pointer');
+  await expect(title).toBeVisible({ timeout: 15000 });
 
-  // Take a stable screenshot
-  await expect(table).toHaveScreenshot('sr-trs-overview-time-entered-data-table.png');
+  // Scroll title into view to avoid screenshot errors
+  await title.scrollIntoViewIfNeeded();
+
+  // Screenshot after everything is rendered
+  await expect(title).toHaveScreenshot('sr-fp-vs-actual-businessprocess-title-visible.png');
 });
