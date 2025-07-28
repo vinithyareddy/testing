@@ -1,13 +1,15 @@
-test('Verify Table View is Visible', async ({ page }) => {
-  const widget = page.locator('app-time-entered');
-  await expect(widget).toBeVisible({ timeout: 10000 });
-  const tableTab = page.locator('mat-button-toggle-group button').nth(1);
-  await expect(tableTab).toBeVisible({ timeout: 10000 });
-  await tableTab.click();
-  const table = page.locator('#Dashboard app-time-entered .ng-trigger-collapse');
-  await expect(table).toBeVisible({ timeout: 15000 });
-  const rows = table.locator('table tbody tr');
-  await expect(rows.first()).toBeVisible({ timeout: 10000 });
+test('Verify Data Table', async ({ page }) => {
+  // Wait for the ag-grid root element to appear
+  const table = page.locator('body app-rm-ag-report .ag-root');
+  await expect(table).toBeVisible({ timeout: 10000 });
+
+  // Wait for the first row inside ag-grid to be rendered to ensure grid is populated
+  const firstRow = page.locator('body app-rm-ag-report .ag-center-cols-container .ag-row').first();
+  await expect(firstRow).toBeVisible({ timeout: 10000 });
+
+  // Scroll the table into view to make sure it's renderable
   await table.scrollIntoViewIfNeeded();
-  await expect(table).toHaveScreenshot('sr-trs-overview-time-entered-table-view.png');
+
+  // Take a stable screenshot
+  await expect(table).toHaveScreenshot('sr-trs-overview-time-entered-data-table.png');
 });
