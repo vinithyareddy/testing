@@ -1,24 +1,36 @@
-// Click to open dropdown
-await qaYearDropdown.click();
-await page.waitForTimeout(1000);
+test('Verify Fund Center Dropdown Selection Works', async ({ page }) => {
+  await page.waitForTimeout(6000);
 
-// Select FY24 from global page locator (not from dropdownPanel)
-const fy24Option = page.locator('div[role="option"]:has-text("FY24")');
-await fy24Option.waitFor({ state: 'visible', timeout: 6000 });
-await fy24Option.click();
-await page.waitForTimeout(1000);
+  // Locate the fund center dropdown
+  const fundCenterDropdown = page.locator('div.ng-select-container');
 
-// Screenshot after selecting FY24
-await expect(qaYearDropdown).toHaveScreenshot('qa-year-option-selected.png');
+  // Ensure dropdown is visible and take screenshot
+  await fundCenterDropdown.waitFor({ state: 'visible', timeout: 120000 });
+  await expect(fundCenterDropdown).toHaveScreenshot('fund-center-dropdown-visible.png');
 
-// Reopen and revert
-await qaYearDropdown.click();
-await page.waitForTimeout(1000);
+  // Click the dropdown to open it
+  await fundCenterDropdown.click();
+  await page.waitForTimeout(1000); // allow dropdown to render
 
-const fy25Option = page.locator('div[role="option"]:has-text("FY25")');
-await fy25Option.waitFor({ state: 'visible', timeout: 6000 });
-await fy25Option.click();
-await page.waitForTimeout(1000);
+  // Select ITSDG (81737) Dept Grouping
+  const newOption = page.locator('div[role="option"]:has-text("ITSDG (81737) Dept Grouping")');
+  await newOption.waitFor({ state: 'visible', timeout: 6000 });
+  await newOption.click();
+  await page.waitForTimeout(1000);
 
-// Final screenshot
-await expect(qaYearDropdown).toHaveScreenshot('qa-year-option-reverted.png');
+  // Take screenshot after selection
+  await expect(fundCenterDropdown).toHaveScreenshot('fund-center-option-selected.png');
+
+  // Reopen dropdown to revert
+  await fundCenterDropdown.click();
+  await page.waitForTimeout(1000);
+
+  // Select original option: ITSDA (9176)...
+  const originalOption = page.locator('div[role="option"]:has-text("ITSDA (9176) Data & Analytical Solutions (Division)")');
+  await originalOption.waitFor({ state: 'visible', timeout: 6000 });
+  await originalOption.click();
+  await page.waitForTimeout(1000);
+
+  // Final screenshot
+  await expect(fundCenterDropdown).toHaveScreenshot('fund-center-option-reverted.png');
+});
