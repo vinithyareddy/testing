@@ -1,30 +1,34 @@
-test('Verify Info Icon and Tooltip for 3 Yr Trend', async ({ page }) => {
-  await page.waitForTimeout(3000);
+test('Verify QA Year Dropdown Selection Works', async ({ page }) => {
+  await page.waitForTimeout(6000);
 
-  // Step 1: Locate and verify info icon
-  const infoIcon = page.locator('lift-popover.ng-star-inserted');
-  await infoIcon.waitFor({ state: 'visible', timeout: 120000 });
-  await expect(infoIcon).toHaveScreenshot('info-icon-visible.png');
+  const qaYearDropdown = page.locator('div.ng-select-container');
+  await qaYearDropdown.waitFor({ state: 'visible', timeout: 120000 });
+  await expect(qaYearDropdown).toHaveScreenshot('qa-year-dropdown-visible.png');
 
-  // Step 2: Click the info icon to open tooltip
-  await infoIcon.click();
-  await page.waitForTimeout(1500);
+  // Step 1: Open dropdown
+  await qaYearDropdown.click();
+  await page.waitForTimeout(1000);
 
-  // Step 3: Tooltip content - dynamically added after click
-  const tooltip = page.locator('div.popover-body, div.popover-content'); // using OR fallback
-  await tooltip.waitFor({ state: 'visible', timeout: 8000 });
-  await expect(tooltip).toHaveScreenshot('info-tooltip-visible.png');
+  // Step 2: Select "FY24"
+  const dropdownPanel = page.locator('div.ng-dropdown-panel');
+  await dropdownPanel.waitFor({ state: 'visible', timeout: 10000 });
 
-  // Optional Debug:
-  // const tooltipText = await tooltip.innerText();
-  // console.log('Tooltip says:', tooltipText);
+  const fy24Option = dropdownPanel.locator('div.ng-option:has-text("FY24")');
+  await fy24Option.waitFor({ state: 'visible', timeout: 6000 });
+  await fy24Option.click();
+  await page.waitForTimeout(2000);
 
-  // Step 4: Close tooltip (check for common close icons or button)
-  const closeIcon = page.locator('span.far.fa-xmark, button.close, i.fa-times'); // flexible selector
-  await closeIcon.waitFor({ state: 'visible', timeout: 6000 });
-  await closeIcon.click();
-  await page.waitForTimeout(1500);
+  await expect(qaYearDropdown).toHaveScreenshot('qa-year-option-selected.png');
 
-  // Step 5: Final screenshot after tooltip closes
-  await expect(page).toHaveScreenshot('info-tooltip-closed.png');
+  // Step 3: Reopen dropdown to revert to "FY25"
+  await qaYearDropdown.click();
+  await page.waitForTimeout(1000);
+  await dropdownPanel.waitFor({ state: 'visible', timeout: 10000 });
+
+  const fy25Option = dropdownPanel.locator('div.ng-option:has-text("FY25")');
+  await fy25Option.waitFor({ state: 'visible', timeout: 6000 });
+  await fy25Option.click();
+  await page.waitForTimeout(2000);
+
+  await expect(qaYearDropdown).toHaveScreenshot('qa-year-option-reverted.png');
 });
