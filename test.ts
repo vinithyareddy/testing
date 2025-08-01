@@ -1,28 +1,30 @@
-test('Verify Expense Area Filter Dropdown Works', async ({ page }) => {
-  await page.waitForTimeout(6000);
+test('Verify Info Icon and Tooltip for 3 Yr Trend', async ({ page }) => {
+  await page.waitForTimeout(3000);
 
-  const expenseAreaDropdown = page.locator('mat-select');
-  await expenseAreaDropdown.waitFor({ state: 'visible', timeout: 120000 });
-  await expect(expenseAreaDropdown).toHaveScreenshot('expense-area-dropdown-visible.png');
+  // Step 1: Locate and verify info icon
+  const infoIcon = page.locator('lift-popover.ng-star-inserted');
+  await infoIcon.waitFor({ state: 'visible', timeout: 120000 });
+  await expect(infoIcon).toHaveScreenshot('info-icon-visible.png');
 
-  // Click dropdown to show options
-  await expenseAreaDropdown.click();
-  await page.waitForTimeout(2000);
+  // Step 2: Click the info icon to open tooltip
+  await infoIcon.click();
+  await page.waitForTimeout(1500);
 
-  // Use overlay container for mat-option
-  const travelOption = page.locator('div[role="listbox"] mat-option >> text=Travel');
-  await travelOption.waitFor({ state: 'visible', timeout: 8000 });
-  await travelOption.click();
-  await page.waitForTimeout(2000);
-  await expect(page).toHaveScreenshot('expense-area-selected-travel.png');
+  // Step 3: Tooltip content - dynamically added after click
+  const tooltip = page.locator('div.popover-body, div.popover-content'); // using OR fallback
+  await tooltip.waitFor({ state: 'visible', timeout: 8000 });
+  await expect(tooltip).toHaveScreenshot('info-tooltip-visible.png');
 
-  // Open dropdown again to revert back
-  await expenseAreaDropdown.click();
-  await page.waitForTimeout(2000);
+  // Optional Debug:
+  // const tooltipText = await tooltip.innerText();
+  // console.log('Tooltip says:', tooltipText);
 
-  const allOption = page.locator('div[role="listbox"] mat-option >> text=All');
-  await allOption.waitFor({ state: 'visible', timeout: 8000 });
-  await allOption.click();
-  await page.waitForTimeout(2000);
-  await expect(expenseAreaDropdown).toHaveScreenshot('expense-area-reverted-all.png');
+  // Step 4: Close tooltip (check for common close icons or button)
+  const closeIcon = page.locator('span.far.fa-xmark, button.close, i.fa-times'); // flexible selector
+  await closeIcon.waitFor({ state: 'visible', timeout: 6000 });
+  await closeIcon.click();
+  await page.waitForTimeout(1500);
+
+  // Step 5: Final screenshot after tooltip closes
+  await expect(page).toHaveScreenshot('info-tooltip-closed.png');
 });
