@@ -1,27 +1,26 @@
 test('Verify Table Icon', async ({ page }) => {
   await page.waitForTimeout(3000);
 
-  // Locate the specific widget
+  // Locate the widget container
   const widget = page.locator('GeneralExp >> div >> div >> div:nth-child(2) >> div:nth-child(3) >> app-othermatters');
 
-  // Wait for widget to be visible and scroll it into view
   await widget.waitFor({ state: 'visible', timeout: 12000 });
   await widget.scrollIntoViewIfNeeded();
 
-  // Now locate the table icon specifically within this widget
-  const tableIcon = widget.locator('button.mat-button-toggle[aria-label="table"]');
+  // 🔧 Fixed: Traverse inside any nested divs and find matching button
+  const tableIcon = widget.locator('div >> button[class*="mat-button-toggle"][class*="focus-indicator"]');
 
-  // Wait for it to be attached and optionally visible
+  // Wait for it to attach and be visible
   await tableIcon.waitFor({ state: 'attached', timeout: 12000 });
   await expect(tableIcon).toBeVisible();
 
-  // Screenshot before clicking
+  // Screenshot before click
   await expect(tableIcon).toHaveScreenshot('qa-dashboard-other-management-attention-widget-table-icon-visible.png');
 
-  // Click it
+  // Click and wait
   await tableIcon.click();
-
-  // Wait and take screenshot after click
   await page.waitForTimeout(3000);
+
+  // Final snapshot
   await expect(widget).toHaveScreenshot('qa-dashboard-other-management-attention-widget-table-tab-data.png');
 });
