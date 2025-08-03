@@ -1,25 +1,27 @@
 test('Verify Table Icon', async ({ page }) => {
   await page.waitForTimeout(3000);
 
-  const widget = page.locator('GeneralExp > div > div > div:nth-child(2) > div:nth-child(3) > app-othermatters');
-  await widget.waitFor({ state: 'visible', timeout: 120000 });
+  // Locate the specific widget
+  const widget = page.locator('GeneralExp >> div >> div >> div:nth-child(2) >> div:nth-child(3) >> app-othermatters');
+
+  // Wait for widget to be visible and scroll it into view
+  await widget.waitFor({ state: 'visible', timeout: 12000 });
   await widget.scrollIntoViewIfNeeded();
 
-  // Scoped and flexible selector for the table icon button inside the widget
-  const tableIcon = widget.locator('button[class*="mat-button-toggle"]');
+  // Now locate the table icon specifically within this widget
+  const tableIcon = widget.locator('button.mat-button-toggle[aria-label="table"]');
 
-  // Wait for the button to be attached (not just visible)
+  // Wait for it to be attached and optionally visible
   await tableIcon.waitFor({ state: 'attached', timeout: 12000 });
-
-  // Optional: ensure it’s visible
   await expect(tableIcon).toBeVisible();
 
-  // Screenshot of the visible state before clicking
+  // Screenshot before clicking
   await expect(tableIcon).toHaveScreenshot('qa-dashboard-other-management-attention-widget-table-icon-visible.png');
 
+  // Click it
   await tableIcon.click();
-  await page.waitForTimeout(3000);
 
-  // Screenshot after clicking to verify data tab opened
+  // Wait and take screenshot after click
+  await page.waitForTimeout(3000);
   await expect(widget).toHaveScreenshot('qa-dashboard-other-management-attention-widget-table-tab-data.png');
 });
