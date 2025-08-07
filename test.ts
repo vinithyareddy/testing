@@ -1,30 +1,12 @@
-.box-md > .row:first-child {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.box-md > .row:first-child .col-sm-10 {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}
-
-.box-md .tile-widget-bottomtext {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.box-md .tile-widget-bottomtext .col-sm-9,
-.box-md .tile-widget-bottomtext .col-md-8 {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-.box-md .tile-widget-bottomtext .col-sm-3,
-.box-md .tile-widget-bottomtext .col-md-4 {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-end;
-}
+<div class="row tile-widget-bottomtext">
+  <div class="col-sm-12 d-flex flex-column">
+    <div class="d-flex align-items-center">
+      <div class="budget-box-h3 textEliipsis">Forecast Sources</div>
+      <div class="budget-box-right ml-2">{{TotalSouces | number}}{{filterUnit}}</div>
+    </div>
+    <div class="d-flex align-items-center mt-1">
+      <div class="budget-box-h3 textEliipsis">Forecast Uses</div>
+      <div class="budget-box-right ml-2">{{TotalUses | number}}{{filterUnit}}</div>
+    </div>
+  </div>
+</div>
