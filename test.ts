@@ -1,25 +1,20 @@
-<div class="row tile-widget-bottomtext">
-  <div class="col-sm-12 d-flex flex-column">
-    <div class="d-flex align-items-center mt-3">
-      <div class="budget-box-h3 textEliipsis mb-0">Forecast Sources</div>
-      <div class="budget-box-right mb-0 ml-2">{{TotalSouces | number}}{{filterUnit}}</div>
-    </div>
-    <div class="d-flex align-items-center mt-1">
-      <div class="budget-box-h3 textEliipsis mb-0">Forecast Uses</div>
-      <div class="budget-box-right mb-0 ml-2">{{TotalUses | number}}{{filterUnit}}</div>
-    </div>
-  </div>
-</div>
-
-
-/* keep pairs tight and aligned */
+/* 1) Make each label+value row a tight inline row */
 .box-md .tile-widget-bottomtext .d-flex {
-  justify-content: flex-start;
+  display: inline-flex;            /* override Bootstrap's block flex */
+  align-items: baseline;           /* align first text lines */
+  gap: .5rem;                      /* small space between label and value */
 }
 
+/* 2) Let the label auto-size (don't occupy full width) */
+.box-md .tile-widget-bottomtext .textEliipsis {
+  width: auto;                     /* override the global width:100% */
+  white-space: nowrap;             /* keep label on one line */
+}
+
+/* 3) Keep the number right next to the label (not right-aligned) */
 .box-md .tile-widget-bottomtext .budget-box-right {
-  /* small gap between label and value */
-  margin-left: .5rem;
-  /* keep numbers aligned on baseline with label text */
-  line-height: 1;
+  display: inline-block;
+  white-space: nowrap;
+  text-align: left;                /* override any right-align */
+  margin-left: 0;                  /* we use gap above */
 }
