@@ -1,23 +1,30 @@
-test('verify - Apply Fund Center Filter', async ({ page }) => {
-  await page.waitForTimeout(3000);
-  const filterTab = page.locator('button:has-text("Apply")'); // any button to anchor location
-  await filterTab.waitFor({ state: 'visible', timeout: 10000 });
-  const dropdown = page.locator('div.lift-accordion-item:has-text("Regions & Countries")');
-  await dropdown.waitFor({ state: 'visible', timeout: 10000 });
-  await dropdown.click();
-  const checkboxLabel = page.locator('label:has-text("Eastern and Southern Africa")');
-  await checkboxLabel.waitFor({ state: 'visible', timeout: 10000 });
-  const checkboxInput = page.locator('label:has-text("Eastern and Southern Africa") >> input[type="checkbox"]');
-  await checkboxInput.check(); // equivalent to click with proper state handling
+.box-md > .row:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.box-md > .row:first-child .col-sm-10 {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
 
-  // Optional wait
-  await page.waitForTimeout(1000);
-
-  // Screenshot before applying (optional)
-  await page.screenshot({ path: 'sr-operation-report-ras-activity-details-filter-apply.png' });
-
-  // Click Apply
-  const applyBtn = page.locator('button:has-text("Apply")');
-  await applyBtn.waitFor({ state: 'visible', timeout: 10000 });
-  await applyBtn.click();
-});
+.box-md .tile-widget-bottomtext {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.box-md .tile-widget-bottomtext .col-sm-9,
+.box-md .tile-widget-bottomtext .col-md-8 {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.box-md .tile-widget-bottomtext .col-sm-3,
+.box-md .tile-widget-bottomtext .col-md-4 {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+}
