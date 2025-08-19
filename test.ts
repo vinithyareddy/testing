@@ -1,18 +1,18 @@
-/** Recursively sets headerTooltip = headerName for all columns & groups */
+/** Ensure every column (and group) has a header tooltip showing the full header name */
 private setHeaderTooltips(colDefs: any[]): any[] {
   return colDefs.map((col: any) => {
-    // if this is a group with children, recurse
-    if (col.children && Array.isArray(col.children)) {
+    // Handle column groups with children
+    if (col?.children && Array.isArray(col.children)) {
       return {
         ...col,
-        headerTooltip: col.headerTooltip ?? col.headerName, // group tooltip too (optional)
+        headerTooltip: col.headerTooltip ?? col.headerName,
         children: this.setHeaderTooltips(col.children),
       };
     }
-    // normal leaf column
+    // Leaf columns
     return {
       ...col,
-      headerTooltip: col.headerTooltip ?? col.headerName
+      headerTooltip: col.headerTooltip ?? col.headerName,
     };
   });
 }
