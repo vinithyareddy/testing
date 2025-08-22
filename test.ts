@@ -128,4 +128,10 @@ test.describe('WPBPG widget', () => {
     await openBudgetGlance(page);
 
     const widget = page.locator('app-work-program-by-business-process');
-    await expect(widget).toBeVisible({ timeout: 120_000 })_
+    await expect(widget).toBeVisible({ timeout: 120_000 });
+
+    const bottomtext = widget.locator('text=Budget Class - CE+OTH');
+    await expect(bottomtext).toBeVisible({ timeout: 120_000 });
+    await expect(bottomtext).toHaveScreenshot('sr-budget-glance-wpbpg-bottomtext.png', { animations: 'disabled' });
+  });
+});
