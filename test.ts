@@ -1,24 +1,31 @@
 // global-fixture.ts
 import { test as base, chromium, expect, type BrowserContext, type Page } from '@playwright/test';
+import fs from 'fs';
 
 export const test = base.extend<{
-  browserContext: BrowserContext;  // stays available for other files that depend on it
-  page: Page;                      // standard page fixture (test-scoped)
+  browserContext: BrowserContext;
+  page: Page;
 }>({
-  // Launch a regular browser (NOT persistent), safe for parallel
   browserContext: async ({ }, use) => {
+    // 1) Launch a regular (non-persistent) browser -> safe for parallel
     const browser = await chromium.launch({
-      headless: true, // switch to headless for parallel stability; use --headed only when debugging
-      // channel: 'chrome', // optional; comment out to use bundled Chromium (faster & lighter)
+      headless: true, // use --headed when debugging
       args: ['--disable-blink-features=AutomationControlled', '--start-maximized'],
     });
-    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+
+    // 2) Reuse saved auth if available (parallel-safe)
+    const storagePath = 'storageState.json';     // put this file at repo root
+    const context = await browser.newContext({
+      viewport: { width: 1280, height: 900 },
+      storageState: fs.existsSync(storagePath) ? storagePath : undefined,
+    });
+
     await use(context);
+
     await context.close();
     await browser.close();
   },
 
-  // Give each test its own page from that context (no sharing across tests)
   page: async ({ browserContext }, use) => {
     const page = await browserContext.newPage();
     await use(page);
