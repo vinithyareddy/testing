@@ -1,31 +1,51 @@
-{
-  "name": "mgmt-e2ev2",
-    "version": "1.0.0",
-      "description": "Playwright E2E Tests for Sources and Uses",
-        "main": "index.js",
-          "scripts": {
-    "test": "npx playwright test --workers=3",
-      "test:parallel": "npx playwright test --workers=3 --fully-parallel",
-        "test:headed": "npx playwright test --workers=3 --headed",
-          "test:specific": "npx playwright test tests/parallel/sources-uses.spec.ts --workers=3",
-            "test:debug": "npx playwright test --workers=1 --debug",
-              "test:update-snapshots": "npx playwright test --update-snapshots --workers=1",
-                "report": "npx playwright show-report",
-                  "setup": "npx playwright install chrome"
+import { defineConfig, devices } from '@playwright/test';
+
+export default defineConfig({
+  testDir: 'tests/parallel',
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 2 : 3,
+  timeout: 60000,
+  expect: {
+    timeout: 30000
   },
-  "keywords": ["playwright", "testing", "e2e"],
-    "author": "",
-      "license": "ISC",
-        "type": "commonjs",
-          "devDependencies": {
-    "@playwright/test": "^1.53.2",
-      "@types/node": "^24.0.10",
-        "ts-node": "^10.9.2",
-          "typescript": "^5.8.3"
+
+  reporter: [
+    ['html', { open: 'never' }],
+    ['json', { outputFile: 'playwright-report/results.json' }],
+    ['list']
+  ],
+
+  use: {
+    baseURL: 'https://standardreportsbetaqa.worldbank.org',
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+    headless: false,
+    viewport: { width: 1280, height: 900 },
+    navigationTimeout: 30000,
+    actionTimeout: 15000,
   },
-  "dependencies": {
-    "exceljs": "^4.4.0",
-      "express": "^5.1.0",
-        "xlsx": "^0.18.5"
-  }
-}
+
+  projects: [
+    {
+      name: 'chrome-parallel',
+      use: {
+        ...devices['Desktop Chrome'],
+        channel: 'chrome',
+        launchOptions: {
+          args: [
+            '--disable-blink-features=AutomationControlled',
+            '--disable-web-security',
+            '--disable-features=VizDisplayCompositor',
+            '--start-maximized'
+          ]
+        }
+      },
+      outputDir: './test-results/',
+      snapshotDir: './.snapshots/',
+      snapshotPathTemplate: '{snapshotDir}/{testFilePath}/{testName}-{projectName}{ext}'
+    }
+  ]
+});
