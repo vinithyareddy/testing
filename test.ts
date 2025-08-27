@@ -268,4 +268,338 @@ test.describe('Sources and Uses Page Tests', () => {
       await page.waitForTimeout(1000);
       const icon = page.locator('body > app-root > internal-framework-root > div.content-wrapper > div > div > div.col-md.layout-wrapper > app-source-uses > div > div.row > div > app-top-header-widgets > div > div:nth-child(3) > div > div > div.com-sm-4.textwidth > img');
       await expect(icon).toBeVisible();
-      await expect(icon).toHaveScreenshot('sr-sources-uses-ef-uses
+      await expect(icon).toHaveScreenshot('sr-sources-uses-ef-uses-moneybag-icon.png');
+    });
+
+    test('Verify Forecast and Actual Are Visible', async ({ authenticatedPage: page }) => {
+      await page.waitForTimeout(1000);
+      const forecast = page.locator('body > app-root > internal-framework-root > div.content-wrapper > div > div > div.col-md.layout-wrapper > app-source-uses > div > div.row > div > app-top-header-widgets > div > div:nth-child(3) > div > div > div.col-sm-8 > div.budget-box-h3.mt-3');
+      const actual = page.locator('body > app-root > internal-framework-root > div.content-wrapper > div > div > div.col-md.layout-wrapper > app-source-uses > div > div.row > div > app-top-header-widgets > div > div:nth-child(3) > div > div > div.col-sm-8 > div.budget-box-h3.mt-1');
+
+      await page.waitForTimeout(12000);
+      await expect(forecast).toBeVisible();
+      await expect(actual).toBeVisible();
+
+      const forecastValue = page.locator('body > app-root > internal-framework-root > div.content-wrapper > div > div > div.col-md.layout-wrapper > app-source-uses > div > div.row > div > app-top-header-widgets > div > div:nth-child(3) > div > div > div.com-sm-4.textwidth > div.budget-box-right.mt-3');
+      const actualValue = page.locator('body > app-root > internal-framework-root > div.content-wrapper > div > div > div.col-md.layout-wrapper > app-source-uses > div > div.row > div > app-top-header-widgets > div > div:nth-child(3) > div > div > div.com-sm-4.textwidth > div.budget-box-right.mt-1');
+
+      await expect(forecastValue).not.toHaveText('');
+      await expect(actualValue).not.toHaveText('');
+      await expect(forecastValue).toHaveScreenshot('sr-sources-uses-ef-uses-forecast-value.png');
+      await expect(actualValue).toHaveScreenshot('sr-sources-uses-ef-uses-actual-value.png');
+    });
+  });
+
+  test.describe('Sources and Uses Widget Tests', () => {
+    test('Verify Sources and Uses Title is Visible', async ({ authenticatedPage: page }) => {
+      await page.waitForTimeout(10000);
+      const title = page.locator('app-source-uses h5, app-source-uses span', { hasText: 'Sources & Uses By Department' });
+      await expect(title).toBeVisible({ timeout: 10000 });
+      await expect(title).toHaveScreenshot('sr-sources-uses-widget-title-visible.png');
+    });
+
+    test('Verify Fullscreen Icon is Clickable in Sources Widget', async ({ authenticatedPage: page }) => {
+      await page.waitForTimeout(2000);
+      const widget = page.locator('#Dashboard > div > div > div:nth-child(1) > div > app-source-users > div > div > div');
+      await expect(widget).toBeVisible({ timeout: 10000 });
+      const fullscreenIcon = page.locator('app-source-users span.view').first();
+      await expect(fullscreenIcon).toBeVisible();
+      await fullscreenIcon.click();
+      await page.waitForTimeout(2000);
+      await expect(page).toHaveScreenshot('sr-sources-uses-widget-fullscreen-visible.png');
+      await fullscreenIcon.click();
+    });
+
+    test('Verify Sources Widget Expand Icon is Clickable', async ({ authenticatedPage: page }) => {
+      await page.waitForTimeout(1000);
+      const widget = page.locator('#Dashboard > div > div > div:nth-child(1) > div > app-source-users > div > div > div');
+      await expect(widget).toBeVisible({ timeout: 10000 });
+      const expandIcon = page.locator('#Dashboard > div > div > div:nth-child(1) > div > app-source-users img[src$="arrow_down.png"]');
+      await expect(expandIcon).toBeVisible({ timeout: 10000 });
+      await page.waitForTimeout(1000);
+      await expect(expandIcon).toHaveScreenshot('sr-sources-uses-widget-expanded.png');
+    });
+
+    test('Verify Sources and Uses Table is Visible', async ({ authenticatedPage: page }) => {
+      await page.waitForTimeout(10000);
+      const widget = page.locator('#Dashboard > div > div > div:nth-child(1) > div > app-source-users > div');
+      await widget.scrollIntoViewIfNeeded();
+      await expect(widget).toBeVisible({ timeout: 20000 });
+      const table = widget.locator('table');
+      await expect(table).toBeVisible({ timeout: 10000 });
+      await table.scrollIntoViewIfNeeded();
+      await expect(table).toHaveScreenshot('sr-sources-uses-table-visible.png');
+    });
+
+    test('Verify Sources and Uses Widget in $M and $K modes', async ({ authenticatedPage: page }) => {
+      await page.waitForTimeout(1000);
+      const sourcesWidget = page.locator('#Dashboard > div > div > div:nth-child(1) > div > app-source-users > div');
+      await expect(sourcesWidget).toBeVisible({ timeout: 30000 });
+      const currencyToggleK = page.locator('body > app-root > internal-framework-root > div.content-wrapper > div > div > div.col-md.layout-wrapper > app-source-uses > app-budget-top-header > div.container-fluid.sticky.BudgetTopHeaderBgView > div > div:nth-child(2) > div.col-lg-4.col-md-4 > span.toggle-view-top.pr-2 > span:nth-child(2) > lift-toggle > div > label > span');
+      await currencyToggleK.click();
+      await page.waitForTimeout(1000);
+      await sourcesWidget.scrollIntoViewIfNeeded();
+      await expect(sourcesWidget).toHaveScreenshot('sr-sources-uses-K-mode.png', { timeout: 10000 });
+
+      const currencyToggleM = page.locator('body > app-root > internal-framework-root > div.content-wrapper > div > div > div.col-md.layout-wrapper > app-source-uses > app-budget-top-header > div.container-fluid.sticky.BudgetTopHeaderBgView > div > div:nth-child(2) > div.col-lg-4.col-md-4 > span.toggle-view-top.pr-2 > span:nth-child(2) > lift-toggle > div > label > span');
+      await currencyToggleM.click();
+      await page.waitForTimeout(1000);
+      await sourcesWidget.scrollIntoViewIfNeeded();
+      await expect(sourcesWidget).toHaveScreenshot('sr-sources-uses-M-mode.png', { timeout: 10000 });
+    });
+
+    test('Expand icon in Sources and Uses widget table rows', async ({ authenticatedPage: page }) => {
+      const widget = page.locator('app-source-users');
+      await widget.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(3000);
+      await expect(widget).toBeVisible({ timeout: 10000 });
+      const firstRow = widget.locator('table tbody tr').first();
+      const plusIcon = firstRow.locator('td.pointer i');
+      await expect(plusIcon).toBeVisible({ timeout: 10000 });
+      await page.waitForTimeout(3000);
+      await plusIcon.click();
+      await page.waitForTimeout(2000);
+      await expect(widget).toHaveScreenshot('sr-source-uses-widget-plusicon-expanded-row.png');
+    });
+
+    test('Verify View More Option', async ({ authenticatedPage: page }) => {
+      await page.waitForTimeout(10000);
+      const widget = page.locator('#Dashboard > div > div > div:nth-child(1) > div > app-source-users > div');
+      await widget.scrollIntoViewIfNeeded();
+      await expect(widget).toBeVisible({ timeout: 10000 });
+      const viewMoreButton = page.locator('app-source-users >> text=View More');
+      await expect(viewMoreButton).toBeVisible({ timeout: 10000 });
+      await page.waitForTimeout(1000);
+      await expect(viewMoreButton).toHaveScreenshot('sr-sources-uses-view-more.png');
+    });
+
+    test('Verify view more - search button', async ({ authenticatedPage: page }) => {
+      await page.waitForTimeout(10000);
+      const widget = page.locator('#Dashboard > div > div > div:nth-child(1) > div > app-source-users > div');
+      await widget.scrollIntoViewIfNeeded();
+      await expect(widget).toBeVisible({ timeout: 10000 });
+      const viewMoreButton = page.locator('app-source-users >> text=View More');
+      await expect(viewMoreButton).toBeVisible({ timeout: 10000 });
+      await page.waitForTimeout(1000);
+      await viewMoreButton.click();
+      await page.waitForTimeout(2000);
+      const searchBox = page.locator('#filter-text-box');
+      await page.waitForTimeout(1000);
+      await expect(searchBox).toBeVisible();
+      await expect(searchBox).toHaveScreenshot('sr-sources-uses-view-more-search-option.png');
+    });
+  });
+
+  test.describe('Sources Breakdown Widget Tests', () => {
+    test('Verify Sources Breakdown Widget Title is Visible', async ({ authenticatedPage: page }) => {
+      await page.waitForTimeout(3000);
+      const widget = page.locator('#Dashboard > div > div > div:nth-child(2) > div > app-sources-breakdown');
+      await widget.scrollIntoViewIfNeeded();
+      await expect(widget).toBeVisible({ timeout: 10000 });
+      await page.waitForTimeout(1000);
+      const title = page.locator('#Dashboard > div > div > div:nth-child(2) > div > app-sources-breakdown > div > div > div > div > div.widget-heading.mt-1.cursor > span');
+      await expect(title).toBeVisible();
+      await page.waitForTimeout(1000);
+      await expect(title).toHaveScreenshot('sr-sources-uses-sources-breakdown-widget-title.png');
+    });
+
+    test('Verify Search Option in Sources Breakdown Widget', async ({ authenticatedPage: page }) => {
+      await page.waitForTimeout(1000);
+      const widget = page.locator('#Dashboard > div > div > div:nth-child(2) > div > app-sources-breakdown');
+      await widget.scrollIntoViewIfNeeded();
+      await expect(widget).toBeVisible({ timeout: 10000 });
+      const searchInput = page.locator('#filter-text-box');
+      await expect(searchInput).toBeVisible();
+      await expect(searchInput).toHaveScreenshot('sr-sources-uses-sources-breakdown-widget-search.png');
+    });
+
+    test('Verify Table is Visible in Sources Breakdown', async ({ authenticatedPage: page }) => {
+      await page.waitForTimeout(1000);
+      const widget = page.locator('app-sources-breakdown');
+      await expect(widget).toBeVisible({ timeout: 10000 });
+      const table = page.locator('div.ag-root.ag-unselectable.ag-layout-normal');
+      await expect(table).toBeVisible({ timeout: 10000 });
+      await table.scrollIntoViewIfNeeded();
+      await expect(table).toHaveScreenshot('sr-sources-uses-sources-breakdown-table-visible.png');
+    });
+
+    test('Verify Sources Breakdown Widget in $M and $K modes', async ({ authenticatedPage: page }) => {
+      await page.waitForTimeout(1000);
+      const sourcesWidget = page.locator('#Dashboard > div > div > div:nth-child(2) > div > app-sources-breakdown > div > div');
+      await expect(sourcesWidget).toBeVisible({ timeout: 30000 });
+      await sourcesWidget.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(1000);
+      const currencyToggleK = page.locator('lift-toggle label span');
+      await expect(currencyToggleK).toBeVisible({ timeout: 5000 });
+      await currencyToggleK.click();
+      await page.waitForTimeout(1500);
+      await expect(sourcesWidget).toHaveScreenshot('sr-sources-uses-sources-breakdown-K-mode.png', { timeout: 10000 });
+      await currencyToggleK.click();
+      await page.waitForTimeout(1500);
+      await expect(sourcesWidget).toHaveScreenshot('sr-sources-uses-sources-breakdown-M-mode.png', { timeout: 10000 });
+    });
+  });
+
+  test.describe('Uses Breakdown Widget Tests', () => {
+    test('Verify Uses Breakdown Widget Title is Visible', async ({ authenticatedPage: page }) => {
+      await page.waitForTimeout(3000);
+      const widget = page.locator('#Dashboard > div > div > div:nth-child(3) > div > app-uses-breakdown');
+      await widget.scrollIntoViewIfNeeded();
+      await expect(widget).toBeVisible({ timeout: 10000 });
+      const title = widget.locator('text=Uses Breakdown');
+      await expect(title).toBeVisible({ timeout: 10000 });
+      await expect(title).toHaveScreenshot('sr-sources-uses-uses-breakdown-widget-title.png');
+    });
+
+    test('Verify Uses breakdown Table is Visible', async ({ authenticatedPage: page }) => {
+      await page.waitForTimeout(2000);
+      const widget = page.locator('app-uses-breakdown');
+      await widget.scrollIntoViewIfNeeded();
+      await expect(widget).toBeVisible({ timeout: 10000 });
+      const table = widget.locator('table');
+      await page.waitForTimeout(1000);
+      await expect(table).toBeVisible({ timeout: 10000 });
+      await expect(table).toHaveScreenshot('sr-sources-uses-uses-breakdown-table-visible.png');
+    });
+
+    test('Expand icon in Uses breakdown widget table rows', async ({ authenticatedPage: page }) => {
+      await page.waitForTimeout(1000);
+      const widget = page.locator('app-uses-breakdown');
+      await widget.scrollIntoViewIfNeeded();
+      await expect(widget).toBeVisible({ timeout: 10000 });
+      const firstRow = widget.locator('table tbody tr').first();
+      const plusIcon = firstRow.locator('td.pointer i');
+      await expect(plusIcon).toBeVisible({ timeout: 10000 });
+      await plusIcon.click();
+      await page.waitForTimeout(1500);
+      await expect(widget).toHaveScreenshot('sr-sources-uses-uses-breakdown-widget-plusicon-expanded-row.png', {
+        timeout: 10000,
+        maxDiffPixelRatio: 0.01,
+      });
+    });
+
+    test('Check title of Uses by Fund Group (YTD)', async ({ authenticatedPage: page }) => {
+      await page.waitForTimeout(2000);
+      const widget = page.locator('app-uses-breakdown');
+      await widget.scrollIntoViewIfNeeded();
+      const title = page.getByText('Uses by Fund Group (YTD)');
+      await expect(title).toBeVisible();
+      await expect(title).toHaveScreenshot('sr-sources-uses-uses-by-fund-grp-title.png');
+    });
+
+    test('Check Uses graph is visible', async ({ authenticatedPage: page }) => {
+      await page.waitForTimeout(1000);
+      const widget = page.locator('app-uses-breakdown');
+      await widget.scrollIntoViewIfNeeded();
+      const chart = widget.locator('div.highcharts-container').nth(0);
+      await expect(chart).toBeVisible({ timeout: 10000 });
+      await expect(chart).toHaveScreenshot('sr-sources-uses-uses-by-fund-grp-uses-graph.png');
+    });
+
+    test('Check Fixed Expenses title is visible', async ({ authenticatedPage: page }) => {
+      await page.waitForTimeout(10000);
+      const title = page.locator('div.widget-heading', { hasText: 'Fixed Expenses' });
+      await expect(title).toBeVisible({ timeout: 1000 });
+      await expect(title).toHaveScreenshot('sr-sources-uses-uses-breakdownfixed-expenses-title.png');
+    });
+
+    test('Fixed Expenses bar graph is visible', async ({ authenticatedPage: page }) => {
+      await page.waitForTimeout(2000);
+      const chartHeader = page.locator('text=Fixed Expenses: Actuals Vs Forecast').first();
+      await chartHeader.scrollIntoViewIfNeeded();
+      await expect(chartHeader).toBeVisible({ timeout: 10000 });
+      const chart = chartHeader.locator('..').locator('..').locator('div:has(svg.highcharts-root)').first();
+      await expect(chart).toBeVisible({ timeout: 10000 });
+      await expect(chart).toHaveScreenshot('sr-sources-uses-uses-breakdown-fixed-expenses-bar-graph.png', {
+        animations: 'disabled',
+      });
+    });
+
+    test('Variable Expenses bar graph is visible', async ({ authenticatedPage: page }) => {
+      const chartHeader = page.locator('text=Variable Expenses: Actuals Vs Forecast').first();
+      await chartHeader.scrollIntoViewIfNeeded();
+      await expect(chartHeader).toBeVisible({ timeout: 10000 });
+      const chart = chartHeader.locator('..').locator('..').locator('div:has(svg.highcharts-root)').first();
+      await expect(chart).toBeVisible({ timeout: 10000 });
+      await expect(chart).toHaveScreenshot('sr-sources-uses-usesbreakdown-variable-expenses-bar-graph.png', {
+        animations: 'disabled',
+      });
+    });
+  });
+
+  test.describe('Reports Tab Tests', () => {
+    test('Verify Reports Tab Navigation', async ({ authenticatedPage: page }) => {
+      await page.waitForTimeout(3000);
+      const reportsTab = page.locator('#REPORTS > a > span');
+      await reportsTab.scrollIntoViewIfNeeded();
+      await expect(reportsTab).toHaveScreenshot('sr-sources-uses-reports-tab-clicked.png');
+    });
+
+    test('Verify Reports Title and Subtitle', async ({ authenticatedPage: page }) => {
+      const reportsTab = page.locator('#REPORTS > a > span');
+      await reportsTab.scrollIntoViewIfNeeded();
+      await reportsTab.click();
+      await page.waitForTimeout(1000);
+
+      const title1 = page.locator('#Reports > div > app-budget-reports-grid > div > div > h5');
+      await expect(title1).toBeVisible();
+      await expect(title1).toHaveScreenshot('sr-sources-uses-reports-title-visible.png');
+
+      const subtitle = page.locator('#Reports > div > app-budget-reports-grid > div > div > div > ul > li');
+      await expect(subtitle).toBeVisible();
+      await expect(subtitle).toHaveScreenshot('sr-sources-uses-reports-subtitle.png');
+    });
+
+    test('Verify Report Icon and Table', async ({ authenticatedPage: page }) => {
+      const reportsTab = page.locator('#REPORTS > a > span');
+      await reportsTab.click();
+      await page.waitForTimeout(1000);
+
+      const tableIcon = page.locator('#Reports > div > app-budget-reports-grid > div > div > div > ul > li > img');
+      await tableIcon.scrollIntoViewIfNeeded();
+      await expect(tableIcon).toBeVisible();
+      await tableIcon.click();
+      await page.waitForTimeout(12000);
+      await expect(page).toHaveScreenshot('sr-sources-uses-report-icon-visible.png');
+    });
+
+    test('Verify Report Search and Export Options', async ({ authenticatedPage: page }) => {
+      const reportsTab = page.locator('#REPORTS > a > span');
+      await reportsTab.click();
+
+      const tableIcon = page.locator('#Reports > div > app-budget-reports-grid > div > div > div > ul > li > img');
+      await tableIcon.click();
+      await page.waitForTimeout(8000);
+
+      const searchBox = page.locator('#filter-text-box');
+      await expect(searchBox).toBeVisible();
+      await expect(searchBox).toHaveScreenshot('sr-sources-uses-reports-search-box-visible.png');
+
+      const exportExcel = page.locator('body > app-root > internal-framework-root > div.content-wrapper > div > div > div.col-md.layout-wrapper > app-budget-report > div > div > div > app-budget-ag-report > div > div > div > div > div.col-lg-5.text-right > div > div > ul > li:nth-child(2)');
+      await expect(exportExcel).toBeVisible();
+      await expect(exportExcel).toHaveScreenshot('sr-sources-uses-reports-export-excel-visible.png');
+    });
+
+    test('Verify Report Table and Dropdown', async ({ authenticatedPage: page }) => {
+      const reportsTab = page.locator('#REPORTS > a > span');
+      await reportsTab.click();
+
+      const tableIcon = page.locator('#Reports > div > app-budget-reports-grid > div > div > div > ul > li > img');
+      await tableIcon.click();
+      await page.waitForTimeout(8000);
+
+      const table = page.locator('body > app-root > internal-framework-root > div.content-wrapper > div > div > div.col-md.layout-wrapper > app-budget-report > div > div > div > app-budget-ag-report > div > div > div > ag-grid-angular > div > div.ag-root-wrapper-body.ag-layout-normal.ag-focus-managed');
+      await expect(table).toBeVisible();
+      await expect(table).toHaveScreenshot('sr-sources-uses-reports-table-visible.png');
+
+      const dropdownIcon = page.locator('.ag-group-contracted');
+      await dropdownIcon.first().waitFor({ state: 'visible', timeout: 1000 });
+      await dropdownIcon.first().scrollIntoViewIfNeeded();
+      await dropdownIcon.first().click();
+      await page.waitForSelector('.ag-group-expanded', { timeout: 5000 });
+      await expect(page).toHaveScreenshot('sr-sources-uses-reports-dropdown-clicked.png', {
+        animations: 'disabled'
+      });
+    });
+  });
+});
