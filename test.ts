@@ -1,51 +1,27 @@
-onhandleclick(resData: any, childData: any) {
-  this.FilterCount = 0;
-  const category = childData.title;
-  const value = resData[childData.measureQuery['code']];
-  const name = resData[childData.measureQuery['name']];
-  const id = childData.key;
-  const Typenumber = (category === 'Approval FY') ? 'number' : 'string';
+<input type="checkbox" class="form-check-input"
+[id] = "resData[childData.measureQuery['code']] + '~' + i + j + k"
+[title] = "resData[childData.measureQuery['name']]"
+[attr.alt] = "childData.title"
+[attr.disabled] = "resData.disable"
+[value] = "resData[childData.measureQuery['code']]"
+[(ngModel)] = "resData.checked"
+  (change) = "onhandleclick(resData, childData)"
+  [disabled] = "(childData.key === 'bgi%1' && resData[childData.measureQuery['code']] === 'N')" >
 
-  const idx = this.FilterData.findIndex(x => x.value === value && x.category === category);
+  <label class="form-check-label small-font"
+  [for]="resData[childData.measureQuery['code']] + '~' + i + j + k"
+  [innerHTML] = "resData[childData.measureQuery['name']]" > </label>
 
-  if (resData.checked && idx === -1) {
-    this.FilterData.push({
-      category, value, name, id,
-      facetType: childData.facetQuery,
-      Typenumber,
-      vpucategory: ''
-    });
-  } else if (!resData.checked && idx !== -1) {
-    this.FilterData.splice(idx, 1);
-  }
-  this.FilterCount = this.FilterData.length;
-  this.clearFilterFlag = '1';
-}
-onhandlesubChildclick(crntdata: any, childdata: any, vpu: string) {
-  this.FilterCount = 0;
-  const category = crntdata.title;
-  const value = crntdata[crntdata.childfacet];
-  const name = crntdata[crntdata.childfacet];
-  const id = crntdata.id;
-  const Typenumber = (category === 'Approval FY') ? 'number' : 'string';
 
-  const idx = this.FilterData.findIndex(x => x.value === value && x.category === category);
 
-  if (crntdata.checked && idx === -1) {
-    const filterdata = {
-      category, value, name, id,
-      checkedbox: true,
-      facetType: crntdata.facetQuery,
-      Typenumber,
-      vpucategory: vpu
-    };
-    this.tempFilterData.push(filterdata);
-    this.FilterData.push(filterdata);
-  } else if (!crntdata.checked && idx !== -1) {
-    this.FilterData.splice(idx, 1);
-  }
+    < input type = "checkbox" class="form-check-input"
+    [id] = "data1.crntdata[data1.crntdata.childfacet]"
+    [value] = "data1.crntdata[data1.crntdata.childfacet]"
+    [attr.disabled] = "data1.crntdata.disable"
+    [(ngModel)] = "data1.crntdata.checked"
+      (change) = "onhandlesubChildclick(data1.crntdata, data1.subdata, data1.vpuname)" >
 
-  this.FilterCount = this.FilterData.length;
-  this.clearFilterFlag = '2';
-  this.refineload = 2;
-}
+      <label class="form-check-label small-font"
+      [for]="data1.crntdata[data1.crntdata.childfacet]" >
+        {{ data1.crntdata[data1.crntdata.childfacet] }}
+</label>
