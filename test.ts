@@ -103,4 +103,73 @@ export class SwfpByFcvStatusComponent {
 
       (chart as any).__leftLbl = chart.renderer
         .text(`${this.userOptions as any}.nonFcvText`, leftX, leftY)
-        .css({ fo
+        .css({ fontSize: '13px', color: '#3c3c3c' })
+        .add();
+
+      (chart as any).__rightLbl = chart.renderer
+        .text(`${this.userOptions as any}.fcvText`, rightX, rightY)
+        .css({ fontSize: '13px', color: '#3c3c3c' })
+        .add();
+    };
+
+    const options: Highcharts.Options = {
+      // we pass the label strings via userOptions for access in render()
+      // (TypeScript-friendly and no casting needed elsewhere)
+      // @ts-expect-error – custom props for our render helper
+      nonFcvText: `${this.nonFcv}(${Math.round(pctNon)}%)`,
+      // @ts-expect-error
+      fcvText: `${this.fcv}(${Math.round(pctFCV)}%)`,
+
+      chart: {
+        type: 'solidgauge',
+        backgroundColor: 'transparent',
+        height: 240,
+        spacingTop: 20,
+        events: {
+          render: function (this: Highcharts.Chart) { drawLabels.call(this); },
+          load:   function (this: Highcharts.Chart) { drawLabels.call(this); },
+          redraw: function (this: Highcharts.Chart) { drawLabels.call(this); }
+        }
+      },
+
+      title: { text: undefined },
+      credits: { enabled: false },
+      tooltip: { enabled: false },
+      legend: { enabled: false },
+
+      pane: {
+        startAngle: -90,
+        endAngle: 90,
+        background: []
+      },
+
+      yAxis: {
+        min: 0, max: 100,
+        lineWidth: 0,
+        tickPositions: []
+      },
+
+      plotOptions: {
+        solidgauge: {
+          rounded: true,            // rounded/curvy ends
+          linecap: 'round',
+          dataLabels: { enabled: false },
+          enableMouseTracking: false
+        }
+      },
+
+      // one thin ring with two points = two colored segments
+      series: [
+        {
+          type: 'solidgauge',
+          data: [
+            { y: pctNon, color: '#78C9C5', radius: '95%', innerRadius: '85%' } as any,
+            { y: pctFCV, color: '#0B6F6A', radius: '95%', innerRadius: '85%' } as any
+          ]
+        }
+      ]
+    };
+
+    return options;
+  }
+}
