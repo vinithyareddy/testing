@@ -1,93 +1,35 @@
-// workforce-supply-widget.component.ts
-import { Component, OnInit, ElementRef, ViewChild } from '@angular/core';
-import * as Highcharts from 'highcharts';
+// In your module.ts file, make sure you have:
 
-@Component({
-  selector: 'app-workforce-supply-widget',
-  templateUrl: './workforce-supply-widget.component.html',
-  styleUrls: ['./workforce-supply-widget.component.scss']
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { WorkforceSupplyWidgetComponent } from './workforce-supply-widget.component';
+
+@NgModule({
+  declarations: [
+    WorkforceSupplyWidgetComponent
+  ],
+  imports: [
+    CommonModule
+    // Your HighCharts service should already be included as you mentioned
+  ],
+  exports: [
+    WorkforceSupplyWidgetComponent
+  ]
 })
-export class WorkforceSupplyWidgetComponent implements OnInit {
-  @ViewChild('chartContainer', { static: true }) chartContainer!: ElementRef;
-  
-  private chart!: Highcharts.Chart;
-  
-  // Sample data - replace with your actual data
-  private chartData = {
-    total: 148,
-    fcvPercentage: 30,
-    nonFcvPercentage: 70,
-    fcvCount: 44,
-    nonFcvCount: 104
-  };
+export class WorkforceWidgetModule { }
 
-  ngOnInit(): void {
-    this.createChart();
-  }
+// Usage in your parent component:
+/*
+<app-workforce-supply-widget></app-workforce-supply-widget>
+*/
 
-  private createChart(): void {
-    const options: Highcharts.Options = {
-      chart: {
-        type: 'pie',
-        backgroundColor: '#f8f9fa',
-        height: 300,
-        width: 300,
-        margin: [0, 0, 0, 0],
-        spacing: [10, 10, 10, 10]
-      },
-      title: {
-        text: ''
-      },
-      tooltip: {
-        enabled: false
-      },
-      legend: {
-        enabled: false
-      },
-      credits: {
-        enabled: false
-      },
-      plotOptions: {
-        pie: {
-          innerSize: '75%',
-          startAngle: -90,
-          endAngle: 270,
-          dataLabels: {
-            enabled: false
-          },
-          enableMouseTracking: false,
-          borderWidth: 0,
-          states: {
-            hover: {
-              enabled: false
-            }
-          }
-        }
-      },
-      series: [{
-        type: 'pie',
-        data: [
-          {
-            name: 'FCV',
-            y: this.chartData.fcvPercentage,
-            color: '#2d7d5f'
-          },
-          {
-            name: 'Non-FCV',
-            y: this.chartData.nonFcvPercentage,
-            color: '#5fb59b'
-          }
-        ]
-      }]
-    };
-
-    this.chart = Highcharts.chart(this.chartContainer.nativeElement, options);
-  }
-
-  // Method to update data if needed
-  updateData(newData: any): void {
-    this.chartData = newData;
-    this.chart.destroy();
-    this.createChart();
-  }
-}
+// If you need to pass data dynamically, you can modify the component to accept inputs:
+/*
+@Input() workforceData: any = {
+  total: 148,
+  fcvPercentage: 30,
+  nonFcvPercentage: 70,
+  fcvCount: 44,
+  nonFcvCount: 104
+};
+*/
