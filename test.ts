@@ -1,24 +1,44 @@
-// global-setup.ts
-import { chromium, FullConfig } from '@playwright/test';
+// playwright.config.ts
+import { defineConfig, devices } from '@playwright/test';
 
-export default async function globalSetup(config: FullConfig) {
-  const browser = await chromium.launch();
-  const context = await browser.newContext();
-  const page = await context.newPage();
+export default defineConfig({
+  testDir: 'tests/parallel',
+  globalSetup: require.resolve('./global-setup'),
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 2 : 3,
+  timeout: 60_000,
+  expect: { timeout: 30_000 },
 
-  // 1) Go to your app's login page
-  await page.goto('https://standardreportsbetaqa.worldbank.org/login', { waitUntil: 'networkidle' });
+  reporter: [
+    ['html', { open: 'never' }],
+    ['json', { outputFile: 'playwright-report/results.json' }],
+    ['list']
+  ],
 
-  // 2) Fill credentials (use env vars; never hardcode)
-  await page.getByLabel('Username').fill(process.env.E2E_USER ?? '');
-  await page.getByLabel('Password').fill(process.env.E2E_PASS ?? '');
-  await page.getByRole('button', { name: /sign in|login/i }).click();
+  use: {
+    baseURL: 'https://standardreportsbetaqa.worldbank.org',
+    storageState: '.auth/user.json',          // <<< KEY LINE
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+    headless: false,
+    viewport: { width: 1280, height: 900 },
+    navigationTimeout: 30_000,
+    actionTimeout: 15_000,
+  },
 
-  // 3) Wait until you're truly logged in (e.g., landing on app shell)
-  await page.waitForURL('**/sources-uses', { timeout: 60_000 });
-
-  // 4) Save auth state
-  await context.storageState({ path: '.auth/user.json' });
-
-  await browser.close();
-}
+  projects: [
+    {
+      name: 'chrome-parallel',
+      use: {
+        ...devices['Desktop Chrome'],
+        channel: 'chrome',
+      },
+      outputDir: './test-results/',
+      snapshotDir: './.snapshots/',
+      snapshotPathTemplate: '{snapshotDir}/{testFilePath}/{testName}-{projectName}{ext}',
+    }
+  ],
+});
