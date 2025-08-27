@@ -1,172 +1,113 @@
-import { Component, Input, OnInit } from '@angular/core';
-import * as Highcharts from 'highcharts';
-import HighchartsMore from 'highcharts/highcharts-more';
-import SolidGauge from 'highcharts/modules/solid-gauge';
-HighchartsMore(Highcharts);
-SolidGauge(Highcharts);
+<div class="budget-card-box" #cartboxchartsection>
+  <div class="budget-box-chart">
+    <!-- header -->
+    <div class="row card-box-header-sec">
+      <div class="widget-heading pointer mt-1 col-md-8">
+        <span>
+          {{ title }}
+          <!-- small blue info icon (using your popover pattern) -->
+          <ng-template [ngTemplateOutlet]="infotemp"></ng-template>
+        </span>
+      </div>
 
-type TrendChart = {
-  Highcharts: typeof Highcharts;
-  chartConstructor: 'chart';
-  chartOptions: Highcharts.Options;
-};
+      <div class="col-md-4 bgt-text-end">
+        <div class="zoomicon">
+          <span class="bgt-collabse-state pl-2" *ngIf="collapsed" (click)="expand()">
+            <img src="assets/images/icons/arrow_up.png" />
+          </span>
+          <span class="bgt-collabse-state pl-2" *ngIf="!collapsed" (click)="collapse()">
+            <img src="assets/images/icons/arrow_down.png" />
+          </span>
+        </div>
 
-@Component({
-  selector: 'app-swfp-by-fcv-status',
-  templateUrl: './swfp-by-fcv-status.component.html',
-  styleUrls: ['./swfp-by-fcv-status.component.scss'],
-})
-export class SwfpByFcvStatusComponent implements OnInit {
-  // inputs (can be bound from parent)
-  @Input() fcv = 44;        // dark teal
-  @Input() nonFcv = 104;    // light teal
-  @Input() title = 'Workforce Supply (FTE) by FCV Status';
+        <div class="togglebtn">
+          <div class="lft-toggle" [class.lft-toggle-active]="widgetType === 'th'" (click)="loadWidget('th')">
+            <i class="fa fa-table fnticon" aria-hidden="true"></i>
+          </div>
+          <div class="rgt-toggle" [class.rgt-toggle-active]="widgetType === 'ch'" (click)="loadWidget('ch')">
+            <i class="fa fa-bar-chart fnticon" aria-hidden="true"></i>
+          </div>
 
-  // ui state used in your example
-  collapsed = false;
-  widgetType: 'ch' | 'th' = 'ch';       // 'ch' = chart, 'th' = table
-  ResponseFlag = true;                  // set to true when chart ready
+          <!-- kebab menu for parity with source UI -->
+          <div class="kebab">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+      </div>
+    </div>
 
-  // chart binding
-  Highcharts: typeof Highcharts = Highcharts;
-  PieChart: TrendChart[] = [];
+    <!-- body -->
+    <div [@collapse]="collapsed">
+      <ng-container *ngIf="!ResponseFlag">
+        <div class="loader-img">
+          <div class="col-md-12"><div #cartboxchartsection></div></div>
+          <lift-section-loader></lift-section-loader>
+        </div>
+      </ng-container>
 
-  // palette to match the screenshots exactly
-  private colorFCV = '#0B6F6A';
-  private colorNonFCV = '#78C9C5';
+      <ng-container *ngIf="ResponseFlag">
+        <!-- CHART VIEW -->
+        <ng-container *ngIf="widgetType === 'ch'">
+          <div class="inner-card-box">
+            <div class="row">
+              <div class="col-md-11 col-lg-11" #cartboxchartsection>
+                <div *ngFor="let trendchart of PieChart">
+                  <highcharts-chart
+                    [Highcharts]="trendchart.Highcharts"
+                    [options]="trendchart.chartOptions"
+                    [constructorType]="trendchart.chartConstructor">
+                  </highcharts-chart>
+                </div>
+              </div>
+              <div class="col-md-1 col-lg-1"></div>
+            </div>
 
-  ngOnInit(): void {
-    this.buildChart();
-  }
+            <!-- legend styling matches screenshot -->
+            <div class="legend">
+              <span class="dot dot-fcv"></span> FCV
+              <span class="dot dot-non"></span> Non - FCV
+            </div>
+          </div>
+        </ng-container>
 
-  expand() { this.collapsed = false; }
-  collapse() { this.collapsed = true; }
-  loadWidget(kind: 'ch' | 'th') { this.widgetType = kind; }
+        <!-- TABLE VIEW -->
+        <ng-container *ngIf="widgetType === 'th'">
+          <div class="row table-row">
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="tbl_left">Pending Approval</th>
+                    <th class="tl_left">Units</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td class="tbl_left">Operations</td><td class="tl_right">10</td></tr>
+                  <tr><td class="tbl_left">HR</td><td class="tl_right">19</td></tr>
+                  <tr><td class="tbl_left">Finance</td><td class="tl_right">12</td></tr>
+                  <tr><td class="tbl_left">Security</td><td class="tl_right">7</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </ng-container>
 
-  getDetailPage() {
-    // wire your router navigation here
-    console.log('View All clicked');
-  }
+        <div class="viewmore pointer mt-3 pt-3" (click)="getDetailPage()">
+          <span>View All&nbsp;&nbsp;</span><i class="fa fa-angle-right"></i>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+</div>
 
-  private buildChart(): void {
-    const total = this.fcv + this.nonFcv;
-    const pctFCV = (this.fcv / total) * 100;
-    const pctNon = (this.nonFcv / total) * 100;
-
-    const options: Highcharts.Options = {
-      chart: {
-        type: 'solidgauge',
-        backgroundColor: 'transparent',
-        height: 240,
-        spacing: [20, 10, 0, 10], // top margin for the card look
-        events: {
-          render: function (this: Highcharts.Chart) {
-            const chart = this;
-
-            // center labels
-            const cx = chart.plotLeft + chart.plotWidth / 2;
-            const cy = chart.plotTop + chart.plotHeight * 0.78;
-
-            (chart as any).__centerValue?.destroy();
-            (chart as any).__centerSub?.destroy();
-
-            (chart as any).__centerValue = chart.renderer
-              .text(Highcharts.numberFormat(total, 0), cx, cy - 8)
-              .attr({ align: 'center' })
-              .css({ fontSize: '38px', fontWeight: 600, color: '#1a1a1a' })
-              .add();
-
-            (chart as any).__centerSub = chart.renderer
-              .text('By FCV Status', cx, cy + 18)
-              .attr({ align: 'center' })
-              .css({ fontSize: '16px', color: '#3c3c3c' })
-              .add();
-
-            // outside labels like 104(70%) & 44(30%)
-            const s: any = chart.series[0];
-            if (!s?.points?.length) return;
-            const { r, innerR } = s.points[0].shapeArgs;
-            const rOuter = r as number;
-            const rInner = innerR as number;
-
-            const angleL = -35 * (Math.PI / 180);
-            const angleR = 35 * (Math.PI / 180);
-            const baseY = chart.plotTop + chart.plotHeight / 2 + 20;
-            const baseX = chart.plotLeft + chart.plotWidth / 2;
-
-            const leftX = baseX + Math.cos(Math.PI - angleL) * (rOuter - 10);
-            const leftY = baseY + Math.sin(Math.PI - angleL) * (rOuter - 16);
-            const rightX = baseX + Math.cos(angleR) * (rOuter - 8);
-            const rightY = baseY + Math.sin(angleR) * (rOuter - 16);
-
-            (chart as any).__leftLbl?.destroy();
-            (chart as any).__rightLbl?.destroy();
-
-            (chart as any).__leftLbl = chart.renderer
-              .text(`${total - this.userOptions.__fcv}(${Math.round(pctNon)}%)`, leftX, leftY)
-              .css({ fontSize: '13px', color: '#3c3c3c' })
-              .add();
-
-            (chart as any).__rightLbl = chart.renderer
-              .text(`${this.userOptions.__fcv}(${Math.round(pctFCV)}%)`, rightX, rightY)
-              .css({ fontSize: '13px', color: '#3c3c3c' })
-              .add();
-          }
-        }
-      },
-
-      // stash fcv for the render helper (keeps Options typing intact)
-      __fcv: this.fcv as any,
-
-      title: { text: undefined },
-      credits: { enabled: false },
-      tooltip: { enabled: false },
-      legend: { enabled: false },
-
-      pane: {
-        startAngle: -90,
-        endAngle: 90,
-        background: [] // no default grey arc
-      },
-
-      yAxis: {
-        min: 0,
-        max: 100,
-        lineWidth: 0,
-        tickPositions: []
-      },
-
-      plotOptions: {
-        solidgauge: {
-          rounded: true,        // curved ends
-          linecap: 'round',
-          dataLabels: { enabled: false },
-          enableMouseTracking: false,
-          stickyTracking: false
-        }
-      },
-
-      series: [
-        {
-          type: 'solidgauge',
-          data: [
-            // thin ring via radius/innerRadius; both points share the ring
-            { y: pctNon, color: this.colorNonCV(this.colorNonFCV), radius: '95%', innerRadius: '85%' } as any,
-            { y: pctFCV, color: this.colorFCV,                     radius: '95%', innerRadius: '85%' } as any
-          ]
-        } as Highcharts.SeriesSolidgaugeOptions
-      ]
-    };
-
-    this.PieChart = [
-      {
-        Highcharts: this.Highcharts,
-        chartConstructor: 'chart',
-        chartOptions: options,
-      },
-    ];
-  }
-
-  // small helper in case you want to tweak nonFCV shade later
-  private colorNonCV(c: string) { return c; }
-}
+<!-- info popover template (blue & small) -->
+<ng-template #infotemp>
+  <lift-popover
+    [config]="{placement: 'right', trigger: 'hover'}"
+    popoverTitle="{{ title }}"
+    popoverText="">
+    <span class="info-icon" title="Info">
+      <i class="far fa-info-circle"></i>
+    </span>
+  </lift-popover>
+</ng-template>
