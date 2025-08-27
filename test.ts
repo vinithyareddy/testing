@@ -1,30 +1,43 @@
-// auth.setup.ts (LOCAL interactive login; run: npm run auth)
-import { chromium } from '@playwright/test';
-import fs from 'fs';
-import path from 'path';
+// playwright.config.ts
+import { defineConfig, devices } from '@playwright/test';
 
-(async () => {
-  const authPath = path.join('.auth', 'user.json');
-  fs.mkdirSync(path.dirname(authPath), { recursive: true });
+export default defineConfig({
+  testDir: 'tests/parallel',
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 2 : 3,
+  timeout: 60000,
+  expect: { timeout: 30000 },
 
-  // Open a visible browser so the dev can complete SSO/MFA if needed
-  const browser = await chromium.launch({ headless: false });
-  const context = await browser.newContext();
-  const page = await context.newPage();
+  reporter: [
+    ['html', { open: 'never' }],
+    ['json', { outputFile: 'playwright-report/results.json' }],
+    ['list']
+  ],
 
-  // Go straight to a known authenticated page in your app.
-  // If you aren't logged in, the app should redirect you to the login/SSO screen.
-  await page.goto('https://standardreportsbetaqa.worldbank.org/sources-uses', { waitUntil: 'networkidle' });
+  use: {
+    baseURL: 'https://standardreportsbetaqa.worldbank.org',
+    storageState: '.auth/user.json',          // <<< KEY: start authenticated
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+    headless: false,
+    viewport: { width: 1280, height: 900 },
+    navigationTimeout: 30000,
+    actionTimeout: 15000
+  },
 
-  console.log('➡️  A browser window opened. Please complete login (SSO/MFA).');
-  console.log('   This script will finish automatically once you land on /sources-uses.');
-
-  // Wait until you are fully authenticated and on the target page
-  await page.waitForURL('**/sources-uses', { timeout: 5 * 60_000 });
-
-  // Save the authenticated storage state for future test runs
-  await context.storageState({ path: authPath });
-  console.log(`✅ Saved auth state to ${authPath}`);
-
-  await browser.close();
-})();
+  projects: [
+    {
+      name: 'chrome-parallel',
+      use: {
+        ...devices['Desktop Chrome'],
+        channel: 'chrome'
+      },
+      outputDir: './test-results/',
+      snapshotDir: './.snapshots/',
+      snapshotPathTemplate: '{snapshotDir}/{testFilePath}/{testName}-{projectName}{ext}'
+    }
+  ]
+});
