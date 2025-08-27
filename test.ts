@@ -1,13 +1,14 @@
-{
-  "compilerOptions": {
-    "target": "ES2020",
-      "module": "CommonJS",
-        "moduleResolution": "Node",
-          "esModuleInterop": true,
-            "resolveJsonModule": true,
-              "skipLibCheck": true,
-                "strict": false,
-                  "types": ["node", "@playwright/test"]
+"serve": {
+  "builder": "@angular-devkit/build-angular:dev-server",
+    "options": {
+    "browserTarget": "coreframework:build"
   },
-  "include": ["**/*.ts"]
+  "configurations": {
+    "production": {
+      "browserTarget": "coreframework:build:production"
+    },
+    "development": {
+      "browserTarget": "coreframework:build:development"
+    }
+  }
 }
