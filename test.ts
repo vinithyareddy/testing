@@ -1,113 +1,151 @@
-<div class="budget-card-box" #cartboxchartsection>
-  <div class="budget-box-chart">
-    <!-- header -->
-    <div class="row card-box-header-sec">
-      <div class="widget-heading pointer mt-1 col-md-8">
-        <span>
-          {{ title }}
-          <!-- small blue info icon (using your popover pattern) -->
-          <ng-template [ngTemplateOutlet]="infotemp"></ng-template>
-        </span>
-      </div>
+// swfp-by-fcv-status.component.ts
+export class SwfpByFcvStatusComponent {
+  Highcharts: typeof Highcharts = Highcharts;
 
-      <div class="col-md-4 bgt-text-end">
-        <div class="zoomicon">
-          <span class="bgt-collabse-state pl-2" *ngIf="collapsed" (click)="expand()">
-            <img src="assets/images/icons/arrow_up.png" />
-          </span>
-          <span class="bgt-collabse-state pl-2" *ngIf="!collapsed" (click)="collapse()">
-            <img src="assets/images/icons/arrow_down.png" />
-          </span>
-        </div>
+  @Input() fcv = 44;
+  @Input() nonFcv = 104;
+  @Input() widgetTitle = 'Workforce Supply (FTE) by FCV Status';
 
-        <div class="togglebtn">
-          <div class="lft-toggle" [class.lft-toggle-active]="widgetType === 'th'" (click)="loadWidget('th')">
-            <i class="fa fa-table fnticon" aria-hidden="true"></i>
-          </div>
-          <div class="rgt-toggle" [class.rgt-toggle-active]="widgetType === 'ch'" (click)="loadWidget('ch')">
-            <i class="fa fa-bar-chart fnticon" aria-hidden="true"></i>
-          </div>
+  private colorFCV = '#0B6F6A';   // dark teal
+  private colorNonFCV = '#78C9C5';// light teal
 
-          <!-- kebab menu for parity with source UI -->
-          <div class="kebab">
-            <span></span><span></span><span></span>
-          </div>
-        </div>
-      </div>
-    </div>
+  chartOptions: Highcharts.Options;
 
-    <!-- body -->
-    <div [@collapse]="collapsed">
-      <ng-container *ngIf="!ResponseFlag">
-        <div class="loader-img">
-          <div class="col-md-12"><div #cartboxchartsection></div></div>
-          <lift-section-loader></lift-section-loader>
-        </div>
-      </ng-container>
+  constructor() {
+    const total = this.fcv + this.nonFcv;
+    const pctFCV = (this.fcv / total) * 100;
+    const pctNon = (this.nonFcv / total) * 100;
 
-      <ng-container *ngIf="ResponseFlag">
-        <!-- CHART VIEW -->
-        <ng-container *ngIf="widgetType === 'ch'">
-          <div class="inner-card-box">
-            <div class="row">
-              <div class="col-md-11 col-lg-11" #cartboxchartsection>
-                <div *ngFor="let trendchart of PieChart">
-                  <highcharts-chart
-                    [Highcharts]="trendchart.Highcharts"
-                    [options]="trendchart.chartOptions"
-                    [constructorType]="trendchart.chartConstructor">
-                  </highcharts-chart>
-                </div>
-              </div>
-              <div class="col-md-1 col-lg-1"></div>
-            </div>
+    this.chartOptions = {
+      chart: {
+        type: 'solidgauge',
+        backgroundColor: 'transparent',
+        height: 240,
+        spacingTop: 20,
+        events: {
+          render: function (this: Highcharts.Chart) {
+            // center labels
+            const chart = this;
+            const cx = chart.plotLeft + chart.plotWidth / 2;
+            const cy = chart.plotTop + chart.plotHeight * 0.78;
 
-            <!-- legend styling matches screenshot -->
-            <div class="legend">
-              <span class="dot dot-fcv"></span> FCV
-              <span class="dot dot-non"></span> Non - FCV
-            </div>
-          </div>
-        </ng-container>
+            (chart as any).__centerValue?.destroy();
+            (chart as any).__centerSub?.destroy();
 
-        <!-- TABLE VIEW -->
-        <ng-container *ngIf="widgetType === 'th'">
-          <div class="row table-row">
-            <div class="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th class="tbl_left">Pending Approval</th>
-                    <th class="tl_left">Units</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr><td class="tbl_left">Operations</td><td class="tl_right">10</td></tr>
-                  <tr><td class="tbl_left">HR</td><td class="tl_right">19</td></tr>
-                  <tr><td class="tbl_left">Finance</td><td class="tl_right">12</td></tr>
-                  <tr><td class="tbl_left">Security</td><td class="tl_right">7</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </ng-container>
+            (chart as any).__centerValue = chart.renderer
+              .text(Highcharts.numberFormat(total, 0), cx, cy - 8)
+              .attr({ align: 'center' })
+              .css({
+                fontSize: '38px',
+                fontWeight: 600,
+                color: '#1a1a1a'
+              })
+              .add();
 
-        <div class="viewmore pointer mt-3 pt-3" (click)="getDetailPage()">
-          <span>View All&nbsp;&nbsp;</span><i class="fa fa-angle-right"></i>
-        </div>
-      </ng-container>
-    </div>
-  </div>
-</div>
+            (chart as any).__centerSub = chart.renderer
+              .text('By FCV Status', cx, cy + 18)
+              .attr({ align: 'center' })
+              .css({ fontSize: '16px', color: '#3c3c3c' })
+              .add();
+          }
+        }
+      },
 
-<!-- info popover template (blue & small) -->
-<ng-template #infotemp>
-  <lift-popover
-    [config]="{placement: 'right', trigger: 'hover'}"
-    popoverTitle="{{ title }}"
-    popoverText="">
-    <span class="info-icon" title="Info">
-      <i class="far fa-info-circle"></i>
-    </span>
-  </lift-popover>
-</ng-template>
+      title: { text: undefined },
+      credits: { enabled: false },
+      tooltip: { enabled: false },
+      legend: { enabled: false },
+
+      pane: {
+        startAngle: -90,
+        endAngle: 90,
+        background: [] // no grey background arc
+      },
+
+      yAxis: {
+        min: 0,
+        max: 100,
+        lineWidth: 0,
+        tickPositions: []
+      },
+
+      plotOptions: {
+        solidgauge: {
+          rounded: true,           // curve the arc ends
+          linecap: 'round',        // (older versions use this)
+          dataLabels: { enabled: false },
+          stickyTracking: false,
+          enableMouseTracking: false
+        }
+      },
+
+      // We draw both slices as separate "points" on the same ring
+      // to keep the donut thin and match the look.
+      series: [
+        {
+          type: 'solidgauge',
+          // ONE ring; both points share the same radius/innerRadius
+          data: [
+            {
+              y: pctNon,
+              color: this.colorNonFCV,
+              radius: '95%',
+              innerRadius: '85%'
+            } as any,
+            {
+              y: pctFCV,
+              color: this.colorFCV,
+              radius: '95%',
+              innerRadius: '85%'
+            } as any
+          ]
+        } as Highcharts.SeriesSolidgaugeOptions
+      ]
+    } as Highcharts.Options;
+
+    // Add small outside labels like "104(70%)" and "44(30%)"
+    // (simple renderer texts anchored near arc ends)
+    const addOutsideLabels = (chart: Highcharts.Chart) => {
+      const rOuter = (chart as any).series[0].points[0].shapeArgs.r as number;
+      const rInner = (chart as any).series[0].points[0].shapeArgs.innerR as number;
+      const rMid = chart.plotLeft + rOuter - (rOuter - rInner) / 2;
+
+      const angleDeg = -35; // left label angle
+      const angleRad = (angleDeg * Math.PI) / 180;
+
+      const cx = chart.plotLeft + chart.plotWidth / 2;
+      const cy = chart.plotTop + chart.plotHeight / 2 + 20;
+
+      const leftX = cx + Math.cos(Math.PI - angleRad) * (rOuter - 10);
+      const leftY = cy + Math.sin(Math.PI - angleRad) * (rOuter - 16);
+
+      const rightAngleDeg = 35; // right label angle
+      const rightX = cx + Math.cos(rightAngleDeg * Math.PI / 180) * (rOuter - 6);
+      const rightY = cy + Math.sin(rightAngleDeg * Math.PI / 180) * (rOuter - 16);
+
+      const nonPct = Math.round(pctNon);
+      const fcvPct = Math.round(pctFCV);
+
+      (chart as any).__leftLbl?.destroy();
+      (chart as any).__rightLbl?.destroy();
+
+      (chart as any).__leftLbl = chart.renderer
+        .text(`${this.nonFcv}(${nonPct}%)`, leftX, leftY)
+        .css({ fontSize: '13px', color: '#3c3c3c' })
+        .add();
+
+      (chart as any).__rightLbl = chart.renderer
+        .text(`${this.fcv}(${fcvPct}%)`, rightX, rightY)
+        .css({ fontSize: '13px', color: '#3c3c3c' })
+        .add();
+    };
+
+    // Hook label drawing after first render & on redraw
+    (this.chartOptions.chart as any).events!.load = function (this: Highcharts.Chart) {
+      addOutsideLabels(this);
+    };
+    (this.chartOptions.chart as any).events!.redraw = function (this: Highcharts.Chart) {
+      addOutsideLabels(this);
+    };
+  }
+}
