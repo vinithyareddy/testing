@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PopoverConfig } from '@lift/ui';
-import { ManagerHighchartService } from 'app/services/manager-highchart.service';
+import * as Highcharts from 'highcharts';
 
 @Component({
   selector: 'app-swfp-by-fcv-status',
@@ -21,7 +21,9 @@ export class SwfpByFcvStatusComponent implements OnInit, AfterViewInit {
   collapsed = false;
   widgetType = 'ch';
 
-  PieChart: any = [];
+  Highcharts: typeof Highcharts = Highcharts;
+  chartOptions: Highcharts.Options = {};
+
   fcvData: any[] = [];
 
   config1: PopoverConfig = { showPopoverOnClick: true };
@@ -30,14 +32,10 @@ export class SwfpByFcvStatusComponent implements OnInit, AfterViewInit {
 
   @ViewChild('chartsection') chartsection!: ElementRef;
 
-  constructor(
-    private highChartService: ManagerHighchartService,
-    private route: ActivatedRoute,
-    private router: Router
-  ) {}
+  constructor(private route: ActivatedRoute, private router: Router) {}
 
   ngOnInit(): void {
-    // ✅ Initialize dummy data here (no hardcoded in chart)
+    // ✅ Dummy data defined once here
     this.fcvData = [
       { name: 'FCV', value: 104, color: '#00796B' },
       { name: 'Non-FCV', value: 44, color: '#4DB6AC' },
@@ -59,17 +57,32 @@ export class SwfpByFcvStatusComponent implements OnInit, AfterViewInit {
 
     const total = data.reduce((acc, cur) => acc + cur.value, 0);
 
-    const chartOptions = {
-      chartTitle: 'Workforce Supply (FTE)',
-      centerVal: total,
-      centerTxt: 'By FCV Status',
-      chartWidth: this.chartsection.nativeElement.offsetWidth - 30,
-      chartHight: 260,
-      legendVisible: true,
-      donut: true,
-      roundedEnds: true,
-      dataseries: [
+    this.chartOptions = {
+      chart: {
+        type: 'pie',
+        height: 260,
+      },
+      title: {
+        verticalAlign: 'middle',
+        floating: true,
+        useHTML: true,
+        text: `<span style="font-size:22px; font-weight:bold">${total}</span><br/><span style="font-size:12px">By FCV Status</span>`,
+      },
+      tooltip: {
+        pointFormat: '<b>{point.y}</b> ({point.percentage:.0f}%)',
+      },
+      credits: { enabled: false },
+      plotOptions: {
+        pie: {
+          innerSize: '70%',
+          borderRadius: 10, // ✅ curved ends
+          showInLegend: true,
+          dataLabels: { enabled: false },
+        },
+      },
+      series: [
         {
+          type: 'pie',
           name: 'FCV Status',
           data: data.map((d) => ({
             name: d.name,
@@ -79,8 +92,6 @@ export class SwfpByFcvStatusComponent implements OnInit, AfterViewInit {
         },
       ],
     };
-
-    this.PieChart = this.highChartService.GetDonutChart(chartOptions);
   }
 
   expand() {
