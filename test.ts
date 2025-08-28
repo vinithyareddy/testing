@@ -11,6 +11,7 @@ import * as Highcharts from 'highcharts';
 export class SwfpByFcvStatusComponent implements OnInit, AfterViewInit {
   ResponseFlag = false;
   collapsed = false;
+  widgetType = 'ch';   // keep toggle logic
 
   Highcharts: typeof Highcharts = Highcharts;
   chartOptions: Highcharts.Options = {};
@@ -33,6 +34,10 @@ export class SwfpByFcvStatusComponent implements OnInit, AfterViewInit {
     if (this.fcvData.length > 0) {
       this.onInitLoad(this.fcvData);
     }
+  }
+
+  loadWidget(type: string) {
+    this.widgetType = type;
   }
 
   onInitLoad(data: any[]): void {
