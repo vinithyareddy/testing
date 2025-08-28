@@ -1,107 +1,101 @@
-import {
-  AfterViewInit,
-  Component,
-  DestroyRef,
-  ElementRef,
-  OnInit,
-  ViewChild,
-  inject,
-} from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
-import { PopoverConfig } from '@lift/ui';
-import * as Highcharts from 'highcharts';
+<div class="budget-card-box" #chartsection>
+  <div class="budget-box-chart">
+    <!-- Header -->
+    <div class="row card-box-header-sec">
+      <div class="widget-heading pointer mt-1 col-md-8">
+        <span>
+          Workforce Supply (FTE) by FCV Status
+          <ng-template [ngTemplateOutlet]="infotemp"></ng-template>
+        </span>
+      </div>
+      <div class="col-md-4 bgt-text-end">
+        <div class="zoomicon">
+          <span *ngIf="collapsed" (click)="expand()"
+            ><img src="assets/images/icons/arrow_up.png"
+          /></span>
+          <span *ngIf="!collapsed" (click)="collapse()"
+            ><img src="assets/images/icons/arrow_down.png"
+          /></span>
+        </div>
+        <div class="togglebtn">
+          <div
+            class="lft-toggle"
+            [class.lft-toggle-active]="widgetType == 'th'"
+            (click)="loadWidget('th')"
+          >
+            <i class="fa fa-table fnticon"></i>
+          </div>
+          <div
+            class="rgt-toggle"
+            [class.rgt-toggle-active]="widgetType == 'ch'"
+            (click)="loadWidget('ch')"
+          >
+            <i class="fa fa-bar-chart fnticon"></i>
+          </div>
+        </div>
+      </div>
+    </div>
 
-@Component({
-  selector: 'app-swfp-by-fcv-status',
-  templateUrl: './swfp-by-fcv-status.component.html',
-  styleUrls: ['./swfp-by-fcv-status.component.scss'],
-})
-export class SwfpByFcvStatusComponent implements OnInit, AfterViewInit {
-  ResponseFlag = false;
-  collapsed = false;
-  widgetType = 'ch';
+    <!-- Body -->
+    <div [@collapse]="collapsed">
+      <!-- Loader -->
+      <ng-container *ngIf="!ResponseFlag">
+        <div class="loader-img">
+          <lift-section-loader></lift-section-loader>
+        </div>
+      </ng-container>
 
-  Highcharts: typeof Highcharts = Highcharts;
-  chartOptions: Highcharts.Options = {};
+      <!-- Chart View -->
+      <ng-container *ngIf="ResponseFlag">
+        <ng-container *ngIf="widgetType == 'ch'">
+          <div class="inner-card-box">
+            <highcharts-chart
+              [Highcharts]="Highcharts"
+              [options]="chartOptions"
+              [constructorType]="'chart'"
+              style="width: 100%; height: 260px; display: block;"
+            >
+            </highcharts-chart>
+          </div>
+        </ng-container>
 
-  fcvData: any[] = [];
+        <!-- Table View -->
+        <ng-container *ngIf="widgetType == 'th'">
+          <div class="row table-row">
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="tbl_left">FCV Status</th>
+                    <th class="tl_left">Units</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of fcvData">
+                    <td class="tbl_left">{{ item.name }}</td>
+                    <td class="tl_right text-link-color">{{ item.value }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </ng-container>
 
-  config1: PopoverConfig = { showPopoverOnClick: true };
+        <!-- Footer -->
+        <div class="viewmore pointer mt-3 pt-3" (click)="getDetailPage()">
+          <span>View More&nbsp;&nbsp;</span><i class="fa fa-angle-right"></i>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+</div>
 
-  private destroyRef = inject(DestroyRef);
-
-  @ViewChild('chartsection') chartsection!: ElementRef;
-
-  constructor(private route: ActivatedRoute, private router: Router) {}
-
-  ngOnInit(): void {
-    // ✅ Dummy data defined once here
-    this.fcvData = [
-      { name: 'FCV', value: 104, color: '#00796B' },
-      { name: 'Non-FCV', value: 44, color: '#4DB6AC' },
-    ];
-  }
-
-  ngAfterViewInit(): void {
-    if (this.fcvData.length > 0) {
-      this.onInitLoad(this.fcvData);
-    }
-  }
-
-  loadWidget(type: string) {
-    this.widgetType = type;
-  }
-
-  onInitLoad(data: any[]): void {
-    this.ResponseFlag = true;
-
-    const total = data.reduce((acc, cur) => acc + cur.value, 0);
-
-    this.chartOptions = {
-      chart: {
-        type: 'pie',
-        height: 260,
-      },
-      title: {
-        verticalAlign: 'middle',
-        floating: true,
-        useHTML: true,
-        text: `<span style="font-size:22px; font-weight:bold">${total}</span><br/><span style="font-size:12px">By FCV Status</span>`,
-      },
-      tooltip: {
-        pointFormat: '<b>{point.y}</b> ({point.percentage:.0f}%)',
-      },
-      credits: { enabled: false },
-      plotOptions: {
-        pie: {
-          innerSize: '70%',
-          borderRadius: 10, // ✅ curved ends
-          showInLegend: true,
-          dataLabels: { enabled: false },
-        },
-      },
-      series: [
-        {
-          type: 'pie',
-          name: 'FCV Status',
-          data: data.map((d) => ({
-            name: d.name,
-            y: d.value,
-            color: d.color,
-          })),
-        },
-      ],
-    };
-  }
-
-  expand() {
-    this.collapsed = false;
-  }
-  collapse() {
-    this.collapsed = true;
-  }
-
-  getDetailPage() {
-    this.router.navigate(['fcv-status'], { relativeTo: this.route });
-  }
-}
+<ng-template #infotemp>
+  <lift-popover
+    popoverTitle="Workforce Supply (FTE) by FCV Status"
+    popoverText=""
+    [config]="config1"
+  >
+    <span><i class="far fa-info-circle"></i></span>
+  </lift-popover>
+</ng-template>
