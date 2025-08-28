@@ -22,3 +22,28 @@
     </div>
   </div>
 </div>
+
+
+.togglebtn {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;  // pushes all icons to right
+  gap: 10px;                  // space between icons
+
+  div {
+    width: 28px;
+    height: 28px;
+    border: 1px solid #d6d6d6;
+    text-align: center;
+    line-height: 28px;
+    cursor: pointer;
+
+    i {
+      font-size: 14px;
+    }
+  }
+
+  .ellipsis {
+    border: none;  // optional: remove box from ellipsis
+  }
+}
