@@ -1,81 +1,114 @@
-<div [ngClass]="{ 'full-view': fullview }">
-  <div class="budget-card-box">
-    <div class="budget-box-chart">
-      <!-- Header -->
-      <div class="row card-box-header-sec">
-        <div class="card-box-header-sec col-md-9">
-          <div class="widget-heading mt-1 cursorpointer">
-            <span>
-              Workforce Supply (FTE) by Country & Job
-              <ng-template [ngTemplateOutlet]="infotemp"></ng-template>
-            </span>
-          </div>
-        </div>
+import {
+  AfterViewInit,
+  Component,
+  DestroyRef,
+  ElementRef,
+  OnInit,
+  ViewChild,
+  inject,
+} from '@angular/core';
 
-        <div class="col-md-3 bgt-text-end d-flex justify-content-end align-items-center">
-          <span (click)="fullPageView()" class="view">
-            <i class="fas fa-expand" title="Zoom"></i>
-          </span>
-          <div class="ellipsis ml-2">
-            <i class="fas fa-ellipsis-v"></i>
-          </div>
-        </div>
-      </div>
+import { ActivatedRoute, Router } from '@angular/router';
+import { PopoverConfig } from '@lift/ui';
+import * as Highcharts from 'highcharts';
 
-      <!-- Table -->
-      <div [@collapse]="collapsed">
-        <ng-container *ngIf="!ResponseFlag">
-          <div class="loader-img">
-            <lift-section-loader></lift-section-loader>
-          </div>
-        </ng-container>
+@Component({
+  selector: 'app-swfp-by-location',
+  templateUrl: './swfp-by-location.component.html',
+  styleUrls: ['./swfp-by-location.component.scss'],
+})
+export class SwfpByLocationComponent implements OnInit, AfterViewInit {
+  ResponseFlag = false;
+  collapsed = false;
+  widgetType = 'ch';
 
-        <ng-container *ngIf="ResponseFlag">
-          <div class="TableView">
-            <table class="table">
-              <thead class="tableHeading">
-                <tr>
-                  <th class="text-left">Location and Job</th>
-                  <th class="fte-col">FTE</th>
-                </tr>
-              </thead>
+  Highcharts: typeof Highcharts = Highcharts;
+  chartOptions: Highcharts.Options = {};
 
-              <tbody>
-                <tr *ngFor="let row of groupdata">
-                  <td class="pointer text-left" (click)="expandRow(row)">
-                    <span class="cell-content">
-                      <i *ngIf="!row.expanded" class="far fa-plus-circle"></i>
-                      <i *ngIf="row.expanded" class="far fa-minus-circle"></i>
-                      <img [src]="'https://flagcdn.com/16x12/' + row.flag + '.png'" class="flag-icon" />
-                      {{ row.country }}
-                    </span>
-                  </td>
-                  <td class="fte-col">{{ row.fte }}</td>
-                </tr>
-              </tbody>
+  locationData: any[] = [];
 
-              <!-- ✅ Total row now inside tfoot -->
-              <tfoot>
-                <tr *ngFor="let t of total" class="total">
-                  <td class="text-left">{{ t.label }}</td>
-                  <td class="fte-col">{{ t.fte }}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+  config1: PopoverConfig = { showPopoverOnClick: true };
 
-          <!-- View More -->
-          <div class="viewmore pointer mt-3" (click)="getDetailPage()">
-            <span>View More&nbsp;&nbsp;</span><i class="fa fa-angle-right"></i>
-          </div>
-        </ng-container>
-      </div>
-    </div>
-  </div>
-</div>
+  private destroyRef = inject(DestroyRef);
 
-<ng-template #infotemp>
-  <lift-popover popoverTitle="Workforce Supply (FTE) by Country & Job" popoverText="">
-    <span><i class="far fa-info-circle"></i></span>
-  </lift-popover>
-</ng-template>
+  @ViewChild('chartsection') chartsection!: ElementRef;
+
+  constructor(private route: ActivatedRoute, private router: Router) {}
+
+  ngOnInit(): void {
+    // ✅ Data exactly from the picture
+    this.locationData = [
+      { name: 'US', value: 101, color: '#7d52a1' },     // lighter purple
+      { name: 'Non-US', value: 112, color: '#432874' }  // darker purple
+    ];
+  }
+
+  ngAfterViewInit(): void {
+    if (this.locationData.length > 0) {
+      this.onInitLoad(this.locationData);
+    }
+  }
+
+  loadWidget(type: string) {
+    this.widgetType = type;
+  }
+
+  onInitLoad(data: any[]): void {
+    this.ResponseFlag = true;
+
+    const total = data.reduce((acc, cur) => acc + cur.value, 0);
+
+    this.chartOptions = {
+      chart: {
+        type: 'pie',
+      },
+      title: {
+        verticalAlign: 'middle',
+        floating: true,
+        useHTML: true,
+        text: `<span style="font-size:22px; font-weight:bold">${total}</span><br/><span style="font-size:12px">By Location</span>`,
+      },
+      tooltip: {
+        pointFormat: '<b>{point.y}</b> ({point.percentage:.0f}%)',
+      },
+      credits: { enabled: false },
+      plotOptions: {
+        pie: {
+          innerSize: '80%',
+          size: '150%',
+          borderRadius: 10, // curved ends
+          showInLegend: true,
+          dataLabels: {
+            enabled: true,
+            format: '{point.y} ({point.percentage:.0f}%)',
+          },
+          startAngle: -90, // half donut
+          endAngle: 90,
+          center: ['50%', '75%'], // lower the chart
+        },
+      },
+      series: [
+        {
+          type: 'pie',
+          name: 'Location',
+          data: data.map((d) => ({
+            name: d.name,
+            y: d.value,
+            color: d.color,
+          })),
+        },
+      ],
+    };
+  }
+
+  expand() {
+    this.collapsed = false;
+  }
+  collapse() {
+    this.collapsed = true;
+  }
+
+  getDetailPage() {
+    this.router.navigate(['location'], { relativeTo: this.route });
+  }
+}
