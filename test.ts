@@ -65,7 +65,7 @@ export class SwfpByFcvStatusComponent implements OnInit, AfterViewInit {
     const nonFcvPercent = nonFcv / total;
 
     // ✅ Gradient for one slice, dynamically split
-    const gradient = {
+    const gradient: Highcharts.GradientColorObject = {
       linearGradient: { x1: 0, y1: 0, x2: 1, y2: 0 },
       stops: [
         [0, data[0].color],
@@ -74,24 +74,17 @@ export class SwfpByFcvStatusComponent implements OnInit, AfterViewInit {
         [1, data[1].color],
       ],
     };
-
+    
     this.chartOptions = {
-      chart: {
-        type: 'pie',
-        height: 260,
-      },
+      chart: { type: 'pie', height: 260 },
       title: {
         verticalAlign: 'middle',
         floating: true,
         useHTML: true,
         y: 40,
         text: `<span style="font-size:22px; font-weight:bold">${total}</span><br/>
-               <span style="font-size:12px">By FCV Status</span>`,
+               <span style="font-size:12px">By FCV Status</span>`
       },
-      tooltip: {
-        enabled: false, // disable since it's one slice
-      },
-      credits: { enabled: false },
       plotOptions: {
         pie: {
           innerSize: '70%',
@@ -100,21 +93,19 @@ export class SwfpByFcvStatusComponent implements OnInit, AfterViewInit {
           startAngle: -90,
           endAngle: 90,
           center: ['50%', '75%'],
-        },
+        }
       },
-      series: [
-        {
-          type: 'pie',
-          data: [
-            {
-              name: 'FCV Split',
-              y: 100, // always 100% for one slice
-              color: gradient,
-            },
-          ],
-        },
-      ],
+      credits: { enabled: false },
+      series: [{
+        type: 'pie',
+        data: [{
+          name: 'FCV Split',
+          y: 100,
+          color: gradient as Highcharts.ColorType   // ✅ casting fixes TS error
+        }]
+      }]
     };
+    
   }
 
   expand() {
