@@ -1,26 +1,5 @@
-<div class="row card-box-header-sec align-items-center">
-
-  <!-- Title + info -->
-  <div class="col-md-9 d-flex align-items-center heading-sec">
-    <span class="title-text">
-      Workforce Supply (FTE) by Country & Job
-    </span>
-    <ng-template [ngTemplateOutlet]="infotemp"></ng-template>
-  </div>
-
-  <!-- Right icons -->
-  <div class="col-md-3 d-flex justify-content-end align-items-center header-icons">
-    <span (click)="fullPageView()" class="view">
-      <i class="fas fa-expand" title="Zoom"></i>
-    </span>
-    <div class="ellipsis ml-2">
-      <i class="fas fa-ellipsis-v"></i>
-    </div>
-  </div>
-
-</div>
-
 .budget-card-box {
+
   background: #fff;
   box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
   margin-top: 25px;
@@ -30,7 +9,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    margin-bottom: 12px;   // space between heading and table
+    margin-bottom: 12px;
   }
 
   .title-text {
@@ -40,8 +19,8 @@
   }
 
   i.fa-info-circle {
-    font-size: 12px;      // smaller
-    color: #0071bc;       // blue
+    font-size: 12px;
+    color: #0071bc;
     cursor: pointer;
   }
 
@@ -58,44 +37,121 @@
     }
   }
 
-  /* Table */
+  .ellipsis {
+    cursor: pointer;
+    font-size: 18px;
+    margin-left: 12px;
+  }
+
+  .view {
+    font-size: 18px;
+  }
+
   .TableView {
     max-height: 300px;
     overflow-y: auto;
+    overflow-x: hidden;
     margin-bottom: 20px;
 
     .table {
       width: 100%;
       border-collapse: collapse;
 
-      th, td {
+      th,
+      td {
         padding: 8px 12px;
         font-size: 13px;
         vertical-align: middle;
         white-space: nowrap;
       }
 
-      tbody tr:nth-child(even) { background-color: #f9f9f9; }
-      tbody tr:nth-child(odd)  { background-color: #ffffff; }
-      tbody tr:hover           { background-color: #eef5ff; }
-
-      thead th {
-        font-weight: 600;
-        color: #2d2d2d;
-        background-color: #f4f6f9;
-        position: sticky;
-        top: 0;
-        z-index: 2;
+      /* ✅ Stronger selectors for row colors */
+      .budget-card-box .TableView .table tbody tr:nth-child(even) {
+        background-color: #f9f9f9;
       }
 
-      tfoot tr.total {
-        font-weight: 600;
-        background: #f4f6f9;
-        color: #2d2d2d;   // make visible again
-        position: sticky;
-        bottom: 0;
-        z-index: 2;
+      .budget-card-box .TableView .table tbody tr:nth-child(odd) {
+        background-color: #ffffff;
+      }
+
+      .budget-card-box .TableView .table tbody tr:hover {
+        background-color: #eef5ff;
+      }
+
+      th:first-child,
+      td:first-child {
+        width: calc(100% - 100px); // everything except FTE col
+        text-align: left;
+        padding-left: 12px;
+      }
+
+      th:last-child,
+      td:last-child {
+        width: 100px;              // fixed FTE column
+        text-align: right;
+        padding-right: 20px;
+      }
+
+      thead {
+        th {
+          font-weight: 600;
+          color: #2d2d2d;
+          background-color: #f4f6f9;
+          position: sticky;   // ✅ header sticks
+          top: 0;
+          z-index: 2;
+        }
+      }
+
+      tbody {
+        .cell-content i {
+          margin-right: 10px;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          color: #0071bc;
+        }
+      }
+
+      .fte-col {
+        width: 100px;
+        text-align: right !important;
+        padding-right: 20px;
+      }
+
+      // ✅ Total row always visible at bottom
+      tfoot {
+        tr.total {
+          font-weight: 600;
+          background: #f4f6f9;
+          color: #2d2d2d;   // make visible again
+          position: sticky;
+          bottom: 0;
+          z-index: 2;
+
+          td:first-child {
+            padding-left: 8px;
+          }
+
+          td:last-child {
+            text-align: right;
+            padding-right: 20px;
+          }
+        }
       }
     }
+  }
+
+  .flag-icon {
+    width: 18px;
+    height: 12px;
+    margin-right: 6px;
+  }
+
+  .viewmore {
+    font-size: 13px;
+    font-weight: 500;
+    color: #0071bc;
+    text-align: right;
   }
 }
