@@ -1,48 +1,82 @@
-import { Component, Renderer2 } from '@angular/core';
+<div [ngClass]="{ 'full-view': fullview }">
+  <div class="budget-card-box">
+    <div class="budget-box-chart">
 
-@Component({
-  selector: 'app-swfp-by-country-job',
-  templateUrl: './swfp-by-country-job.component.html',
-  styleUrls: ['./swfp-by-country-job.component.scss']
-})
-export class SwfpByCountryJobComponent {
-  ResponseFlag = true;   // simulate data load complete
-  collapsed = false;
-  fullview = false;
+      <!-- Header -->
+      <div class="row card-box-header-sec align-items-center">
+        <!-- Title + info -->
+        <div class="col-md-9 d-flex align-items-center heading-sec">
+          <span class="title-text">
+            Workforce Supply (FTE) by Country & Job
+          </span>
+          <ng-template [ngTemplateOutlet]="infotemp"></ng-template>
+        </div>
 
-  // Demo data (replace with API/service later)
-  groupdata = [
-    { country: 'United States', flag: 'us', fte: 96, expanded: false },
-    { country: 'India', flag: 'in', fte: 10, expanded: false },
-    { country: 'Nigeria', flag: 'ng', fte: 6, expanded: false },
-    { country: 'Bangladesh', flag: 'bd', fte: 5, expanded: false },
-    { country: 'Ethiopia', flag: 'et', fte: 5, expanded: false },
-    { country: 'Kenya', flag: 'ke', fte: 5, expanded: false },
-    { country: 'Pakistan', flag: 'pk', fte: 5, expanded: false },
-    { country: 'Senegal', flag: 'sn', fte: 4, expanded: false }
-  ];
+        <!-- Right icons -->
+        <div class="col-md-3 d-flex justify-content-end align-items-center header-icons">
+          <span (click)="fullPageView()" class="view">
+            <i class="fas fa-expand" title="Zoom"></i>
+          </span>
+          <div class="ellipsis ml-2">
+            <i class="fas fa-ellipsis-v"></i>
+          </div>
+        </div>
+      </div>
 
-  total = [{ label: 'Total', fte: 239 }];
+      <!-- Table -->
+      <div [@collapse]="collapsed">
+        <ng-container *ngIf="!ResponseFlag">
+          <div class="loader-img">
+            <lift-section-loader></lift-section-loader>
+          </div>
+        </ng-container>
 
-  constructor(private render: Renderer2) {}
+        <ng-container *ngIf="ResponseFlag">
+          <div class="TableView">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th class="text-left">Location and Job</th>
+                  <th class="fte-col">FTE</th>
+                </tr>
+              </thead>
 
-  expandRow(row: any) {
-    row.expanded = !row.expanded;
-  }
+              <tbody>
+                <tr *ngFor="let row of groupdata">
+                  <td class="pointer text-left" (click)="expandRow(row)">
+                    <span class="cell-content">
+                      <i *ngIf="!row.expanded" class="far fa-plus-circle"></i>
+                      <i *ngIf="row.expanded" class="far fa-minus-circle"></i>
+                      <img [src]="'https://flagcdn.com/16x12/' + row.flag + '.png'" class="flag-icon" />
+                      {{ row.country }}
+                    </span>
+                  </td>
+                  <td class="fte-col">{{ row.fte }}</td>
+                </tr>
+              </tbody>
 
-  expand() { this.collapsed = false; }
-  collapse() { this.collapsed = true; }
+              <!-- ✅ Total row inside tfoot -->
+              <tfoot>
+                <tr *ngFor="let t of total" class="total">
+                  <td class="text-left">{{ t.label }}</td>
+                  <td class="fte-col">{{ t.fte }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
 
-  fullPageView() {
-    this.fullview = !this.fullview;
-    if (this.fullview) {
-      this.render.addClass(document.body, 'no-scroll');
-    } else {
-      this.render.removeClass(document.body, 'no-scroll');
-    }
-  }
+          <!-- View More -->
+          <div class="viewmore pointer mt-3" (click)="getDetailPage()">
+            <span>View More&nbsp;&nbsp;</span><i class="fa fa-angle-right"></i>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+</div>
 
-  getDetailPage() {
-    console.log('Navigate → detail page');
-  }
-}
+<ng-template #infotemp>
+  <lift-popover popoverTitle="Workforce Supply (FTE) by Country & Job" popoverText="">
+    <span><i class="far fa-info-circle"></i></span>
+  </lift-popover>
+</ng-template>
