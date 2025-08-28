@@ -25,20 +25,20 @@
         white-space: nowrap;
       }
 
-      // 🔹 Lock first column (location + job)
+      // 🔹 Column widths
       th:first-child,
       td:first-child {
-        width: calc(100% - 100px); // fills remaining space
+        width: auto;
         text-align: left;
         padding-left: 12px;
       }
 
-      // 🔹 Lock last column (FTE)
-      th:last-child,
-      td.fte-col {       // ✅ use class instead of td:last-child
-        width: 100px;
-        text-align: right;
-        padding-right: 20px;
+      // 🔹 Force FTE column to the extreme right
+      th.fte-col,
+      td.fte-col {
+        width: 1%;                // shrink-fit
+        text-align: right !important;
+        padding-right: 0;         // remove extra padding
       }
 
       thead th {
@@ -52,26 +52,17 @@
         .cell-content {
           display: inline-flex;
           align-items: center;
-          gap: 8px;          // spacing between icon, flag, and text
+          gap: 8px;   // spacing between +, flag, text
         }
 
         .cell-content i {
-          margin-right: 4px; // extra gap after +/− icon only
+          margin-right: 4px;
         }
       }
 
       .total {
         font-weight: 600;
         background: #f8f8f8;
-
-        td:first-child {
-          padding-left: 12px;
-        }
-
-        td.fte-col {
-          text-align: right;
-          padding-right: 20px;
-        }
       }
     }
   }
