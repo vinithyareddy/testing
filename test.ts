@@ -1,3 +1,8 @@
+this.fcvData = [
+  { name: 'FCV', value: 104, color: '#00796B' },
+  { name: 'Non-FCV', value: 44, color: '#4DB6AC' }
+];
+
 onInitLoad(data: any[]): void {
   this.ResponseFlag = true;
 
@@ -12,7 +17,9 @@ onInitLoad(data: any[]): void {
       verticalAlign: 'middle',
       floating: true,
       useHTML: true,
-      text: `<span style="font-size:22px; font-weight:bold">${total}</span><br/><span style="font-size:12px">By FCV Status</span>`,
+      y: 40, // push text lower into half donut
+      text: `<span style="font-size:22px; font-weight:bold">${total}</span><br/>
+             <span style="font-size:12px">By FCV Status</span>`
     },
     tooltip: {
       pointFormat: '<b>{point.y}</b> ({point.percentage:.0f}%)',
@@ -21,27 +28,24 @@ onInitLoad(data: any[]): void {
     plotOptions: {
       pie: {
         innerSize: '70%',
-        borderRadius: 10, // curved ends
-        showInLegend: true,
+        borderRadius: 10,   // curved ends
         dataLabels: {
           enabled: true,
           format: '{point.y} ({point.percentage:.0f}%)',
         },
-        startAngle: -90,  // half donut
+        startAngle: -90,   // half donut
         endAngle: 90,
-        center: ['50%', '75%'], // position center lower
+        center: ['50%', '75%'],
       },
     },
-    series: [
-      {
-        type: 'pie',
-        name: 'FCV Status',
-        data: data.map((d) => ({
-          name: d.name,
-          y: d.value,
-          color: d.color,
-        })),
-      },
-    ],
+    series: [{
+      type: 'pie',
+      name: 'FCV Status',
+      data: data.map(d => ({
+        name: d.name,
+        y: d.value,
+        color: d.color,
+      }))
+    }]
   };
 }
