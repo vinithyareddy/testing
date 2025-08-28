@@ -1,5 +1,4 @@
 .budget-card-box {
-
   background: #fff;
   box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
   margin-top: 25px;
@@ -56,6 +55,7 @@
     .table {
       width: 100%;
       border-collapse: collapse;
+      table-layout: fixed;
 
       th,
       td {
@@ -65,17 +65,17 @@
         white-space: nowrap;
       }
 
-      /* ✅ Stronger selectors for row colors */
-      .budget-card-box .TableView .table tbody tr:nth-child(even) {
-        background-color: #f9f9f9;
+      /* ✅ Alternating row colors */
+      tbody tr:nth-of-type(odd) {
+        background-color: #ffffff; // white
       }
 
-      .budget-card-box .TableView .table tbody tr:nth-child(odd) {
-        background-color: #ffffff;
+      tbody tr:nth-of-type(even) {
+        background-color: #f4f6f9; // light gray
       }
 
-      .budget-card-box .TableView .table tbody tr:hover {
-        background-color: #eef5ff;
+      tbody tr:hover {
+        background-color: #eef5ff; // hover highlight
       }
 
       th:first-child,
@@ -87,7 +87,7 @@
 
       th:last-child,
       td:last-child {
-        width: 100px;              // fixed FTE column
+        width: 100px; // fixed FTE column
         text-align: right;
         padding-right: 20px;
       }
@@ -97,7 +97,7 @@
           font-weight: 600;
           color: #2d2d2d;
           background-color: #f4f6f9;
-          position: sticky;   // ✅ header sticks
+          position: sticky; // ✅ header sticks
           top: 0;
           z-index: 2;
         }
@@ -124,7 +124,7 @@
         tr.total {
           font-weight: 600;
           background: #f4f6f9;
-          color: #2d2d2d;   // make visible again
+          color: #2d2d2d;
           position: sticky;
           bottom: 0;
           z-index: 2;
