@@ -18,6 +18,8 @@
     </tr>
   </tbody>
 </table>
+
+
 .table {
   width: 100%;
   border-collapse: collapse;
