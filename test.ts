@@ -1,23 +1,22 @@
-<div class="col-md-3 d-flex justify-content-end align-items-center">
-  <div class="togglebtn">
-    <div class="lft-toggle" [class.lft-toggle-active]="widgetType == 'th'" (click)="loadWidget('th')">
-      <i class="fas fa-chart-bar" aria-hidden="true"></i>
-    </div>
-    <div class="rgt-toggle" [class.rgt-toggle-active]="widgetType == 'ch'" (click)="loadWidget('ch')">
-      <i class="far fa-chart-pie" aria-hidden="true"></i>
-    </div>
-    <div class="ellipsis">
-      <i class="fas fa-ellipsis-v"></i>
-    </div>
+<div class="col-md-3 d-flex justify-content-end align-items-center header-icons">
+  <div class="lft-toggle" [class.lft-toggle-active]="widgetType == 'th'" (click)="loadWidget('th')">
+    <i class="fas fa-chart-bar" aria-hidden="true"></i>
+  </div>
+  <div class="rgt-toggle" [class.rgt-toggle-active]="widgetType == 'ch'" (click)="loadWidget('ch')">
+    <i class="far fa-chart-pie" aria-hidden="true"></i>
+  </div>
+  <div class="ellipsis">
+    <i class="fas fa-ellipsis-v"></i>
   </div>
 </div>
 
 
-.togglebtn {
+.header-icons {
   display: flex;
+  justify-content: flex-end;   // push all the way right
   align-items: center;
-  justify-content: flex-end;  // push icons all the way right
-  gap: 10px;
+  gap: 8px;                    // spacing between icons
+  margin-right: 8px;           // push closer to right edge
 
   div {
     width: 28px;
@@ -33,6 +32,6 @@
   }
 
   .ellipsis {
-    border: none; // ellipsis looks cleaner
+    border: none; // ellipsis without border
   }
 }
