@@ -1,100 +1,68 @@
-import {
-  AfterViewInit,
-  Component,
-  OnInit
-} from '@angular/core';
+.budget-card-box {
+  background: #fff;
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
+  margin-top: 25px;
 
-import { ActivatedRoute, Router } from '@angular/router';
-import { PopoverConfig } from '@lift/ui';
-import * as Highcharts from 'highcharts';
+  /* Title + info */
+  .widget-heading {
+    margin-right: 20px;
 
-@Component({
-  selector: 'app-swfp-by-location',
-  templateUrl: './swfp-by-location.component.html',
-  styleUrls: ['./swfp-by-location.component.scss'],
-})
-export class SwfpByLocationComponent implements OnInit, AfterViewInit {
-  ResponseFlag = false;
-  collapsed = false;
-  widgetType = 'ch';
-
-  Highcharts: typeof Highcharts = Highcharts;
-  chartOptions: Highcharts.Options = {};
-
-  locationData: any[] = [];
-
-  config1: PopoverConfig = { showPopoverOnClick: true };
-
-  constructor(private route: ActivatedRoute, private router: Router) {}
-
-  ngOnInit(): void {
-    // ✅ Sample data (can later be replaced with API response)
-    this.locationData = [
-      { name: 'US', value: 101, color: '#a392d3' },     // lighter purple
-      { name: 'Non-US', value: 112, color: '#523b92' }  // darker purple
-    ];
-  }
-
-  ngAfterViewInit(): void {
-    if (this.locationData.length > 0) {
-      this.onInitLoad(this.locationData);
+    i.fa-info-circle {
+      font-size: 14px;   // smaller icon
+      color: #0071bc;    // blue color
+      margin-left: 6px;  // space from title
+      cursor: pointer;
     }
   }
 
-  loadWidget(type: string) {
-    this.widgetType = type;
+  /* Right side toggle + ellipsis icons */
+  .header-icons {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 30px;
+
+    div {
+      width: 28px;
+      height: 28px;
+      border: 1px solid #d6d6d6;
+      text-align: center;
+      line-height: 28px;
+      cursor: pointer;
+
+      i {
+        font-size: 14px;
+      }
+    }
+
+    .ellipsis {
+      border: none;     // ellipsis without border
+      color: #0071bc;   // blue ellipsis
+    }
   }
 
-  onInitLoad(data: any[]): void {
-    this.ResponseFlag = true;
-    const total = data.reduce((acc, cur) => acc + cur.value, 0);
-
-    this.chartOptions = {
-      chart: {
-        type: 'pie',
-      },
-      title: {
-        verticalAlign: 'middle',
-        floating: true,
-        useHTML: true,
-        y: -10,
-        text: `<span style="font-size:30px; font-weight:bold">${total}</span><br/><span style="font-size:12px">By Location</span>`,
-      },
-      tooltip: {
-        pointFormat: '<b>{point.y}</b> ({point.percentage:.0f}%)',
-      },
-      credits: { enabled: false },
-      plotOptions: {
-        pie: {
-          innerSize: '85%',
-          size: '140%',
-          borderRadius: 0, // ✅ makes partition line straight
-          showInLegend: true,
-          dataLabels: {
-            enabled: true,
-            distance: 20,
-            format: '{point.y} ({point.percentage:.0f}%)',
-          },
-          startAngle: -90,
-          endAngle: 90,
-          center: ['50%', '75%'],
-        },
-      },
-      series: [
-        {
-          type: 'pie',
-          name: 'Location',
-          data: data.map(d => ({
-            name: d.name,
-            y: d.value,
-            color: d.color
-          }))
-        },
-      ],
-    };
+  /* Chart box spacing */
+  .inner-card-box {
+    padding: 40px 0 10px 0; // pushes chart down a little
   }
 
-  getDetailPage() {
-    this.router.navigate(['location'], { relativeTo: this.route });
+  /* "View more" link */
+  .viewmore {
+    font-size: 13px;
+    font-weight: 500;
+    color: #0071bc;
+    text-align: right;
   }
+}
+
+/* Chart icon rotations */
+.fa-chart-bar {
+  display: inline-block;
+  transform: rotate(270deg) scaleY(-1);
+}
+
+.fa-chart-pie {
+  display: inline-block;
+  transform: rotate(180deg) scaleY(-1);
 }
