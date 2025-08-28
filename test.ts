@@ -1,18 +1,30 @@
-<div class="row">
-  <!-- First card takes 5/12 -->
-  <div class="col-md-5">
-    <app-swfp-by-country-job></app-swfp-by-country-job>
-  </div>
+.budget-card-box {
+  background: #fff;
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
+  margin-top: 25px;
 
-  <!-- Remaining 7/12 split equally -->
-  <div class="col-md-7">
-    <div class="row">
-      <div class="col-md-6">
-        <app-swfp-by-fcv-status></app-swfp-by-fcv-status>
-      </div>
-      <div class="col-md-6">
-        <app-swfp-by-location></app-swfp-by-location>
-      </div>
-    </div>
-  </div>
-</div>
+  .togglebtn {
+    display: flex;
+    align-items: flex-end;     // pushes icons to bottom
+    justify-content: flex-end; // pushes icons to right
+    gap: 8px;                  // spacing between icons
+    height: 100%;              // take full header height
+
+    .lft-toggle,
+    .rgt-toggle,
+    .ellipsis {
+      width: 28px;
+      height: 28px;
+      border: 1px solid #d6d6d6;
+      text-align: center;
+      line-height: 28px;
+      cursor: pointer;
+      color: #0071bc;
+    }
+  }
+
+  .widget-heading {
+    display: flex;
+    align-items: flex-start; // title stays up
+  }
+}
