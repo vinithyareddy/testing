@@ -1,80 +1,145 @@
-<div class="budget-card-box" #cartboxchartsection>
-  <div class="budget-box-chart">
-    <div class="row card-box-header-sec">
-      <div class="widget-heading pointer mt-1 col-md-8">
-        <span>
-          {{ widgetTitle }}
-          <ng-template [ngTemplateOutlet]="infotemp"></ng-template>
-        </span>
-      </div>
+import { Component, Input } from '@angular/core';
+import * as Highcharts from 'highcharts';
 
-      <!-- Top-right toolbar -->
-      <div class="col-md-4 bgt-text-end">
-        <div class="toolbar">
-          <div class="btn" [class.btn-selected]="widgetType == 'th'" (click)="loadWidget('th')">
-            <i class="fas fa-chart-bar"></i>
-          </div>
-          <div class="btn" [class.btn-selected]="widgetType == 'ch'" (click)="loadWidget('ch')">
-            <i class="far fa-chart-pie"></i>
-          </div>
-        </div>
-      </div>
-    </div>
+@Component({
+  selector: 'app-swfp-by-fcv-status',
+  templateUrl: './swfp-by-fcv-status.component.html',
+  styleUrls: ['./swfp-by-fcv-status.component.scss']
+})
+export class SwfpByFcvStatusComponent {
+  Highcharts: typeof Highcharts = Highcharts;
 
-    <div class="chart-wrap">
-      <highcharts-chart
-        [Highcharts]="Highcharts"
-        [options]="chartOptions"
-        style="width: 100%; height: 240px; display: block"
-      ></highcharts-chart>
-    </div>
+  /** Data Inputs */
+  @Input() fcv = 30;
+  @Input() nonFcv = 70;
 
-    <div class="viewmore pointer mt-3 pt-3" (click)="getDetailPage()">
-      <span>View All&nbsp;&nbsp;</span>
-      <i class="fa fa-angle-right"></i>
-    </div>
-  </div>
-</div>
+  /** Labels & Titles */
+  @Input() widgetTitle = 'Workforce Supply (FTE) by FCV Status';
+  @Input() centerSubText = 'By FCV Status';
+  @Input() labelFCV = 'FCV';
+  @Input() labelNonFCV = 'Non - FCV';
 
+  /** Colors */
+  @Input() colorFCV = '#0B6F6A';
+  @Input() colorNonFCV = '#78C9C5';
+  @Input() centerValueColor = '#1a1a1a';
+  @Input() centerSubColor = '#3c3c3c';
+  @Input() dataLabelColor = '#3c3c3c';
 
-.toolbar {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
+  /** Font Styles */
+  @Input() centerValueFontSize = '38px';
+  @Input() centerValueFontWeight = '600';
+  @Input() centerSubFontSize = '16px';
+  @Input() dataLabelFontSize = '13px';
+  @Input() fontFamily =
+    'Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif';
 
-  .btn {
-    width: 40px;   // bigger box
-    height: 40px;  // bigger box
-    border-radius: 8px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: #f8fafb;
-    border: 1px solid #cbd5e1;
-    cursor: pointer;
-    transition: all 0.2s ease;
+  /** Chart Layout */
+  @Input() chartSpacing: number[] = [10, 10, 0, 10];
+  @Input() startAngle = -90;
+  @Input() endAngle = 90;
+  @Input() center: [string, string] = ['50%', '85%'];
+  @Input() size = '140%';
+  @Input() innerSize = '80%';
+  @Input() borderRadius = 60;
+  @Input() dataLabelDistance = 24;
 
-    i {
-      font-size: 20px;   // icon size bigger
-      color: #64748b;
-    }
+  chartOptions: Highcharts.Options;
 
-    &:hover {
-      background: #eef5ff;
-      border-color: #2f67d2;
+  constructor() {
+    const self = this; // keep reference for render callback
 
-      i {
-        color: #2f67d2;
-      }
-    }
-  }
+    this.chartOptions = {
+      chart: {
+        type: 'pie',
+        backgroundColor: 'transparent',
+        spacing: this.chartSpacing,
+        events: {
+          render: function (this: Highcharts.Chart) {
+            const chart = this;
+            const s = chart.series[0];
+            const total = (s && s.points?.reduce((acc, p) => acc + (p.y || 0), 0)) || 0;
 
-  .btn-selected {
-    background: #eef5ff;
-    border: 1px solid #2f67d2;
+            const cx = chart.plotLeft + chart.plotWidth / 2;
+            const cy = chart.plotTop + chart.plotHeight * 0.88;
 
-    i {
-      color: #2f67d2;
-    }
+            (chart as any).__centerValue?.destroy();
+            (chart as any).__centerSub?.destroy();
+
+            // Center Total Value
+            (chart as any).__centerValue = chart.renderer
+              .text(Highcharts.numberFormat(total, 0), cx, cy - 6)
+              .attr({ align: 'center' })
+              .css({
+                fontSize: self.centerValueFontSize,
+                fontWeight: self.centerValueFontWeight,
+                color: self.centerValueColor,
+                fontFamily: self.fontFamily
+              })
+              .add();
+
+            // Center Subtitle
+            (chart as any).__centerSub = chart.renderer
+              .text(self.centerSubText, cx, cy + 20)
+              .attr({ align: 'center' })
+              .css({
+                fontSize: self.centerSubFontSize,
+                color: self.centerSubColor,
+                fontFamily: self.fontFamily
+              })
+              .add();
+          }
+        }
+      },
+
+      title: { text: undefined },
+      credits: { enabled: false },
+      tooltip: { enabled: false },
+
+      legend: {
+        enabled: true,
+        layout: 'horizontal',
+        align: 'center',
+        verticalAlign: 'bottom'
+      },
+
+      plotOptions: {
+        pie: {
+          startAngle: this.startAngle,
+          endAngle: this.endAngle,
+          center: this.center,
+          size: this.size,
+          innerSize: this.innerSize,
+          borderWidth: 0,
+          borderRadius: this.borderRadius,
+          allowPointSelect: false,
+          dataLabels: {
+            enabled: true,
+            distance: this.dataLabelDistance,
+            formatter: function (this: any) {
+              const p = Math.round(this.percentage || 0);
+              return `${this.y} (${p}%)`;
+            },
+            style: {
+              color: this.dataLabelColor,
+              fontSize: this.dataLabelFontSize,
+              textOutline: 'none',
+              textOverflow: 'none',
+              fontFamily: this.fontFamily
+            }
+          }
+        }
+      },
+
+      series: [
+        {
+          type: 'pie',
+          data: [
+            { name: this.labelNonFCV, y: this.nonFcv, color: this.colorNonFCV },
+            { name: this.labelFCV, y: this.fcv, color: this.colorFCV }
+          ]
+        }
+      ] as Highcharts.SeriesOptionsType[]
+    };
   }
 }
