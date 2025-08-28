@@ -9,13 +9,15 @@ import * as Highcharts from 'highcharts';
 export class SwfpByFcvStatusComponent {
   Highcharts: typeof Highcharts = Highcharts;
 
-  /** values (default = screenshot) */
-  @Input() fcv = 44;           // FCV (dark teal)
-  @Input() nonFcv = 104;       // Non-FCV (light teal)
+  /** Dynamic inputs instead of hardcoded values */
+  @Input() fcv = 30;
+  @Input() nonFcv = 70;
   @Input() widgetTitle = 'Workforce Supply (FTE) by FCV Status';
-
-  private colorFCV = '#0B6F6A';
-  private colorNonFCV = '#78C9C5';
+  @Input() centerSubText = 'By FCV Status';
+  @Input() labelFCV = 'FCV';
+  @Input() labelNonFCV = 'Non - FCV';
+  @Input() colorFCV = '#0B6F6A';
+  @Input() colorNonFCV = '#78C9C5';
 
   chartOptions: Highcharts.Options;
 
@@ -26,20 +28,14 @@ export class SwfpByFcvStatusComponent {
         backgroundColor: 'transparent',
         spacing: [10, 10, 0, 10],
         events: {
-          // strongly type the callback's "this"
           render: function (this: Highcharts.Chart) {
             const chart = this;
-
-            // compute total from first series
             const s = chart.series[0];
-            const total =
-              (s && s.points?.reduce((acc, p) => acc + (p.y || 0), 0)) || 0;
+            const total = (s && s.points?.reduce((acc, p) => acc + (p.y || 0), 0)) || 0;
 
-            // position for the center labels
             const cx = chart.plotLeft + chart.plotWidth / 2;
             const cy = chart.plotTop + chart.plotHeight * 0.88;
 
-            // re-draw labels each render
             (chart as any).__centerValue?.destroy();
             (chart as any).__centerSub?.destroy();
 
@@ -50,19 +46,17 @@ export class SwfpByFcvStatusComponent {
                 fontSize: '38px',
                 fontWeight: '600',
                 color: '#1a1a1a',
-                fontFamily:
-                  'Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif'
+                fontFamily: 'Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif'
               })
               .add();
 
             (chart as any).__centerSub = chart.renderer
-              .text('By FCV Status', cx, cy + 20)
+              .text((chart.options as any).centerSubText || '', cx, cy + 20)
               .attr({ align: 'center' })
               .css({
                 fontSize: '16px',
                 color: '#3c3c3c',
-                fontFamily:
-                  'Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif'
+                fontFamily: 'Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif'
               })
               .add();
           }
@@ -72,7 +66,13 @@ export class SwfpByFcvStatusComponent {
       title: { text: undefined },
       credits: { enabled: false },
       tooltip: { enabled: false },
-      legend: { enabled: false },
+
+      legend: {
+        enabled: true,
+        layout: 'horizontal',
+        align: 'center',
+        verticalAlign: 'bottom',
+      },
 
       plotOptions: {
         pie: {
@@ -80,23 +80,22 @@ export class SwfpByFcvStatusComponent {
           endAngle: 90,
           center: ['50%', '85%'],
           size: '140%',
-          innerSize: '70%',
+          innerSize: '80%',
           borderWidth: 0,
+          borderRadius: 60,
           allowPointSelect: false,
           dataLabels: {
             enabled: true,
-            // IMPORTANT: for TS, type "this" and use this.percentage
-            formatter: function (this: Highcharts.DataLabelsFormatterContextObject) {
+            distance: 24,
+            formatter: function (this: any) {
               const p = Math.round(this.percentage || 0);
-              return `${this.y}(${p}%)`;
+              return `${this.y} (${p}%)`;
             },
-            distance: 18,
             style: {
               color: '#3c3c3c',
               fontSize: '13px',
               textOutline: 'none',
-              fontFamily:
-                'Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif'
+              textOverflow: 'none'
             }
           }
         }
@@ -106,11 +105,14 @@ export class SwfpByFcvStatusComponent {
         {
           type: 'pie',
           data: [
-            { name: 'Non - FCV', y: this.nonFcv, color: this.colorNonFCV },
-            { name: 'FCV', y: this.fcv, color: this.colorFCV }
+            { name: this.labelNonFCV, y: this.nonFcv, color: this.colorNonFCV },
+            { name: this.labelFCV, y: this.fcv, color: this.colorFCV }
           ]
         }
-      ] as Highcharts.SeriesOptionsType[]
+      ] as Highcharts.SeriesOptionsType[],
+
+      /** custom property for render() */
+      centerSubText: this.centerSubText
     };
   }
 }
