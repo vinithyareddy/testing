@@ -1,66 +1,82 @@
-.TableView {
-  max-height: 220px;   // keeps table smaller
-  overflow-y: auto;    // enables vertical scroll
-  overflow-x: hidden;  // no horizontal scroll
-  margin-bottom: 16px; // gap before "View More"
+.budget-card-box {
+  background: #fff;
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
+  margin-top: 25px;
 
-  .table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed; // keeps columns aligned
+  .ellipsis {
+    cursor: pointer;
+  }
 
-    th, td {
-      padding: 8px 12px;
-      font-size: 13px;
-      vertical-align: middle;
-      white-space: nowrap;
-    }
+  .TableView {
+    max-height: 220px;   // keeps table smaller
+    overflow-y: auto;    // enables vertical scroll
+    overflow-x: hidden;  // no horizontal scroll
+    margin-bottom: 16px; // gap before "View More"
 
-    thead {
-      th:first-child {
-        text-align: left;
-        padding-left: 8px;   // 🔑 same as td:first-child → keeps plus icons aligned
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed; // keeps columns aligned
+
+      th, td {
+        padding: 8px 12px;
+        font-size: 13px;
+        vertical-align: middle;
+        white-space: nowrap;
       }
 
-      th:last-child {
-        text-align: right;
-        padding-right: 20px; // 🔑 same as td:last-child → keeps FTE aligned
-      }
-    }
-
-    tbody {
+      // 🔹 Column widths explicitly locked
+      th:first-child,
       td:first-child {
-        display: flex;
-        align-items: center;
-        gap: 8px;
+        width: calc(100% - 100px); // everything except FTE col
         text-align: left;
-        padding-left: 8px;   // match header
+        padding-left: 12px;
       }
 
+      th:last-child,
       td:last-child {
-        text-align: right;
-        padding-right: 20px; // match header
-      }
-    }
-
-    .fte-col {
-      width: 100px;
-      text-align: right !important;
-      padding-right: 20px;
-    }
-
-    .total {
-      font-weight: 600;
-      background: #f8f8f8;
-
-      td:first-child {
-        padding-left: 8px;
-      }
-
-      td:last-child {
+        width: 100px;              // FTE col fixed
         text-align: right;
         padding-right: 20px;
       }
+
+      thead {
+        th {
+          font-weight: 600;
+          color: #2d2d2d;
+        }
+      }
+
+      tbody {
+        td:first-child {
+          text-align: left;
+
+          // wrapper keeps flag + icon aligned but cell stays consistent
+          .cell-content {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+          }
+        }
+      }
+
+      .total {
+        font-weight: 600;
+        background: #f8f8f8;
+      }
     }
   }
+}
+
+.flag-icon {
+  width: 18px;
+  height: 12px;
+  margin-right: 6px;
+}
+
+.viewmore {
+  font-size: 13px;
+  font-weight: 500;
+  color: #00796b;
+  text-align: right;
 }
