@@ -1,61 +1,55 @@
-// src/app/fcv-status-widget/fcv-status-widget.component.ts
-import { Component, Input, OnDestroy } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import * as Highcharts from 'highcharts';
 
 @Component({
-  selector: 'app-fcv-status-widget',
-  templateUrl: './fcv-status-widget.component.html',
-  styleUrls: ['./fcv-status-widget.component.scss']
+  selector: 'app-swfp-by-fcv-status',
+  templateUrl: './swfp-by-fcv-status.component.html',
+  styleUrls: ['./swfp-by-fcv-status.component.scss']
 })
-export class FcvStatusWidgetComponent implements OnDestroy {
+export class SwfpByFcvStatusComponent {
   Highcharts: typeof Highcharts = Highcharts;
 
-  // Supply your own numbers if you like
-  @Input() fcv = 44;        // FCV count (dark teal)
-  @Input() nonFcv = 104;    // Non-FCV count (light teal)
-  @Input() title = 'Workforce Supply (FTE) by FCV Status';
+  /** Provide your values (default matches the screenshot) */
+  @Input() fcv = 44;          // FCV count (dark teal)
+  @Input() nonFcv = 104;      // Non-FCV count (light teal)
+  @Input() widgetTitle = 'Workforce Supply (FTE) by FCV Status';
 
-  // colors tuned to match the screenshot
   private colorFCV = '#0B6F6A';
   private colorNonFCV = '#78C9C5';
 
-  chartOptions: Highcharts.Options = {};
-  private centerValue?: Highcharts.SVGElement;
-  private centerSub?: Highcharts.SVGElement;
+  chartOptions: Highcharts.Options;
 
   constructor() {
-    const total = this.nonFcv + this.fcv;
+    const total = this.fcv + this.nonFcv;
 
     this.chartOptions = {
+      // stash total so render event can read it
+      __total: total as any,
+
       chart: {
         type: 'pie',
         backgroundColor: 'transparent',
         spacing: [10, 10, 0, 10],
-        // draw/update the center labels
         events: {
           render: function () {
             const chart = this as Highcharts.Chart;
             const total = (chart.options as any).__total as number;
 
             const cx = chart.plotLeft + chart.plotWidth / 2;
-            const cy = chart.plotTop + chart.plotHeight * 0.88; // push down to arc center
+            const cy = chart.plotTop + chart.plotHeight * 0.88;
 
-            // remove and re-create each render (cheap + reliable)
             (chart as any).__centerValue?.destroy();
             (chart as any).__centerSub?.destroy();
 
             (chart as any).__centerValue = chart.renderer
-              .text(
-                Highcharts.numberFormat(total, 0),
-                cx,
-                cy - 6
-              )
+              .text(Highcharts.numberFormat(total, 0), cx, cy - 6)
               .attr({ align: 'center' })
               .css({
                 fontSize: '38px',
                 fontWeight: '600',
                 color: '#1a1a1a',
-                fontFamily: 'Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif'
+                fontFamily:
+                  'Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif'
               })
               .add();
 
@@ -65,7 +59,8 @@ export class FcvStatusWidgetComponent implements OnDestroy {
               .css({
                 fontSize: '16px',
                 color: '#3c3c3c',
-                fontFamily: 'Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif'
+                fontFamily:
+                  'Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif'
               })
               .add();
           }
@@ -81,14 +76,12 @@ export class FcvStatusWidgetComponent implements OnDestroy {
         pie: {
           startAngle: -90,
           endAngle: 90,
-          center: ['50%', '85%'],     // puts the semi-donut low in the card
+          center: ['50%', '85%'],
           size: '140%',
           innerSize: '70%',
           borderWidth: 0,
-          allowPointSelect: false,
           dataLabels: {
             enabled: true,
-            // show "value(%)" beside the arc like the screenshot
             formatter: function () {
               const p = Math.round((this.point.percentage || 0));
               return `${this.y}(${p}%)`;
@@ -105,31 +98,15 @@ export class FcvStatusWidgetComponent implements OnDestroy {
         }
       },
 
-      // we stash total on options so the render event can read it
-      // (Highcharts keeps 'this.options' stable)
-      __total: total as any,
-
       series: [
         {
           type: 'pie',
           data: [
-            {
-              name: 'Non - FCV',
-              y: this.nonFcv,
-              color: this.colorNonFCV
-            },
-            {
-              name: 'FCV',
-              y: this.fcv,
-              color: this.colorFCV
-            }
+            { name: 'Non - FCV', y: this.nonFcv, color: this.colorNonFCV },
+            { name: 'FCV', y: this.fcv, color: this.colorFCV }
           ]
         }
       ] as Highcharts.SeriesOptionsType[]
     };
-  }
-
-  ngOnDestroy(): void {
-    // nothing to clean up — labels are chart-owned
   }
 }
