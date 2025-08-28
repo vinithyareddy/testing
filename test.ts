@@ -1,33 +1,63 @@
-events: {
-  render: function () {
-    const chart = this;
+this.fcvData = [
+  { name: 'FCV', value: 104, color: '#00796B' },
+  { name: 'Non-FCV', value: 44, color: '#4DB6AC' },
+];
 
-    // Clean old labels
-    if ((chart as any).customLabelGroup) {
-      (chart as any).customLabelGroup.destroy();
-    }
+onInitLoad(data: any[]): void {
+  this.ResponseFlag = true;
 
-    const labelGroup = chart.renderer.g('custom-labels').add();
-    (chart as any).customLabelGroup = labelGroup;
+  const total = data.reduce((acc, cur) => acc + cur.value, 0);
 
-    const centerX = chart.plotWidth / 2 + chart.plotLeft;
-    const centerY = chart.plotHeight * 0.75 + chart.plotTop;
-    const radius = 100;
-
-    // Example: left label (FCV)
-    const fcvValue = 104; // replace with dynamic fcv from data
-    const fcvPercent = 70;
-    chart.renderer
-      .text(`${fcvValue} (${fcvPercent}%)`, centerX - radius - 20, centerY - 20)
-      .css({ fontSize: '12px' })
-      .add(labelGroup);
-
-    // Example: right label (Non-FCV)
-    const nonValue = 44;
-    const nonPercent = 30;
-    chart.renderer
-      .text(`${nonValue} (${nonPercent}%)`, centerX + radius - 20, centerY - 20)
-      .css({ fontSize: '12px' })
-      .add(labelGroup);
-  },
-},
+  this.chartOptions = {
+    chart: {
+      type: 'pie',
+      height: 260,
+    },
+    title: {
+      verticalAlign: 'middle',
+      floating: true,
+      useHTML: true,
+      y: 40,
+      text: `<span style="font-size:22px; font-weight:bold">${total}</span><br/>
+             <span style="font-size:12px">By FCV Status</span>`,
+    },
+    tooltip: {
+      pointFormat: '<b>{point.y}</b> ({point.percentage:.0f}%)',
+    },
+    credits: { enabled: false },
+    legend: {
+      enabled: true,
+      align: 'center',
+      verticalAlign: 'bottom',
+      symbolRadius: 6,
+      itemStyle: { fontSize: '12px' },
+    },
+    plotOptions: {
+      pie: {
+        innerSize: '70%',
+        borderRadius: 10,
+        showInLegend: true,
+        dataLabels: {
+          enabled: true,
+          distance: 15, // push labels outside arc
+          format: '{y} ({point.percentage:.0f}%)',
+          style: { fontSize: '12px' },
+        },
+        startAngle: -90,
+        endAngle: 90,
+        center: ['50%', '75%'],
+      },
+    },
+    series: [
+      {
+        type: 'pie',
+        name: 'FCV Status',
+        data: data.map((d) => ({
+          name: d.name,
+          y: d.value,
+          color: d.color,
+        })),
+      },
+    ],
+  };
+}
