@@ -47,7 +47,3 @@ onInitLoad(data: any[]): void {
     ],
   };
 }
-this.fcvData = [
-  { name: 'FCV', value: 104, color: '#00796B' },
-  { name: 'Non-FCV', value: 44, color: '#4DB6AC' },
-];
