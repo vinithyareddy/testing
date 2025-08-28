@@ -15,28 +15,28 @@ onInitLoad(data: any[]): void {
           const innerR = 70;
           const outerR = 100;
 
-          // remove old caps if exist
+          // cleanup old caps
           if ((chart as any).customCaps) {
             (chart as any).customCaps.forEach((c: any) => c.destroy());
           }
           (chart as any).customCaps = [];
 
-          const thickness = (outerR - innerR) / 2;
+          const capRadius = (outerR - innerR) / 2; // thickness/2
 
-          // left cap (semi-circle)
+          // left outer cap
           const leftCap = chart.renderer.arc(
             centerX - outerR, centerY,
-            thickness, thickness,
-            Math.PI / 2, Math.PI * 1.5
+            capRadius, capRadius,
+            Math.PI / 2, Math.PI * 1.5 // left half-circle
           )
             .attr({ fill: '#00796B', stroke: 'none' })
             .add();
 
-          // right cap (semi-circle)
+          // right outer cap
           const rightCap = chart.renderer.arc(
             centerX + outerR, centerY,
-            thickness, thickness,
-            -Math.PI / 2, Math.PI / 2
+            capRadius, capRadius,
+            -Math.PI / 2, Math.PI / 2 // right half-circle
           )
             .attr({ fill: '#4DB6AC', stroke: 'none' })
             .add();
@@ -67,7 +67,7 @@ onInitLoad(data: any[]): void {
     plotOptions: {
       pie: {
         innerSize: '70%',
-        borderRadius: 0,   // straight middle
+        borderRadius: 0,   // ⛔ flat middle
         showInLegend: true,
         dataLabels: {
           enabled: true,
