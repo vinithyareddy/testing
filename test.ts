@@ -9,7 +9,6 @@ import * as Highcharts from 'highcharts';
 export class SwfpByFcvStatusComponent {
   Highcharts: typeof Highcharts = Highcharts;
 
-  /** Dynamic inputs instead of hardcoded values */
   @Input() fcv = 30;
   @Input() nonFcv = 70;
   @Input() widgetTitle = 'Workforce Supply (FTE) by FCV Status';
@@ -22,6 +21,8 @@ export class SwfpByFcvStatusComponent {
   chartOptions: Highcharts.Options;
 
   constructor() {
+    const self = this; // keep reference for render callback
+
     this.chartOptions = {
       chart: {
         type: 'pie',
@@ -51,7 +52,7 @@ export class SwfpByFcvStatusComponent {
               .add();
 
             (chart as any).__centerSub = chart.renderer
-              .text((chart.options as any).centerSubText || '', cx, cy + 20)
+              .text(self.centerSubText, cx, cy + 20)   // use component property directly
               .attr({ align: 'center' })
               .css({
                 fontSize: '16px',
@@ -71,7 +72,7 @@ export class SwfpByFcvStatusComponent {
         enabled: true,
         layout: 'horizontal',
         align: 'center',
-        verticalAlign: 'bottom',
+        verticalAlign: 'bottom'
       },
 
       plotOptions: {
@@ -109,10 +110,7 @@ export class SwfpByFcvStatusComponent {
             { name: this.labelFCV, y: this.fcv, color: this.colorFCV }
           ]
         }
-      ] as Highcharts.SeriesOptionsType[],
-
-      /** custom property for render() */
-      centerSubText: this.centerSubText
+      ] as Highcharts.SeriesOptionsType[]
     };
   }
 }
