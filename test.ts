@@ -1,4 +1,7 @@
-data: [
-  { name: 'US', y: 101, color: '#a392d3' },
-  { name: 'Non-US', y: 112, color: '#523b92' }
-]
+chart: {
+  type: 'pie',
+  spacingTop: 0,
+  spacingBottom: 0,
+  spacingLeft: 0,
+  spacingRight: 0,  // 🔑 removes uneven padding
+},
