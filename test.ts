@@ -16,7 +16,7 @@
     .table {
       width: 100%;
       border-collapse: collapse;
-      table-layout: fixed; // keeps columns aligned
+      table-layout: fixed; // keeps alignment consistent
 
       th, td {
         padding: 8px 12px;
@@ -25,7 +25,7 @@
         white-space: nowrap;
       }
 
-      // 🔹 Column widths
+      // 🔹 First column (Location & Job)
       th:first-child,
       td:first-child {
         width: auto;
@@ -33,12 +33,12 @@
         padding-left: 12px;
       }
 
-      // 🔹 Force FTE column to the extreme right
+      // 🔹 FTE column → fixed width + align right
       th.fte-col,
       td.fte-col {
-        width: 1%;                // shrink-fit
-        text-align: right !important;
-        padding-right: 0;         // remove extra padding
+        width: 80px;             // ✅ fixed safe width (not too small)
+        text-align: right;
+        padding-right: 16px;     // ✅ some gap from right border
       }
 
       thead th {
@@ -56,7 +56,7 @@
         }
 
         .cell-content i {
-          margin-right: 4px;
+          margin-right: 6px;  // extra space after the +/– icon
         }
       }
 
