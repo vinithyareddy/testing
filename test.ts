@@ -1,132 +1,81 @@
-.budget-card-box {
-  background: #fff;
-  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
-  margin-top: 25px;
+<div [ngClass]="{ 'full-view': fullview }">
+  <div class="budget-card-box">
+    <div class="budget-box-chart">
+      <!-- Header -->
+      <div class="row card-box-header-sec">
+        <div class="card-box-header-sec col-md-9">
+          <div class="widget-heading mt-1 cursorpointer">
+            <span>
+              Workforce Supply (FTE) by Country & Job
+              <ng-template [ngTemplateOutlet]="infotemp"></ng-template>
+            </span>
+          </div>
+        </div>
 
-  .ellipsis {
-    cursor: pointer;
-    font-size: 18px;   // bigger icon size
-    margin-left: 12px; // space between expand and ellipsis
-  }
+        <div class="col-md-3 bgt-text-end d-flex justify-content-end align-items-center">
+          <span (click)="fullPageView()" class="view">
+            <i class="fas fa-expand" title="Zoom"></i>
+          </span>
+          <div class="ellipsis ml-2">
+            <i class="fas fa-ellipsis-v"></i>
+          </div>
+        </div>
+      </div>
 
-  .view {
-    font-size: 18px;   // bigger fullscreen icon
-  }
+      <!-- Table -->
+      <div [@collapse]="collapsed">
+        <ng-container *ngIf="!ResponseFlag">
+          <div class="loader-img">
+            <lift-section-loader></lift-section-loader>
+          </div>
+        </ng-container>
 
-  .budget-box-chart {
-    .bgt-text-end {
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      gap: 12px;        // ensures consistent spacing
-    }
-  }
+        <ng-container *ngIf="ResponseFlag">
+          <div class="TableView">
+            <table class="table">
+              <thead class="tableHeading">
+                <tr>
+                  <th class="text-left">Location and Job</th>
+                  <th class="fte-col">FTE</th>
+                </tr>
+              </thead>
 
-  .TableView {
-    max-height: 300px;   // keeps table smaller
-    overflow-y: auto;    // enables vertical scroll
-    overflow-x: hidden;  // no horizontal scroll
-    margin-bottom: 20px; // gap before "View More"
+              <tbody>
+                <tr *ngFor="let row of groupdata">
+                  <td class="pointer text-left" (click)="expandRow(row)">
+                    <span class="cell-content">
+                      <i *ngIf="!row.expanded" class="far fa-plus-circle"></i>
+                      <i *ngIf="row.expanded" class="far fa-minus-circle"></i>
+                      <img [src]="'https://flagcdn.com/16x12/' + row.flag + '.png'" class="flag-icon" />
+                      {{ row.country }}
+                    </span>
+                  </td>
+                  <td class="fte-col">{{ row.fte }}</td>
+                </tr>
+              </tbody>
 
-    .table {
-      width: 100%;
-      border-collapse: collapse;
-      table-layout: fixed;
+              <!-- ✅ Total row now inside tfoot -->
+              <tfoot>
+                <tr *ngFor="let t of total" class="total">
+                  <td class="text-left">{{ t.label }}</td>
+                  <td class="fte-col">{{ t.fte }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
 
-      th,
-      td {
-        padding: 8px 12px;
-        font-size: 13px;
-        vertical-align: middle;
-        white-space: nowrap;
-      }
+          <!-- View More -->
+          <div class="viewmore pointer mt-3" (click)="getDetailPage()">
+            <span>View More&nbsp;&nbsp;</span><i class="fa fa-angle-right"></i>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+</div>
 
-      // ✅ Alternate row background colors
-      tbody tr:nth-child(even) {
-        background-color: #f9f9f9;
-      }
-
-      tbody tr:nth-child(odd) {
-        background-color: #ffffff;
-      }
-
-      tbody tr:hover {
-        background-color: #eef5ff;
-      }
-
-      th:first-child,
-      td:first-child {
-        width: calc(100% - 100px); // everything except FTE col
-        text-align: left;
-        padding-left: 12px;
-      }
-
-      th:last-child,
-      td:last-child {
-        width: 100px;              // fixed FTE column
-        text-align: right;
-        padding-right: 20px;
-      }
-
-      thead {
-        th {
-          font-weight: 600;
-          color: #2d2d2d;
-          background-color: #f4f6f9;
-          position: sticky;   // ✅ header sticks
-          top: 0;
-          z-index: 2;
-        }
-      }
-
-      tbody {
-        .cell-content i {
-          margin-right: 10px;
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          color: #0071bc;
-        }
-      }
-
-      .fte-col {
-        width: 100px;
-        text-align: right !important;
-        padding-right: 20px;
-      }
-
-      // ✅ Total row always visible at bottom
-      tfoot {
-        tr.total {
-          font-weight: 600;
-          background: #f0f0f0 !important;
-          position: sticky;
-          bottom: 0;
-          z-index: 2;
-
-          td:first-child {
-            padding-left: 8px;
-          }
-
-          td:last-child {
-            text-align: right;
-            padding-right: 20px;
-          }
-        }
-      }
-    }
-  }
-
-  .flag-icon {
-    width: 18px;
-    height: 12px;
-    margin-right: 6px;
-  }
-
-  .viewmore {
-    font-size: 13px;
-    font-weight: 500;
-    color: #00796b;
-    text-align: right;
-  }
-}
+<ng-template #infotemp>
+  <lift-popover popoverTitle="Workforce Supply (FTE) by Country & Job" popoverText="">
+    <span><i class="far fa-info-circle"></i></span>
+  </lift-popover>
+</ng-template>
