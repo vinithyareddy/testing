@@ -1,68 +1,91 @@
-.budget-card-box {
-  background: #fff;
-  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
-  margin-top: 25px;
+import { AfterViewInit, Component, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { PopoverConfig } from '@lift/ui';
+import * as Highcharts from 'highcharts';
 
-  /* Title + info */
-  .widget-heading {
-    margin-right: 20px;
+@Component({
+  selector: 'app-swfp-by-fcv-status',
+  templateUrl: './swfp-by-fcv-status.component.html',
+  styleUrls: ['./swfp-by-fcv-status.component.scss'],
+})
+export class SwfpByFcvStatusComponent implements OnInit, AfterViewInit {
+  ResponseFlag = false;
+  collapsed = false;
 
-    i.fa-info-circle {
-      font-size: 14px;   // smaller icon
-      color: #0071bc;    // blue color
-      margin-left: 6px;  // space from title
-      cursor: pointer;
+  Highcharts: typeof Highcharts = Highcharts;
+  chartOptions: Highcharts.Options = {};
+
+  fcvData: any[] = [];
+
+  config1: PopoverConfig = { showPopoverOnClick: true };
+
+  constructor(private route: ActivatedRoute, private router: Router) {}
+
+  ngOnInit(): void {
+    // Dummy data (replace with service/API later)
+    this.fcvData = [
+      { name: 'FCV', value: 104, color: '#95dad9' },
+      { name: 'Non-FCV', value: 44, color: '#3e9b9a' },
+    ];
+  }
+
+  ngAfterViewInit(): void {
+    if (this.fcvData.length > 0) {
+      this.onInitLoad(this.fcvData);
     }
   }
 
-  /* Right side toggle + ellipsis icons */
-  .header-icons {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 30px;
+  onInitLoad(data: any[]): void {
+    this.ResponseFlag = true;
 
-    div {
-      width: 28px;
-      height: 28px;
-      border: 1px solid #d6d6d6;
-      text-align: center;
-      line-height: 28px;
-      cursor: pointer;
+    const total = data.reduce((acc, cur) => acc + cur.value, 0);
 
-      i {
-        font-size: 14px;
-      }
-    }
-
-    .ellipsis {
-      border: none;     // ellipsis without border
-      color: #0071bc;   // blue ellipsis
-    }
+    this.chartOptions = {
+      chart: {
+        type: 'pie',
+      },
+      title: {
+        verticalAlign: 'middle',
+        floating: true,
+        useHTML: true,
+        y: -10,
+        text: `<span style="font-size:30px; font-weight:bold">${total}</span><br/><span style="font-size:12px">By FCV Status</span>`,
+      },
+      tooltip: {
+        pointFormat: '<b>{point.y}</b> ({point.percentage:.0f}%)',
+      },
+      credits: { enabled: false },
+      plotOptions: {
+        pie: {
+          innerSize: '85%',
+          size: '140%',
+          borderRadius: 0,
+          showInLegend: true,
+          dataLabels: {
+            enabled: true,
+            distance: 20,
+            format: '{point.y} ({point.percentage:.0f}%)',
+          },
+          startAngle: -90,
+          endAngle: 90,
+          center: ['50%', '75%'],
+        },
+      },
+      series: [
+        {
+          type: 'pie',
+          name: 'FCV Status',
+          data: data.map((d) => ({
+            name: d.name,
+            y: d.value,
+            color: d.color,
+          })),
+        },
+      ],
+    };
   }
 
-  /* Chart box spacing */
-  .inner-card-box {
-    padding: 40px 0 10px 0; // pushes chart down a little
+  getDetailPage() {
+    this.router.navigate(['fcv-status'], { relativeTo: this.route });
   }
-
-  /* "View more" link */
-  .viewmore {
-    font-size: 13px;
-    font-weight: 500;
-    color: #0071bc;
-    text-align: right;
-  }
-}
-
-/* Chart icon rotations */
-.fa-chart-bar {
-  display: inline-block;
-  transform: rotate(270deg) scaleY(-1);
-}
-
-.fa-chart-pie {
-  display: inline-block;
-  transform: rotate(180deg) scaleY(-1);
 }
