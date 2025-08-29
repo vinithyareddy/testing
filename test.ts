@@ -1,6 +1,6 @@
 .budget-card-box {
   background: #fff;
-  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0px 2px 6px rgba(0,0,0,0.1);
   margin-top: 25px;
 
   /* Title + info icon */
@@ -9,20 +9,10 @@
     align-items: center;
     gap: 6px;
     margin-bottom: 12px;
-    padding: 16px 16px 0 16px;
   }
 
-  .title-text {
-    font-size: 16px;
-    font-weight: 600;
-    color: #2d2d2d;
-  }
-
-  i.fa-info-circle {
-    font-size: 12px;
-    color: #0071bc;
-    cursor: pointer;
-  }
+  .title-text { font-size: 16px; font-weight: 600; color: #2d2d2d; }
+  i.fa-info-circle { font-size: 12px; color: #0071bc; cursor: pointer; }
 
   /* Right icons */
   .header-icons {
@@ -30,46 +20,32 @@
     justify-content: flex-end;
     align-items: center;
     gap: 12px;
-    padding: 16px 16px 0 0;
-
-    i {
-      font-size: 16px;
-      cursor: pointer;
-    }
+    i { font-size: 16px; cursor: pointer; }
   }
 
-  .ellipsis {
-    cursor: pointer;
-    font-size: 18px;
-    margin-left: 12px;
-    color: #0071bc;
-  }
+  .ellipsis { cursor: pointer; font-size: 18px; margin-left: 12px; color: #0071bc; }
+  .view     { font-size: 18px; color: #0071bc; }
 
-  .view {
-    font-size: 18px;
-    color: #0071bc;
-  }
-
-  /* Table section - USE NEGATIVE MARGINS to extend beyond container */
+  /* Table section */
   .TableView {
     max-height: 335px;
     overflow-y: auto;
     overflow-x: hidden;
-    margin-left: -20px !important;  /* Pull table left beyond container edge */
-    margin-right: -20px !important; /* Pull table right beyond container edge */
-    margin-top: 0;
-    margin-bottom: 0;
-    width: calc(100% + 40px); /* Compensate for negative margins */
+    margin-bottom: 20px;
+
+    /* 🔑 Add a border on the SCROLL CONTAINER so edges are continuous
+       even when header/footer are sticky. */
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
 
     .table {
       width: 100%;
-      border-collapse: collapse;
-      table-layout: fixed;
-      margin: 0;
+      /* 🔑 Use separate model to avoid border-collapsing glitches with sticky rows */
+      border-collapse: separate;
       border-spacing: 0;
+      table-layout: fixed;
 
-      th,
-      td {
+      th, td {
         padding: 8px 12px;
         font-size: 13px;
         vertical-align: middle;
@@ -77,32 +53,22 @@
       }
 
       /* ✅ Alternating row colors */
-      tbody tr:nth-of-type(odd) {
-        background-color: #fff;
-      }
+      tbody tr:nth-of-type(odd)  { background-color: #fff; }
+      tbody tr:nth-of-type(even) { background-color: #f4f6f9; }
+      tbody tr:hover { background-color: #eef5ff; }
 
-      tbody tr:nth-of-type(even) {
-        background-color: #f4f6f9;
-      }
-
-      tbody tr:hover {
-        background-color: #eef5ff;
-      }
-
-      th:first-child,
-      td:first-child {
+      th:first-child, td:first-child {
         width: calc(100% - 100px);
         text-align: left;
-        padding-left: 32px; /* Add back padding for content, accounting for negative margin */
+        padding-left: 12px;
       }
-
-      th:last-child,
-      td:last-child {
+      th:last-child, td:last-child {
         width: 100px;
         text-align: right;
-        padding-right: 32px; /* Add back padding for content, accounting for negative margin */
+        padding-right: 20px;
       }
 
+      /* 🔑 Sticky header + footer */
       thead th {
         font-weight: 600;
         color: #2d2d2d;
@@ -112,6 +78,11 @@
         z-index: 2;
       }
 
+      /* 🔑 Draw the missing vertical line INSIDE the sticky cells,
+         so the left edge looks continuous. */
+      thead th:first-child { box-shadow: inset 1px 0 0 #e0e0e0; border-top-left-radius: 6px; }
+      thead th:last-child  { border-top-right-radius: 6px; }
+
       tbody .cell-content i {
         margin-right: 10px;
         display: inline-flex;
@@ -120,11 +91,7 @@
         color: #0071bc;
       }
 
-      .fte-col {
-        width: 100px;
-        text-align: right !important;
-        padding-right: 32px;
-      }
+      .fte-col { width: 100px; text-align: right !important; padding-right: 20px; }
 
       /* ✅ Total row always visible at bottom */
       tfoot tr.total {
@@ -134,30 +101,20 @@
         position: sticky;
         bottom: 0;
         z-index: 2;
-
-        td:first-child {
-          padding-left: 32px;
-        }
-
-        td:last-child {
-          text-align: right;
-          padding-right: 32px;
-        }
       }
+
+      /* 🔑 Same trick for footer left edge + rounded corners */
+      tfoot tr.total td:first-child { box-shadow: inset 1px 0 0 #e0e0e0; border-bottom-left-radius: 6px; }
+      tfoot tr.total td:last-child  { border-bottom-right-radius: 6px; }
     }
   }
 
-  .flag-icon {
-    width: 18px;
-    height: 12px;
-    margin-right: 6px;
-  }
+  .flag-icon { width: 18px; height: 12px; margin-right: 6px; }
 
   .viewmore {
     font-size: 13px;
     font-weight: 500;
     color: #0071bc;
     text-align: right;
-    padding: 8px 16px 16px 0;
   }
 }
