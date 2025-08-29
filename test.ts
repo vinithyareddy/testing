@@ -55,29 +55,39 @@
     overflow-x: hidden;
     margin-bottom: 20px;
 
+    /* ⬇️ Only scroll container — no border here to avoid the “double frame” */
+    /* border: none; padding: 0; */
+
     .table {
       width: 100%;
-      table-layout: fixed;
 
-      /* Important: don't let cell borders fight with sticky rows */
+      /* ⬇️ Key changes to fix the broken corners */
       border-collapse: separate;
       border-spacing: 0;
+      border: 1px solid #dcdfe6;      /* single clean frame */
+      border-radius: 6px;              /* rounded outer corners */
+      background: #fff;                /* keeps the frame solid under stripes */
 
       th,
       td {
-        /* kill any inherited borders that could double up */
-        border: 0 !important;
         padding: 8px 12px;
         font-size: 13px;
         vertical-align: middle;
         white-space: nowrap;
-        background-clip: padding-box; /* avoids faint seams on sticky rows */
       }
 
-      /* Zebra rows (kept) */
-      tbody tr:nth-of-type(odd)  { background-color: #fff;    }
+      /* horizontal separators only */
+      thead th { border-bottom: 1px solid #e6e6e6; }
+      tbody td { border-bottom: 1px solid #e6e6e6; }
+      /* avoid double line before total row */
+      tbody tr:last-child td { border-bottom: none; }
+      /* soft divider above sticky total */
+      tfoot td { border-top: 1px solid #e6e6e6; }
+
+      /* zebra */
+      tbody tr:nth-of-type(odd) { background-color: #fff; }
       tbody tr:nth-of-type(even) { background-color: #f4f6f9; }
-      tbody tr:hover             { background-color: #eef5ff; }
+      tbody tr:hover { background-color: #eef5ff; }
 
       th:first-child,
       td:first-child {
@@ -93,44 +103,15 @@
         padding-right: 20px;
       }
 
-      /* Sticky header with its own bottom hairline */
-      thead tr {
-        position: sticky;
-        top: 0;
-        z-index: 3;
-        background: #f4f6f9;
-      }
-      thead tr::after {
-        content: "";
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        height: 1px;
-        background: #d9dde3;     /* header underline */
-      }
       thead th {
         font-weight: 600;
         color: #2d2d2d;
+        background-color: #f4f6f9;
+        position: sticky;
+        top: 0;
+        z-index: 2; /* stays above rows while scrolling */
       }
 
-      /* Draw one full-width rule per body row (fixes the left-corner gaps) */
-      tbody tr {
-        position: relative;
-      }
-      tbody tr::after {
-        content: "";
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        height: 1px;
-        background: #d9dde3;     /* row separator */
-      }
-      /* no extra rule under the last data row (the total gets its own) */
-      tbody tr:last-of-type::after { display: none; }
-
-      /* icon spacing/color */
       tbody .cell-content i {
         margin-right: 10px;
         display: inline-flex;
@@ -145,27 +126,18 @@
         padding-right: 20px;
       }
 
-      /* Sticky total with a top hairline only (prevents the extra bottom line) */
+      /* sticky total row at the very bottom */
       tfoot tr.total {
-        position: sticky;
-        bottom: 0;
-        z-index: 3;
         font-weight: 600;
         background: #f4f6f9;
         color: #2d2d2d;
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
+
+        td:first-child { padding-left: 8px; }
+        td:last-child  { text-align: right; padding-right: 20px; }
       }
-      tfoot tr.total::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        right: 0;
-        top: 0;
-        height: 1px;
-        background: #d9dde3;     /* top border for total row */
-      }
-      tfoot tr.total::after { display: none; } /* make sure no bottom rule */
-      tfoot tr.total td:first-child { padding-left: 8px; }
-      tfoot tr.total td:last-child  { text-align: right; padding-right: 20px; }
     }
   }
 
