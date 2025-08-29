@@ -2,6 +2,7 @@
   background: #fff;
   box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
   margin-top: 25px;
+  padding: 0; // ✅ Remove any default padding
 
   /* Title + info icon */
   .heading-sec {
@@ -9,6 +10,7 @@
     align-items: center;
     gap: 6px;
     margin-bottom: 12px;
+    padding: 12px 16px 0 16px; // ✅ Add padding only to header
   }
 
   .title-text {
@@ -29,6 +31,7 @@
     justify-content: flex-end;
     align-items: center;
     gap: 12px;
+    padding: 12px 16px 0 0; // ✅ Add padding only to header icons
 
     i {
       font-size: 16px;
@@ -53,12 +56,15 @@
     max-height: 335px;
     overflow-y: auto;
     overflow-x: hidden;
-    margin-bottom: 20px;
+    margin: 0; // ✅ Remove any margin
+    padding: 0; // ✅ Remove any padding
 
     .table {
       width: 100%;
       border-collapse: collapse;
       table-layout: fixed;
+      margin: 0; // ✅ Remove table margin
+      border-spacing: 0; // ✅ Remove border spacing
 
       th,
       td {
@@ -66,6 +72,7 @@
         font-size: 13px;
         vertical-align: middle;
         white-space: nowrap;
+        margin: 0; // ✅ Remove cell margins
       }
 
       /* ✅ Alternating row colors */
@@ -95,7 +102,6 @@
         padding-right: 20px;
       }
 
-      /* 🔑 Header fix */
       thead th {
         font-weight: 600;
         color: #2d2d2d;
@@ -103,11 +109,12 @@
         position: sticky;
         top: 0;
         z-index: 2;
+      }
 
-        /* force full border so corners connect */
-        border-top: 1px solid #e0e0e0;
-        border-left: 1px solid #e0e0e0;
-        border-right: 1px solid #e0e0e0;
+      // ✅ Make sure first header cell touches the left edge
+      thead th:first-child {
+        padding-left: 12px;
+        margin-left: 0;
       }
 
       tbody .cell-content i {
@@ -124,7 +131,7 @@
         padding-right: 20px;
       }
 
-      /* ✅ Footer fix */
+      /* ✅ Total row always visible at bottom */
       tfoot tr.total {
         font-weight: 600;
         background: #f4f6f9;
@@ -133,13 +140,9 @@
         bottom: 0;
         z-index: 2;
 
-        /* force full border so corners connect */
-        border-bottom: 1px solid #e0e0e0;
-        border-left: 1px solid #e0e0e0;
-        border-right: 1px solid #e0e0e0;
-
         td:first-child {
-          padding-left: 8px;
+          padding-left: 12px;
+          margin-left: 0; // ✅ Ensure no left margin
         }
 
         td:last-child {
@@ -161,5 +164,6 @@
     font-weight: 500;
     color: #0071bc;
     text-align: right;
+    padding: 0 16px 12px 0; // ✅ Add padding only to view more
   }
 }
