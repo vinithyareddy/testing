@@ -60,9 +60,6 @@
       border-collapse: collapse;
       table-layout: fixed;
 
-      /* 🔑 add border around table to fix corner gaps */
-      border: 1px solid #e0e0e0;
-
       th,
       td {
         padding: 8px 12px;
@@ -98,6 +95,7 @@
         padding-right: 20px;
       }
 
+      /* 🔑 Header fix */
       thead th {
         font-weight: 600;
         color: #2d2d2d;
@@ -106,8 +104,10 @@
         top: 0;
         z-index: 2;
 
-        /* 🔑 ensures header row connects to border */
-        border-bottom: 1px solid #e0e0e0;
+        /* force full border so corners connect */
+        border-top: 1px solid #e0e0e0;
+        border-left: 1px solid #e0e0e0;
+        border-right: 1px solid #e0e0e0;
       }
 
       tbody .cell-content i {
@@ -124,7 +124,7 @@
         padding-right: 20px;
       }
 
-      /* ✅ Total row always visible at bottom */
+      /* ✅ Footer fix */
       tfoot tr.total {
         font-weight: 600;
         background: #f4f6f9;
@@ -133,8 +133,10 @@
         bottom: 0;
         z-index: 2;
 
-        /* 🔑 ensures footer row connects to border */
-        border-top: 1px solid #e0e0e0;
+        /* force full border so corners connect */
+        border-bottom: 1px solid #e0e0e0;
+        border-left: 1px solid #e0e0e0;
+        border-right: 1px solid #e0e0e0;
 
         td:first-child {
           padding-left: 8px;
