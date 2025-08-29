@@ -2,11 +2,25 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: 'tests/parallel',
-  fullyParallel: false,   // ❌ persistent profiles can’t handle many workers
-  workers: 1,             // ✅ run sequentially to avoid conflicts
+  fullyParallel: true,
+  workers: 3,
+
   use: {
     baseURL: 'https://standardreportsbetaqa.worldbank.org',
     headless: false,
     viewport: { width: 1280, height: 900 },
+    storageState: '.auth/user.json',   // 👈 use saved auth for all workers
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
   },
+
+  projects: [
+    {
+      name: 'Desktop Chrome',
+      use: {
+        channel: 'chrome',
+      },
+    },
+  ],
 });
