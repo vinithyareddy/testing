@@ -1,12 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import * as Highcharts from 'highcharts';
 
-type ChartWithCenter = Highcharts.Chart & { customCenter?: Highcharts.SVGElement };
-type PieSeriesWithCenter = Highcharts.Series & {
-  center?: [number, number, number, number];
-  points: Highcharts.Point[];
-};
-
 @Component({
   selector: 'app-swfp-by-region',
   templateUrl: './swfp-by-region.component.html',
@@ -15,9 +9,10 @@ type PieSeriesWithCenter = Highcharts.Series & {
 export class SwfpByRegionComponent implements OnInit {
   Highcharts: typeof Highcharts = Highcharts;
   chartOptions!: Highcharts.Options;
+
   widgetType: 'ch' | 'th' = 'ch';
 
-  // Replace with real data later
+  // ✅ Dummy data only. Replace with API data later.
   regionData = [
     { name: 'HQ',  y: 126 },
     { name: 'APR', y:  88 },
@@ -32,66 +27,78 @@ export class SwfpByRegionComponent implements OnInit {
 
   loadWidget(type: 'ch' | 'th') {
     this.widgetType = type;
+    if (type === 'ch') this.loadChart();
+  }
+
+  get totalCount(): number {
+    return this.regionData.reduce((sum, d) => sum + (d.y || 0), 0);
   }
 
   private loadChart(): void {
+    const _this = this;
+
     this.chartOptions = {
       chart: {
         type: 'pie',
-        spacingRight: 16,
         spacingLeft: 0,
+        spacingRight: 16,
         events: {
-          // ✅ Type the callback `this` as a Highcharts.Chart
+          // Draw the center total + subtitle on every render (same pattern as reference)
           render: function (this: Highcharts.Chart) {
-            const chart = this as ChartWithCenter;
-            const series = chart.series?.[0] as PieSeriesWithCenter | undefined;
-            if (!series) return;
+            const chart: any = this; // keep typing simple to avoid TS overlaps
+            const series = chart.series?.[0];
+            if (!series || !series.points?.length) return;
 
-            const total = (series.points || []).reduce((acc, p: any) => acc + (p?.y ?? 0), 0);
+            const total = series.points.reduce((acc: number, p: any) => acc + (p.y || 0), 0);
 
-            // series.center is [relX, relY, size, innerSize] relative to the plot area
-            const center = (series as any).center as [number, number, number, number] | undefined;
-            const relX = center?.[0] ?? chart.plotWidth / 2;
-            const relY = center?.[1] ?? chart.plotHeight / 2;
-            const cx = chart.plotLeft + relX;
-            const cy = chart.plotTop + relY;
+            // series.center = [cx, cy, diameter, outerR]
+            const center = (series as any).center || [this.plotWidth / 2, this.plotHeight / 2];
+            const cx = this.plotLeft + center[0];
+            const cy = this.plotTop + center[1];
 
-            const html =
-              `<div style="text-align:center;">
-                 <div style="font-size:28px;font-weight:700;line-height:1">${total}</div>
-                 <div style="font-size:12px;line-height:1.1">By Region</div>
-               </div>`;
-
-            if (!chart.customCenter) {
-              chart.customCenter = chart.renderer
-                .label(html, cx, cy, undefined, undefined, undefined, true) // useHTML
-                .attr({ align: 'center', zIndex: 5 })
+            // Big number
+            if (!chart.centerTotal) {
+              chart.centerTotal = this.renderer
+                .text(String(total), cx, cy - 4)
+                .css({ fontSize: '28px', fontWeight: '700' })
+                .attr({ align: 'center' })
                 .add();
+            } else {
+              chart.centerTotal.attr({ text: String(total), x: cx, y: cy - 4 });
             }
 
-            const bbox = chart.customCenter.getBBox();
-            chart.customCenter.attr({ x: cx - bbox.width / 2, y: cy - 20 });
+            // Subtitle
+            if (!chart.centerSub) {
+              chart.centerSub = this.renderer
+                .text('By Region', cx, cy + 14)
+                .css({ fontSize: '12px', fontWeight: '500' })
+                .attr({ align: 'center' })
+                .add();
+            } else {
+              chart.centerSub.attr({ text: 'By Region', x: cx, y: cy + 14 });
+            }
           }
         }
       } as any,
       title: { text: '' },
+      tooltip: {
+        pointFormat: '<b>{point.y}</b> ({point.percentage:.0f}%)'
+      },
       credits: { enabled: false },
-      tooltip: { pointFormat: '<b>{point.y}</b> ({point.percentage:.0f}%)' },
       plotOptions: {
         pie: {
-          innerSize: '78%',
-          size: '88%',
-          center: ['35%', '50%'],  // move donut left to make space for legend
-          borderRadius: 0,
+          innerSize: '78%',      // donut thickness (same style as reference)
+          size: '88%',           // overall radius
+          center: ['35%', '50%'],// leave room for the legend on the right
           showInLegend: true,
+          borderRadius: 0,       // straight partition line in the middle
           dataLabels: {
             enabled: true,
-            distance: 10,
+            distance: 12,
             formatter: function () {
-              const pct = Highcharts.numberFormat((this.percentage as number) || 0, 0);
+              const pct = Highcharts.numberFormat(this.percentage || 0, 0);
               return `${this.y} (${pct}%)`;
-            },
-            style: { textOutline: 'none', fontWeight: '500' }
+            }
           }
         }
       },
@@ -99,27 +106,20 @@ export class SwfpByRegionComponent implements OnInit {
         align: 'right',
         verticalAlign: 'middle',
         layout: 'vertical',
-        useHTML: true,
-        itemMarginTop: 6,
-        itemMarginBottom: 6,
+        itemMarginTop: 5,
+        itemMarginBottom: 5,
         labelFormatter: function () {
           const p = this as unknown as Highcharts.Point;
-          const pct = Highcharts.numberFormat((p.percentage as number) || 0, 0);
-          return `<span class="hc-legend-row">
-                    <span class="hc-name">${p.name}</span>
-                    <span class="hc-val">${p.y} (${pct}%)</span>
-                  </span>`;
-        }
+          const pct = Highcharts.numberFormat(p.percentage || 0, 0);
+          return `${p.name}               ${p.y} (${pct}%)`;
+        },
+        useHTML: true
       },
       series: [{
         type: 'pie',
         name: 'Region',
-        data: this.regionData.map(d => ({ name: d.name, y: d.y }))
+        data: _this.regionData.map(d => ({ name: d.name, y: d.y }))
       }]
     };
-  }
-
-  get totalCount(): number {
-    return this.regionData.reduce((sum, r) => sum + (r.y || 0), 0);
   }
 }
