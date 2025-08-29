@@ -2,6 +2,7 @@
   background: #fff;
   box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
   margin-top: 25px;
+  padding: 0; // ✅ Remove any default padding
 
   /* Title + info icon */
   .heading-sec {
@@ -9,6 +10,7 @@
     align-items: center;
     gap: 6px;
     margin-bottom: 12px;
+    padding: 12px 16px 0 16px; // ✅ Add padding only to header
   }
 
   .title-text {
@@ -29,6 +31,7 @@
     justify-content: flex-end;
     align-items: center;
     gap: 12px;
+    padding: 12px 16px 0 0; // ✅ Add padding only to header icons
 
     i {
       font-size: 16px;
@@ -53,12 +56,15 @@
     max-height: 335px;
     overflow-y: auto;
     overflow-x: hidden;
-    margin-bottom: 20px;
+    margin: 0; // ✅ Remove any margin
+    padding: 0; // ✅ Remove any padding
 
     .table {
       width: 100%;
       border-collapse: collapse;
       table-layout: fixed;
+      margin: 0; // ✅ Remove table margin
+      border-spacing: 0; // ✅ Remove border spacing
 
       th,
       td {
@@ -66,7 +72,7 @@
         font-size: 13px;
         vertical-align: middle;
         white-space: nowrap;
-        border: 1px solid #dcdcdc; // 🔑 ensure all cells have consistent borders
+        margin: 0; // ✅ Remove cell margins
       }
 
       /* ✅ Alternating row colors */
@@ -105,6 +111,12 @@
         z-index: 2;
       }
 
+      // ✅ Make sure first header cell touches the left edge
+      thead th:first-child {
+        padding-left: 12px;
+        margin-left: 0;
+      }
+
       tbody .cell-content i {
         margin-right: 10px;
         display: inline-flex;
@@ -129,30 +141,14 @@
         z-index: 2;
 
         td:first-child {
-          padding-left: 8px;
+          padding-left: 12px;
+          margin-left: 0; // ✅ Ensure no left margin
         }
 
         td:last-child {
           text-align: right;
           padding-right: 20px;
         }
-      }
-
-      /* 🔑 Fix corner gaps */
-      thead tr:first-child th:first-child {
-        border-top-left-radius: 6px;
-      }
-
-      thead tr:first-child th:last-child {
-        border-top-right-radius: 6px;
-      }
-
-      tfoot tr.total td:first-child {
-        border-bottom-left-radius: 6px;
-      }
-
-      tfoot tr.total td:last-child {
-        border-bottom-right-radius: 6px;
       }
     }
   }
@@ -168,5 +164,6 @@
     font-weight: 500;
     color: #0071bc;
     text-align: right;
+    padding: 0 16px 12px 0; // ✅ Add padding only to view more
   }
 }
