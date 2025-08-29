@@ -7,7 +7,9 @@ import path from 'path';
   const authPath = path.join('.auth', 'user.json');
   fs.mkdirSync(path.dirname(authPath), { recursive: true });
 
-  const userDataDir = path.join(__dirname, 'chrome-profile'); // dedicated profile
+  // Dedicated Chrome profile folder
+  const userDataDir = path.join(__dirname, 'chrome-profile');
+
   const context = await chromium.launchPersistentContext(userDataDir, {
     channel: 'chrome',
     headless: false,
@@ -21,18 +23,21 @@ import path from 'path';
 
   console.log('➡️ Complete login (SSO/MFA) if prompted...');
 
-  // ✅ Instead of waiting for idle network, just check URL
+  // Wait until URL contains 'sources-uses'
   await page.waitForFunction(() =>
-    window.location.href.includes('sources-uses')
-  , { timeout: 180000 });
+    window.location.href.includes('sources-uses'),
+    { timeout: 180000 }
+  );
 
-  // ✅ Capture localStorage explicitly
+  // ✅ Capture cookies & localStorage
   const state = await context.storageState();
+
   const localStorage = await page.evaluate(() => {
     const data: { name: string; value: string }[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i)!;
-      data.push({ name: key, value: localStorage.getItem(key)! });
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const key = window.localStorage.key(i)!;
+      const value = window.localStorage.getItem(key)!;
+      data.push({ name: key, value });
     }
     return data;
   });
