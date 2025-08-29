@@ -66,6 +66,7 @@
         font-size: 13px;
         vertical-align: middle;
         white-space: nowrap;
+        border: 1px solid #dcdcdc; // 🔑 ensure all cells have consistent borders
       }
 
       /* ✅ Alternating row colors */
@@ -135,6 +136,23 @@
           text-align: right;
           padding-right: 20px;
         }
+      }
+
+      /* 🔑 Fix corner gaps */
+      thead tr:first-child th:first-child {
+        border-top-left-radius: 6px;
+      }
+
+      thead tr:first-child th:last-child {
+        border-top-right-radius: 6px;
+      }
+
+      tfoot tr.total td:first-child {
+        border-bottom-left-radius: 6px;
+      }
+
+      tfoot tr.total td:last-child {
+        border-bottom-right-radius: 6px;
       }
     }
   }
