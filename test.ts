@@ -3,7 +3,7 @@
   box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
   margin-top: 25px;
 
-  /* Title + info icon */
+  /* ───────── Heading (title + info icon) ───────── */
   .heading-sec {
     display: flex;
     align-items: center;
@@ -23,7 +23,7 @@
     cursor: pointer;
   }
 
-  /* Right icons */
+  /* ───────── Right header icons ───────── */
   .header-icons {
     display: flex;
     justify-content: flex-end;
@@ -48,25 +48,25 @@
     color: #0071bc;
   }
 
-  /* Table section */
+  /* ───────── Table with scroll (outer frame lives on scroller) ───────── */
   .TableView {
     max-height: 335px;
     overflow-y: auto;
     overflow-x: hidden;
     margin-bottom: 20px;
 
-    /* ⬇️ Only scroll container — no border here to avoid the “double frame” */
-    /* border: none; padding: 0; */
+    /* Solid outer frame that won't shift while scrolling */
+    border: 1px solid #dcdfe6;
+    border-radius: 6px;
+    background: #fff;
 
     .table {
       width: 100%;
+      table-layout: fixed;
 
-      /* ⬇️ Key changes to fix the broken corners */
+      /* IMPORTANT: don't let the table draw its own outer border */
       border-collapse: separate;
       border-spacing: 0;
-      border: 1px solid #dcdfe6;      /* single clean frame */
-      border-radius: 6px;              /* rounded outer corners */
-      background: #fff;                /* keeps the frame solid under stripes */
 
       th,
       td {
@@ -76,19 +76,42 @@
         white-space: nowrap;
       }
 
-      /* horizontal separators only */
-      thead th { border-bottom: 1px solid #e6e6e6; }
-      tbody td { border-bottom: 1px solid #e6e6e6; }
-      /* avoid double line before total row */
-      tbody tr:last-child td { border-bottom: none; }
-      /* soft divider above sticky total */
-      tfoot td { border-top: 1px solid #e6e6e6; }
-
-      /* zebra */
-      tbody tr:nth-of-type(odd) { background-color: #fff; }
+      /* Alternating rows + hover */
+      tbody tr:nth-of-type(odd)  { background-color: #fff; }
       tbody tr:nth-of-type(even) { background-color: #f4f6f9; }
-      tbody tr:hover { background-color: #eef5ff; }
+      tbody tr:hover             { background-color: #eef5ff; }
 
+      /* Only horizontal separators inside, no extra outer borders */
+      tbody td {
+        border-bottom: 1px solid #e6e6e6;
+      }
+      tbody tr:last-child td { border-bottom: none; }
+
+      /* Sticky header */
+      thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background-color: #f4f6f9;
+        font-weight: 600;
+        color: #2d2d2d;
+        border-bottom: 1px solid #e6e6e6;
+      }
+
+      /* Sticky total row at bottom */
+      tfoot tr.total {
+        position: sticky;
+        bottom: 0;
+        z-index: 1;
+        background: #f4f6f9;
+        color: #2d2d2d;
+        font-weight: 600;
+      }
+      tfoot tr.total td {
+        border-top: 1px solid #e6e6e6;
+      }
+
+      /* Column sizing */
       th:first-child,
       td:first-child {
         width: calc(100% - 100px);
@@ -103,15 +126,13 @@
         padding-right: 20px;
       }
 
-      thead th {
-        font-weight: 600;
-        color: #2d2d2d;
-        background-color: #f4f6f9;
-        position: sticky;
-        top: 0;
-        z-index: 2; /* stays above rows while scrolling */
+      .fte-col {
+        width: 100px;
+        text-align: right !important;
+        padding-right: 20px;
       }
 
+      /* Icons in first column */
       tbody .cell-content i {
         margin-right: 10px;
         display: inline-flex;
@@ -119,28 +140,10 @@
         gap: 8px;
         color: #0071bc;
       }
-
-      .fte-col {
-        width: 100px;
-        text-align: right !important;
-        padding-right: 20px;
-      }
-
-      /* sticky total row at the very bottom */
-      tfoot tr.total {
-        font-weight: 600;
-        background: #f4f6f9;
-        color: #2d2d2d;
-        position: sticky;
-        bottom: 0;
-        z-index: 2;
-
-        td:first-child { padding-left: 8px; }
-        td:last-child  { text-align: right; padding-right: 20px; }
-      }
     }
   }
 
+  /* Misc */
   .flag-icon {
     width: 18px;
     height: 12px;
