@@ -9,6 +9,7 @@
     align-items: center;
     gap: 6px;
     margin-bottom: 12px;
+    padding: 16px 16px 0 16px;
   }
 
   .title-text {
@@ -29,6 +30,7 @@
     justify-content: flex-end;
     align-items: center;
     gap: 12px;
+    padding: 16px 16px 0 0;
 
     i {
       font-size: 16px;
@@ -48,21 +50,23 @@
     color: #0071bc;
   }
 
-  /* Table section */
+  /* Table section - USE NEGATIVE MARGINS to extend beyond container */
   .TableView {
     max-height: 335px;
     overflow-y: auto;
     overflow-x: hidden;
-    margin-bottom: 20px;
+    margin-left: -20px !important;  /* Pull table left beyond container edge */
+    margin-right: -20px !important; /* Pull table right beyond container edge */
+    margin-top: 0;
+    margin-bottom: 0;
+    width: calc(100% + 40px); /* Compensate for negative margins */
 
     .table {
       width: 100%;
       border-collapse: collapse;
       table-layout: fixed;
-
-      /* 🔑 Add full table border */
-      border-left: 1px solid #e0e0e0;
-      border-right: 1px solid #e0e0e0;
+      margin: 0;
+      border-spacing: 0;
 
       th,
       td {
@@ -89,14 +93,14 @@
       td:first-child {
         width: calc(100% - 100px);
         text-align: left;
-        padding-left: 12px;
+        padding-left: 32px; /* Add back padding for content, accounting for negative margin */
       }
 
       th:last-child,
       td:last-child {
         width: 100px;
         text-align: right;
-        padding-right: 20px;
+        padding-right: 32px; /* Add back padding for content, accounting for negative margin */
       }
 
       thead th {
@@ -106,9 +110,6 @@
         position: sticky;
         top: 0;
         z-index: 2;
-
-        /* 🔑 Connect sticky header with borders */
-        border-top: 1px solid #e0e0e0;
       }
 
       tbody .cell-content i {
@@ -122,7 +123,7 @@
       .fte-col {
         width: 100px;
         text-align: right !important;
-        padding-right: 20px;
+        padding-right: 32px;
       }
 
       /* ✅ Total row always visible at bottom */
@@ -134,8 +135,14 @@
         bottom: 0;
         z-index: 2;
 
-        /* 🔑 Connect sticky footer with borders */
-        border-bottom: 1px solid #e0e0e0;
+        td:first-child {
+          padding-left: 32px;
+        }
+
+        td:last-child {
+          text-align: right;
+          padding-right: 32px;
+        }
       }
     }
   }
@@ -151,5 +158,6 @@
     font-weight: 500;
     color: #0071bc;
     text-align: right;
+    padding: 8px 16px 16px 0;
   }
 }
