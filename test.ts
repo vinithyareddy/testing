@@ -1,19 +1,13 @@
-legend: {
-  // layout/placement — keep whatever you already use
-  align: 'right',
-  verticalAlign: 'middle',
-  layout: 'vertical',
+/* scope however you prefer; ::ng-deep shown for brevity */
+::ng-deep .highcharts-legend .highcharts-legend-item span {
+  font-size: 16px;     /* match the size you want */
+  font-weight: 600;
+}
 
-  // make the legend bigger
-  itemStyle: {
-    fontSize: '16px',       // ← bigger text
-    fontWeight: '600'
-  },
-  itemHoverStyle: { color: '#000' },
-  symbolWidth: 18,          // ← bigger bullet
-  symbolHeight: 18,
-  symbolRadius: 9,          // ← round bullet
-  symbolPadding: 10,        // space between bullet and text
-  itemMarginTop: 8,         // spacing between items
-  itemMarginBottom: 8
+/* make HTML legend bullets look bigger too */
+::ng-deep .highcharts-legend .highcharts-point {
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 9px !important;
+  margin-right: 10px !important;
 }
