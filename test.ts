@@ -1,50 +1,37 @@
-loadWidget(type: string) {
+<!-- Chart -->
+<ng-container *ngIf="widgetType === 'ch'">
+  <div class="inner-card-box-lg">
+    <highcharts-chart
+      [Highcharts]="Highcharts"
+      [options]="chartOptions"
+      style="width: 100%; height: 320px; display: block;">
+    </highcharts-chart>
+  </div>
+</ng-container>
+
+<!-- Table -->
+<ng-container *ngIf="widgetType === 'th'">
+  <div class="inner-card-box-lg">
+    <table class="table table-sm table-bordered w-100">
+      <thead>
+        <tr>
+          <th>Regions</th>
+          <th>Units</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let d of regionData">
+          <td>{{ d.name }}</td>
+          <td>{{ d.y }} ({{ (d.y / totalCount * 100) | number:'1.0-0' }}%)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</ng-container>
+
+loadWidget(type: 'ch' | 'th') {
   this.widgetType = type;
-  if (this.locationData.length > 0) {
-    this.onInitLoad(this.locationData);
+  if (type === 'ch') {
+    this.loadChart();
   }
-}
-
-onInitLoad(data: any[]): void {
-  this.ResponseFlag = true;
-  const total = data.reduce((acc, cur) => acc + cur.value, 0);
-
-  this.chartOptions = {
-    chart: { type: 'pie' },
-    title: {
-      verticalAlign: 'middle',
-      floating: true,
-      useHTML: true,
-      y: -10,
-      text: `<span style="font-size:30px; font-weight:bold">${total}</span><br/><span style="font-size:12px">By Location</span>`,
-    },
-    tooltip: { pointFormat: '<b>{point.y}</b> ({point.percentage:.0f}%)' },
-    credits: { enabled: false },
-    plotOptions: {
-      pie: {
-        innerSize: '85%',
-        borderRadius: 0,
-        showInLegend: true,
-        dataLabels: {
-          enabled: true,
-          distance: 20,
-          format: '{point.y} ({point.percentage:.0f}%)',
-        },
-        ...(this.widgetType === 'ch'
-          ? { startAngle: -90, endAngle: 90, center: ['50%', '75%'], size: '140%' } // pie icon = semi donut
-          : { startAngle: 0, endAngle: 360, center: ['50%', '50%'], size: '100%' }), // bar icon = full donut
-      },
-    },
-    series: [
-      {
-        type: 'pie',
-        name: 'Location',
-        data: data.map(d => ({
-          name: d.name,
-          y: d.value,
-          color: d.color
-        })),
-      },
-    ],
-  };
 }
