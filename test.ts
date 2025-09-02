@@ -2,16 +2,11 @@
 import { test as base, chromium, expect, type BrowserContext, type Page } from '@playwright/test';
 import path from 'path';
 
-type TestFixtures = {
-  authenticatedPage: Page;
-};
+type TestFixtures = { authenticatedPage: Page };
+type WorkerFixtures = { workerContext: BrowserContext }; // one persistent context per worker
 
-type WorkerFixtures = {
-  workerContext: BrowserContext; // one persistent context per worker
-};
-
-export const test = base.extend<TestFixtures, WorkerFixtures>(
-  // -------- test-scoped fixtures (first arg) --------
+export const test = (base as any).extend<TestFixtures, WorkerFixtures>(
+  // ---------- test-scoped fixtures ----------
   {
     authenticatedPage: async ({ workerContext }, use) => {
       const page = workerContext.pages()[0] || await workerContext.newPage();
@@ -28,7 +23,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>(
     },
   },
 
-  // -------- worker-scoped fixtures (second arg) --------
+  // ---------- worker-scoped fixtures ----------
   {
     workerContext: async ({}, use, testInfo) => {
       const userDataDir = path.join(
