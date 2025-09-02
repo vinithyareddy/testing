@@ -1,19 +1,13 @@
+loadWidget(type: string) {
+  this.widgetType = type;
+  if (this.locationData.length > 0) {
+    this.onInitLoad(this.locationData);
+  }
+}
+
 onInitLoad(data: any[]): void {
   this.ResponseFlag = true;
   const total = data.reduce((acc, cur) => acc + cur.value, 0);
-
-  // Dynamically adjust chart size based on slice count
-  let sliceCount = data.length;
-  let fullDonutSize = '85%';
-  let dataLabelDistance = 15;
-
-  if (sliceCount > 6) {
-    fullDonutSize = '70%';
-    dataLabelDistance = 8;
-  } else if (sliceCount > 3) {
-    fullDonutSize = '78%';
-    dataLabelDistance = 10;
-  }
 
   this.chartOptions = {
     chart: { type: 'pie' },
@@ -33,14 +27,12 @@ onInitLoad(data: any[]): void {
         showInLegend: true,
         dataLabels: {
           enabled: true,
-          distance: this.widgetType === 'ch' ? 20 : dataLabelDistance,
+          distance: 20,
           format: '{point.y} ({point.percentage:.0f}%)',
-          crop: false,
-          overflow: 'justify',
         },
         ...(this.widgetType === 'ch'
-          ? { startAngle: -90, endAngle: 90, center: ['50%', '75%'], size: '140%' } // semi donut
-          : { startAngle: 0, endAngle: 360, center: ['50%', '50%'], size: fullDonutSize }), // auto-sized full donut
+          ? { startAngle: -90, endAngle: 90, center: ['50%', '75%'], size: '140%' } // pie icon = semi donut
+          : { startAngle: 0, endAngle: 360, center: ['50%', '50%'], size: '100%' }), // bar icon = full donut
       },
     },
     series: [
