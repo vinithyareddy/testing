@@ -1,18 +1,9 @@
-loadWidget(type: string) {
-  this.widgetType = type;
-  if (this.fcvData.length > 0) {
-    this.onInitLoad(this.fcvData);
-  }
-}
-
 onInitLoad(data: any[]): void {
   this.ResponseFlag = true;
   const total = data.reduce((acc, cur) => acc + cur.value, 0);
 
   this.chartOptions = {
-    chart: {
-      type: 'pie',
-    },
+    chart: { type: 'pie' },
     title: {
       verticalAlign: 'middle',
       floating: true,
@@ -20,9 +11,7 @@ onInitLoad(data: any[]): void {
       y: -10,
       text: `<span style="font-size:30px; font-weight:bold">${total}</span><br/><span style="font-size:12px">By FCV Status</span>`,
     },
-    tooltip: {
-      pointFormat: '<b>{point.y}</b> ({point.percentage:.0f}%)',
-    },
+    tooltip: { pointFormat: '<b>{point.y}</b> ({point.percentage:.0f}%)' },
     credits: { enabled: false },
     plotOptions: {
       pie: {
@@ -44,12 +33,28 @@ onInitLoad(data: any[]): void {
       {
         type: 'pie',
         name: 'FCV Status',
-        data: data.map((d) => ({
-          name: d.name,
-          y: d.value,
-          color: d.color,
-        })),
+        data: data.map(d => ({ name: d.name, y: d.value, color: d.color })),
       },
     ],
   };
 }
+
+
+<!-- Chart View -->
+<ng-container *ngIf="ResponseFlag">
+  <ng-container *ngIf="widgetType == 'ch' || widgetType == 'th'">
+    <div class="inner-card-box">
+      <highcharts-chart
+        [Highcharts]="Highcharts"
+        [options]="chartOptions"
+        [constructorType]="'chart'"
+        style="width: 100%; height: 250px; display: block;">
+      </highcharts-chart>
+    </div>
+  </ng-container>
+
+  <!-- View More -->
+  <div class="viewmore pointer mt-3 pt-3" (click)="getDetailPage()">
+    <span>View More&nbsp;&nbsp;</span><i class="fa fa-angle-right"></i>
+  </div>
+</ng-container>
