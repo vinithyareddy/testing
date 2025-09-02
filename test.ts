@@ -1,91 +1,124 @@
-// playwright.config.ts
-import { defineConfig } from '@playwright/test';
-import path from 'path';
-
-export default defineConfig({
-  globalSetup: require.resolve('./global-setup'),
-
-  testDir: 'tests/parallel',
-  fullyParallel: true,
-  workers: 3,
-
-  use: {
-    baseURL: 'https://standardreportsbetaqa.worldbank.org',
-    headless: false,
-    viewport: { width: 1280, height: 900 },
-    storageState: path.join(__dirname, '.auth', 'user.json'), // 👈 absolute path
-    trace: 'retain-on-failure',
-    screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
-  },
-
-  projects: [
-    {
-      name: 'Desktop Chrome',
-      use: { channel: 'chrome' },
-    },
-  ],
-});
-
-// auth.setup.ts
+// prepare-profiles.ts
 import { chromium } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 
-(async () => {
-  const authPath = path.join('.auth', 'user.json');
-  fs.mkdirSync(path.dirname(authPath), { recursive: true });
+const APP_URL = 'https://standardreportsbetaqa.worldbank.org/sources-uses';
+const BASE = path.join(__dirname, 'chrome-profile-base');
 
-  const browser = await chromium.launch({
+// Parse --workers=N (default 3)
+function parseWorkers(): number {
+  const i = process.argv.findIndex(a => a === '--workers' || a.startsWith('--workers='));
+  if (i === -1) return 3;
+  const val = process.argv[i].includes('=') ? process.argv[i].split('=')[1] : process.argv[i + 1];
+  const n = parseInt(val ?? '', 10);
+  return Number.isFinite(n) && n > 0 ? n : 3;
+}
+const WORKERS = parseWorkers();
+
+function rm(p: string) { try { fs.rmSync(p, { recursive: true, force: true }); } catch {} }
+
+(async () => {
+  fs.mkdirSync(BASE, { recursive: true });
+
+  // 1) Build/refresh the base profile by logging in once
+  const ctx = await chromium.launchPersistentContext(BASE, {
     channel: 'chrome',
     headless: false,
+    viewport: { width: 1280, height: 900 },
+    args: ['--start-maximized'],
   });
+  const page = ctx.pages()[0] || await ctx.newPage();
+  await page.goto(APP_URL, { waitUntil: 'domcontentloaded', timeout: 180_000 });
+  await page.waitForFunction(() => location.href.includes('sources-uses'), { timeout: 300_000 });
+  await page.waitForSelector('app-budget-top-header', { timeout: 180_000 }).catch(() => {});
+  await page.waitForTimeout(1500);
+  await ctx.close();
 
-  const context = await browser.newContext();
-  const page = await context.newPage();
-
-  console.log('➡️ Please complete login (SSO/MFA) if prompted...');
-
-  await page.goto('https://standardreportsbetaqa.worldbank.org/sources-uses', {
-    waitUntil: 'domcontentloaded',
-    timeout: 120_000,
-  });
-
-  // Don’t rely on network idle; just confirm we’re on the right page
-  await page.waitForFunction(
-    () => window.location.href.includes('sources-uses'),
-    { timeout: 180_000 }
-  );
-
-  // Give the app a moment to write MSAL tokens
-  await page.waitForTimeout(2000);
-
-  // Capture base storage state first (cookies for all domains)
-  const state = await context.storageState();
-
-  // Capture app origin localStorage (MSAL tokens live here)
-  const appOrigin = 'https://standardreportsbetaqa.worldbank.org';
-  const localStorage = await page.evaluate(() => {
-    const data: { name: string; value: string }[] = [];
-    for (let i = 0; i < window.localStorage.length; i++) {
-      const key = window.localStorage.key(i)!;
-      const value = window.localStorage.getItem(key)!;
-      data.push({ name: key, value });
+  // 2) Clone base → one profile per worker
+  for (let i = 0; i < WORKERS; i++) {
+    const dst = path.join(__dirname, `chrome-profile-w${i}`);
+    rm(dst);
+    (fs as any).cpSync(BASE, dst, { recursive: true });
+    for (const f of fs.readdirSync(dst)) {
+      if (f.startsWith('Singleton')) rm(path.join(dst, f)); // unlock cloned profile
     }
-    return data;
-  });
+    console.log(`✅ Prepared profile: ${dst}`);
+  }
 
-  // Merge cookies with explicit localStorage for the app origin
-  const finalState = {
-    ...state,
-    origins: [
-      ...(state as any).origins?.filter((o: any) => o.origin !== appOrigin) ?? [],
-      { origin: appOrigin, localStorage },
-    ],
-  };
-
-  fs.writeFileSync(authPath, JSON.stringify(finalState, null, 2));
-  console.log(`✅ Saved FULL auth state (cookies + localStorage) to ${authPath}`);
-
-  await browser.close();
+  console.log(`\n✅ Profiles ready for ${WORKERS} workers.`);
 })();
+
+// base-fixture.ts
+import { test as base, chromium, expect, BrowserContext, Page } from '@playwright/test';
+import path from 'path';
+
+export const test = base.extend<{
+  context: BrowserContext;
+  authenticatedPage: Page;
+}>({
+  context: [async ({}, use, testInfo) => {
+    // unique profile per worker (also unique per project if you add more projects)
+    const userDataDir = path.join(
+      __dirname,
+      `../chrome-profile-${testInfo.project.name}-w${testInfo.parallelIndex}`
+    );
+
+    const context = await chromium.launchPersistentContext(userDataDir, {
+      channel: 'chrome',
+      headless: false,
+      viewport: { width: 1280, height: 900 },
+      args: ['--start-maximized'],
+    });
+
+    await use(context);
+    await context.close();
+  }, { scope: 'worker' }],
+
+  authenticatedPage: async ({ context }, use) => {
+    const page = context.pages()[0] || await context.newPage();
+    if (!page.url().includes('sources-uses')) {
+      await page.goto('https://standardreportsbetaqa.worldbank.org/sources-uses', {
+        waitUntil: 'domcontentloaded',
+        timeout: 180_000,
+      });
+      await page.waitForSelector('app-budget-top-header', { timeout: 180_000 }).catch(() => {});
+    }
+    await use(page);
+  },
+});
+
+export { expect } from '@playwright/test';
+
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  testDir: 'tests/parallel',
+  fullyParallel: true,
+  workers: 3, // you can override with CLI --workers=10, etc.
+  timeout: 180_000,
+  expect: { timeout: 60_000 },
+  use: {
+    baseURL: 'https://standardreportsbetaqa.worldbank.org',
+    headless: false,
+    viewport: { width: 1280, height: 900 },
+    navigationTimeout: 120_000,
+    actionTimeout: 30_000,
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+  },
+  projects: [
+    { name: 'DesktopChrome', use: { channel: 'chrome' } },
+  ],
+});
+
+{
+  "scripts": {
+    "profiles": "npx ts-node prepare-profiles.ts",
+    "test:parallel": "npm run profiles -- --workers=3 && npx playwright test --workers=3",
+    "test:parallel:10": "npm run profiles -- --workers=10 && npx playwright test --workers=10",
+    "report": "npx playwright show-report",
+    "setup": "npx playwright install chrome"
+  }
+}
