@@ -1,50 +1,24 @@
-<!-- Chart -->
-<ng-container *ngIf="widgetType === 'ch'">
-  <div class="inner-card-box">
-    <highcharts-chart
-      [Highcharts]="Highcharts"
-      [options]="chartOptions"
-      [constructorType]="'chart'"
-      style="width: 100%; height: 310px; display: block;">
-    </highcharts-chart>
-  </div>
-</ng-container>
-
-<!-- Table -->
-<ng-container *ngIf="widgetType === 'th'">
-  <div class="inner-card-box">
-    <table class="custom-table w-100">
-      <thead>
-        <tr>
-          <th>Age</th>
-          <th>Percentage</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let d of ageData; let i = index" [class.alt-row]="i % 2 === 1">
-          <td class="age-col">{{ d.category }}</td>
-          <td class="percent-col">{{ d.percent }}%</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</ng-container>
-
+.inner-card-box {
+  padding: 0 !important;   // remove top & bottom white space
+  margin: 0 !important;
+}
 
 .custom-table {
   border-collapse: collapse;
   width: 100%;
+  margin: 0;
+  padding: 0;
 
   th {
-    text-align: left;
+    text-align: left;   // Age header left aligned
     font-weight: 600;
-    padding: 8px 12px;
+    padding: 10px 12px;
     border-bottom: 1px solid #e0e0e0;
     background: #f8f9fa;
   }
 
   td {
-    padding: 8px 12px;
+    padding: 14px 12px; // increase row height
     border-bottom: 1px solid #f1f1f1;
   }
 
@@ -59,6 +33,6 @@
   }
 
   tr.alt-row {
-    background: #fafafa; // alternate row shading
+    background: #fafafa;
   }
 }
