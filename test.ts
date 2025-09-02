@@ -1,33 +1,55 @@
-// tests/parallel/base-fixture.ts
-import { test as base, chromium, expect, type Page } from '@playwright/test';
-import path from 'path';
+loadWidget(type: string) {
+  this.widgetType = type;
+  if (this.fcvData.length > 0) {
+    this.onInitLoad(this.fcvData);
+  }
+}
 
-export const test = base.extend<{ authenticatedPage: Page }>({
-  authenticatedPage: async ({}, use, testInfo) => {
-    const userDataDir = path.join(
-      __dirname,
-      `../chrome-profile-${testInfo.project.name}-w${testInfo.parallelIndex}`
-    );
+onInitLoad(data: any[]): void {
+  this.ResponseFlag = true;
+  const total = data.reduce((acc, cur) => acc + cur.value, 0);
 
-    const ctx = await chromium.launchPersistentContext(userDataDir, {
-      channel: 'chrome',
-      headless: false,
-      viewport: { width: 1280, height: 900 },
-      args: ['--start-maximized'],
-    });
-
-    const page = ctx.pages()[0] || await ctx.newPage();
-    if (!page.url().includes('sources-uses')) {
-      await page.goto('https://standardreportsbetaqa.worldbank.org/sources-uses', {
-        waitUntil: 'domcontentloaded',
-        timeout: 180_000,
-      });
-      await page.waitForSelector('app-budget-top-header', { timeout: 180_000 }).catch(() => {});
-    }
-
-    await use(page);
-    await ctx.close();
-  },
-});
-
-export { expect } from '@playwright/test';
+  this.chartOptions = {
+    chart: {
+      type: 'pie',
+    },
+    title: {
+      verticalAlign: 'middle',
+      floating: true,
+      useHTML: true,
+      y: -10,
+      text: `<span style="font-size:30px; font-weight:bold">${total}</span><br/><span style="font-size:12px">By FCV Status</span>`,
+    },
+    tooltip: {
+      pointFormat: '<b>{point.y}</b> ({point.percentage:.0f}%)',
+    },
+    credits: { enabled: false },
+    plotOptions: {
+      pie: {
+        innerSize: '85%',
+        size: '140%',
+        borderRadius: 0,
+        showInLegend: true,
+        dataLabels: {
+          enabled: true,
+          distance: 20,
+          format: '{point.y} ({point.percentage:.0f}%)',
+        },
+        ...(this.widgetType === 'ch'  // 👈 pie icon = semi donut
+          ? { startAngle: -90, endAngle: 90, center: ['50%', '75%'] }
+          : { startAngle: 0, endAngle: 360, center: ['50%', '50%'] }), // 👈 bar icon = full donut
+      },
+    },
+    series: [
+      {
+        type: 'pie',
+        name: 'FCV Status',
+        data: data.map((d) => ({
+          name: d.name,
+          y: d.value,
+          color: d.color,
+        })),
+      },
+    ],
+  };
+}
