@@ -1,133 +1,192 @@
-<div class="row mt-1">
-  <!-- 1) Utilization card -->
-  <div class="col">
-    <div class="box-md">
-      <div class="d-flex justify-content-between align-items-center">
-        <div class="budget-box-h1">WFFA Budget Utilization</div>
-        <img src="assets/images/money_bag.svg" class="imgvi" alt="">
+import { Component } from '@angular/core';
+import * as Highcharts from 'highcharts';
+
+type Row = { position: string; amount: number }; // amount in millions
+
+@Component({
+  selector: 'app-avg-labor-cost-position',
+  templateUrl: './avg-labor-cost-position.component.html',
+  styleUrls: ['./avg-labor-cost-position.component.scss']
+})
+export class AvgLaborCostPositionComponent {
+  title = 'Average Labor Cost by Position';
+  view: 'chart' | 'table' = 'chart';
+
+  // ---- dummy data (replace later with service data) ----
+  data: Row[] = [
+    { position: 'GG-Education Specialist Senior', amount: 320 },
+    { position: 'GF-Education Specialist', amount: 218 },
+    { position: 'GF-Economist', amount: 178 },
+    { position: 'GF-Operational Specialist', amount: 102 },
+    { position: 'GF-Energy Consultant', amount: 74 }
+  ];
+
+  Highcharts: typeof Highcharts = Highcharts;
+
+  chartOptions: Highcharts.Options = {
+    chart: { type: 'column' },
+    title: { text: '' },
+    credits: { enabled: false },
+    legend: { enabled: false },
+    xAxis: {
+      categories: this.data.map(d => d.position),
+      title: { text: 'Jobs', style: { color: '#111827', fontWeight: '500', fontSize: '13px' } },
+      labels: { style: { color: '#111827', fontWeight: '600', fontSize: '12px' } },
+      lineWidth: 0
+    },
+    yAxis: {
+      min: 0,
+      title: { text: 'Amount (in millions)', style: { color: '#111827', fontWeight: '500', fontSize: '13px' } },
+      gridLineWidth: 1,
+      gridLineDashStyle: 'Dash',
+      gridLineColor: '#D1D5DB'
+    },
+    plotOptions: {
+      column: {
+        borderWidth: 0,
+        pointPadding: 0.1,
+        dataLabels: { enabled: true, style: { fontWeight: '600' } } as any
+      }
+    },
+    series: [{
+      type: 'column',
+      name: 'Amount',
+      pointWidth: 28,
+      data: this.data.map(d => ({ name: d.position, y: d.amount }))
+    }]
+  };
+
+  setView(v: 'chart' | 'table') { this.view = v; }
+}
+
+
+<div class="budget-card-box-lg">
+  <div class="budget-box-chart-lg">
+    <!-- Header -->
+    <div class="header-row">
+      <div class="widget-heading">
+        <span>{{ title }}
+          <lift-popover popoverTitle="" popoverText="">
+            <i class="far fa-info-circle ml-1"></i>
+          </lift-popover>
+        </span>
       </div>
 
-      <div class="d-flex justify-content-between align-items-baseline mt-1">
-        <div class="budget-box-h2">$2M</div>
-        <div class="percent">60%</div>
-      </div>
+      <div class="header-actions">
+        <div class="togglebtn">
+          <button class="toggle lft-toggle" [class.active]="view==='table'" (click)="setView('table')">
+            <i class="fa fa-table fnticon" aria-hidden="true"></i>
+          </button>
+          <button class="toggle rgt-toggle" [class.active]="view==='chart'" (click)="setView('chart')">
+            <i class="fa fa-bar-chart fnticon" aria-hidden="true"></i>
+          </button>
+        </div>
 
-      <div class="progress mt-2">
-        <div class="progress-bar" style="width:60%"></div>
-      </div>
-
-      <div class="d-flex justify-content-between small mt-1">
-        <span>Labor Cost <strong>$1.2M</strong></span>
-        <span>Total Budget <strong>$2M</strong></span>
+        <button class="icon-btn" title="Zoom"><i class="fas fa-expand"></i></button>
+        <button class="icon-btn" title="More"><i class="fas fa-ellipsis-v"></i></button>
       </div>
     </div>
-  </div>
 
-  <!-- 2) Total WFFA Budget -->
-  <div class="col">
-    <div class="box-md">
-      <div class="d-flex justify-content-between align-items-center">
-        <div class="budget-box-h1">Total WFFA Budget</div>
-        <img src="assets/images/money_bag.svg" class="imgvi" alt="">
-      </div>
-      <div class="budget-box-h2 mt-1">$2M</div>
+    <!-- Body -->
+    <div class="content-area">
+      <ng-container *ngIf="view==='chart'">
+        <highcharts-chart
+          [Highcharts]="Highcharts"
+          [options]="chartOptions"
+          style="width: 100%; height: 300px; display: block;">
+        </highcharts-chart>
+      </ng-container>
+
+      <ng-container *ngIf="view==='table'">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th class="text-start">Position</th>
+                <th class="text-end">Amount (M)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of data">
+                <td class="text-start">{{ r.position }}</td>
+                <td class="text-end">{{ r.amount }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div *ngIf="!data?.length" class="no-data-center">No Data Found !!</div>
+        </div>
+      </ng-container>
     </div>
-  </div>
 
-  <!-- 3) Total Employees -->
-  <div class="col">
-    <div class="box-md">
-      <div class="d-flex justify-content-between align-items-center">
-        <div class="budget-box-h1">Total Employees</div>
-        <img src="assets/images/users.svg" class="imgvi" alt="">
-      </div>
-      <div class="budget-box-h2 mt-1">10</div>
-    </div>
-  </div>
-
-  <!-- 4) Total Labor Costs -->
-  <div class="col">
-    <div class="box-md">
-      <div class="d-flex justify-content-between align-items-center">
-        <div class="budget-box-h1">Total Labor Costs</div>
-        <img src="assets/images/money_bag.svg" class="imgvi" alt="">
-      </div>
-      <div class="budget-box-h2 mt-1">$1.2M</div>
-    </div>
-  </div>
-
-  <!-- 5) Average Labor Costs -->
-  <div class="col">
-    <div class="box-md">
-      <div class="d-flex justify-content-between align-items-center">
-        <div class="budget-box-h1">Average Labor Costs</div>
-        <img src="assets/images/money_bag.svg" class="imgvi" alt="">
-      </div>
-      <div class="budget-box-h2 mt-1">$120K</div>
+    <!-- Footer -->
+    <div class="viewmore">
+      <span>View More</span>
+      <i class="fa fa-angle-right"></i>
     </div>
   </div>
 </div>
 
-
-/* card box */
-.box-md {
-  background: #e8f1f5;
-  border: 1px solid #cfe0e8;
+/* card shell */
+.budget-card-box-lg { background: #fff; border-radius: 10px; }
+.budget-box-chart-lg {
+  border: 1px solid #d9e3ea;
+  background: #f8fbfd;
   border-radius: 10px;
-  padding: 14px 16px;
-  box-shadow: 0 2px 6px rgba(0,0,0,.06);
-  min-height: 110px;
+  padding: 12px 14px;
 }
 
-/* title */
-.budget-box-h1 {
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #294b5a;
+/* header */
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
+.widget-heading {
+  font-size: 14px; font-weight: 700; color: #1f2937;
+  display: flex; align-items: center; gap: 6px;
+  i { color: #6b7280; }
+}
+.header-actions { display: flex; align-items: center; gap: 8px; }
 
-/* big value */
-.budget-box-h2 {
-  font-size: 26px;
-  font-weight: 700;
-  color: #143846;
-  line-height: 1.2;
+/* buttons */
+.icon-btn {
+  border: 1px solid #cfe0e8; background: #e8f1f5; color: #0071bc;
+  width: 28px; height: 28px; border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
 }
+.togglebtn { display: inline-flex; gap: 6px; margin-right: 4px; }
+.toggle {
+  border: 1px solid #cfe0e8; background: #eef6fb; color: #0b6cbf;
+  width: 32px; height: 28px; border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.toggle.active { background: #d7e7ee; color: #0a4e88; border-color: #b9d3de; }
+.fnticon { font-size: 14px; }
 
-/* percent on utilization */
-.percent {
-  font-size: 16px;
-  font-weight: 600;
-  color: #476e7f;
-}
+/* content */
+.content-area { margin-top: 12px; }
 
-/* bar for utilization */
-.progress {
-  background: #d7e7ee;
-  border-radius: 6px;
-  height: 10px;
-  overflow: hidden;
+/* table */
+.table-container {
+  overflow-x: auto; background: #fff; border: 1px solid #e5edf2; border-radius: 8px;
 }
-.progress-bar {
-  background: #2d8cdf;
-  height: 100%;
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  font-weight: 600; color: #374151; padding: 10px 12px; border-bottom: 1px solid #e5edf2;
 }
+tbody td {
+  padding: 10px 12px; border-bottom: 1px solid #eef3f6; color: #111827;
+}
+.text-start { text-align: left; } .text-end { text-align: right; }
+.no-data-center { padding: 24px; text-align: center; color: #6b7280; }
 
-/* small labels under bar */
-.small {
-  font-size: 12px;
-  color: #476e7f;
+/* footer */
+.viewmore { display: inline-flex; align-items: center; gap: 6px; color: #0b6cbf; font-weight: 600; margin-top: 10px; cursor: pointer; }
 
-  strong {
-    font-weight: 700;
-    color: #143846; /* makes 1.2M / 2M bold */
-  }
-}
-
-/* card icons */
-.imgvi {
-  width: 18px;
-  height: 18px;
-  opacity: .85;
-}
+/* Highcharts theme tweaks to match figma */
+:host ::ng-deep .highcharts-point { fill: #2d8cdf; }
+:host ::ng-deep .highcharts-data-label text { font-weight: 600; fill: #111827; }
+:host ::ng-deep .highcharts-axis-title, 
+:host ::ng-deep .highcharts-axis-labels text { fill: #111827; }
+:host ::ng-deep .highcharts-grid-line { stroke: #d1d5db; stroke-dasharray: 4; }
