@@ -1,146 +1,90 @@
-/* Box container */
-.box-md {
-  background: #e8f1f5;                  /* soft blue background */
-  border: 1px solid #cfe0e8;            /* subtle border */
-  border-radius: 8px;                   /* smooth corners */
-  padding: 14px 16px;
-  min-height: 110px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-  position: relative;
-  transition: box-shadow 0.2s ease-in;
+<div class="kpi-row">
+  <!-- Utilization -->
+  <div class="kpi-card">
+    <div class="kpi-title">WFFA Budget Utilization</div>
+    <div class="kpi-value">$2M <span class="kpi-percent">60%</span></div>
+    <div class="kpi-bar">
+      <div class="fill" style="width:60%"></div>
+    </div>
+    <div class="kpi-meta">
+      <span>Labor Cost $1.2M</span>
+      <span>Total Budget $2M</span>
+    </div>
+  </div>
 
-  &:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  }
+  <div class="kpi-card">
+    <div class="kpi-title">Total WFFA Budget</div>
+    <div class="kpi-value">$2M</div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-title">Total Employees</div>
+    <div class="kpi-value">10</div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-title">Total Labor Costs</div>
+    <div class="kpi-value">$1.2M</div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-title">Average Labor Costs</div>
+    <div class="kpi-value">$120K</div>
+  </div>
+</div>
+
+
+.kpi-row {
+  display: flex;
+  gap: 12px;
 }
 
-/* Titles (like WFFA BUDGET UTILIZATION, TOTAL WFFA BUDGET) */
-.budget-box-h1 {
+.kpi-card {
+  flex: 1; /* all 5 take equal space */
+  background: #e8f1f5;
+  border: 1px solid #cfe0e8;
+  border-radius: 8px;
+  padding: 12px;
+  min-height: 100px;
+}
+
+.kpi-title {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
   color: #294b5a;
 }
 
-/* Values (big numbers) */
-.budget-box-h2 {
+.kpi-value {
   font-size: 24px;
   font-weight: 700;
   color: #143846;
-  line-height: 1.2;
+  margin-top: 6px;
 }
 
-/* Progress bar (for Utilization card) */
-.progress {
-  background: #d7e7ee;
-  border-radius: 6px;
+.kpi-percent {
+  font-size: 14px;
+  font-weight: 600;
+  color: #476e7f;
+  margin-left: 8px;
+}
+
+.kpi-bar {
+  margin-top: 8px;
   height: 8px;
+  background: #d7e7ee;
+  border-radius: 4px;
   overflow: hidden;
-
-  .progress-bar {
-    background: #2d8cdf;               /* blue fill */
-  }
+}
+.kpi-bar .fill {
+  height: 100%;
+  background: #2d8cdf;
 }
 
-/* Small labels under bar */
-.small {
+.kpi-meta {
+  margin-top: 6px;
   font-size: 11px;
   color: #476e7f;
+  display: flex;
+  justify-content: space-between;
 }
-
-/* Card icon on right corner */
-.imgvi {
-  width: 18px;
-  height: 18px;
-  opacity: 0.85;
-  margin-top: 4px;
-}
-
-
-<div class="row mt-1 text-center">
-  <!-- Card 1 -->
-  <div class="col-md-2 col flex-fill">
-    <div class="box-md">
-      <div class="row">
-        <div class="col-10">
-          <div class="budget-box-h1">WFFA BUDGET UTILIZATION</div>
-          <div class="budget-box-h2 mt-1">$2M</div>
-          <div class="progress mt-2">
-            <div class="progress-bar" style="width:60%"></div>
-          </div>
-          <div class="d-flex justify-content-between small mt-1">
-            <span>Labor Cost $1.2M</span>
-            <span>Total Budget $2M</span>
-          </div>
-        </div>
-        <div class="col-2 text-end">
-          <img src="../../assets/images/card_icon.png" class="imgvi" />
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Card 2 -->
-  <div class="col-md-2 col flex-fill">
-    <div class="box-md">
-      <div class="row">
-        <div class="col-10">
-          <div class="budget-box-h1">TOTAL WFFA BUDGET</div>
-          <div class="budget-box-h2 mt-1">$2M</div>
-        </div>
-        <div class="col-2 text-end">
-          <img src="../../assets/images/card_icon.png" class="imgvi" />
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Card 3 -->
-  <div class="col-md-2 col flex-fill">
-    <div class="box-md">
-      <div class="row">
-        <div class="col-10">
-          <div class="budget-box-h1">TOTAL EMPLOYEES</div>
-          <div class="budget-box-h2 mt-1">10</div>
-        </div>
-        <div class="col-2 text-end">
-          <img src="../../assets/images/card_icon.png" class="imgvi" />
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Card 4 -->
-  <div class="col-md-2 col flex-fill">
-    <div class="box-md">
-      <div class="row">
-        <div class="col-10">
-          <div class="budget-box-h1">TOTAL LABOR COSTS</div>
-          <div class="budget-box-h2 mt-1">$1.2M</div>
-        </div>
-        <div class="col-2 text-end">
-          <img src="../../assets/images/card_icon.png" class="imgvi" />
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Card 5 -->
-  <div class="col-md-2 col flex-fill">
-    <div class="box-md">
-      <div class="row">
-        <div class="col-10">
-          <div class="budget-box-h1">AVERAGE LABOR COSTS</div>
-          <div class="budget-box-h2 mt-1">$120K</div>
-        </div>
-        <div class="col-2 text-end">
-          <img src="../../assets/images/card_icon.png" class="imgvi" />
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
