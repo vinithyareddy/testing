@@ -1,162 +1,133 @@
-<div class="kpi-row">
+<div class="row mt-1">
   <!-- 1) Utilization card -->
-  <section class="kpi-card kpi--util">
-    <div class="kpi-head">
-      <h6 class="kpi-title">
-        <img class="kpi-icon" src="assets/images/money_bag.svg" alt="">
-        WFFA Budget Utilization
-      </h6>
-    </div>
+  <div class="col">
+    <div class="box-md">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="budget-box-h1">WFFA Budget Utilization</div>
+        <img src="assets/images/money_bag.svg" class="imgvi" alt="">
+      </div>
 
-    <div class="kpi-main">
-      <div class="kpi-value">$2M</div>
-      <div class="kpi-percent">60%</div>
-    </div>
+      <div class="d-flex justify-content-between align-items-baseline mt-1">
+        <div class="budget-box-h2">$2M</div>
+        <div class="percent">60%</div>
+      </div>
 
-    <div class="kpi-bar">
-      <span class="kpi-bar-fill" style="width:60%"></span>
-    </div>
+      <div class="progress mt-2">
+        <div class="progress-bar" style="width:60%"></div>
+      </div>
 
-    <div class="kpi-meta">
-      <span>Labor Cost <strong>$1.2M</strong></span>
-      <span>Total Budget <strong>$2M</strong></span>
+      <div class="d-flex justify-content-between small mt-1">
+        <span>Labor Cost <strong>$1.2M</strong></span>
+        <span>Total Budget <strong>$2M</strong></span>
+      </div>
     </div>
-  </section>
+  </div>
 
-  <!-- 2) Simple KPI -->
-  <section class="kpi-card">
-    <div class="kpi-head">
-      <h6 class="kpi-title">
-        <img class="kpi-icon" src="assets/images/money_bag.svg" alt="">
-        Total WFFA Budget
-      </h6>
+  <!-- 2) Total WFFA Budget -->
+  <div class="col">
+    <div class="box-md">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="budget-box-h1">Total WFFA Budget</div>
+        <img src="assets/images/money_bag.svg" class="imgvi" alt="">
+      </div>
+      <div class="budget-box-h2 mt-1">$2M</div>
     </div>
-    <div class="kpi-value">$2M</div>
-  </section>
+  </div>
 
-  <!-- 3) Simple KPI -->
-  <section class="kpi-card">
-    <div class="kpi-head">
-      <h6 class="kpi-title">
-        <img class="kpi-icon" src="assets/images/users.svg" alt="">
-        Total Employees
-      </h6>
+  <!-- 3) Total Employees -->
+  <div class="col">
+    <div class="box-md">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="budget-box-h1">Total Employees</div>
+        <img src="assets/images/users.svg" class="imgvi" alt="">
+      </div>
+      <div class="budget-box-h2 mt-1">10</div>
     </div>
-    <div class="kpi-value">10</div>
-  </section>
+  </div>
 
-  <!-- 4) Simple KPI -->
-  <section class="kpi-card">
-    <div class="kpi-head">
-      <h6 class="kpi-title">
-        <img class="kpi-icon" src="assets/images/money_bag.svg" alt="">
-        Total Labor Costs
-      </h6>
+  <!-- 4) Total Labor Costs -->
+  <div class="col">
+    <div class="box-md">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="budget-box-h1">Total Labor Costs</div>
+        <img src="assets/images/money_bag.svg" class="imgvi" alt="">
+      </div>
+      <div class="budget-box-h2 mt-1">$1.2M</div>
     </div>
-    <div class="kpi-value">$1.2M</div>
-  </section>
+  </div>
 
-  <!-- 5) Simple KPI -->
-  <section class="kpi-card">
-    <div class="kpi-head">
-      <h6 class="kpi-title">
-        <img class="kpi-icon" src="assets/images/money_bag.svg" alt="">
-        Average Labor Costs
-      </h6>
+  <!-- 5) Average Labor Costs -->
+  <div class="col">
+    <div class="box-md">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="budget-box-h1">Average Labor Costs</div>
+        <img src="assets/images/money_bag.svg" class="imgvi" alt="">
+      </div>
+      <div class="budget-box-h2 mt-1">$120K</div>
     </div>
-    <div class="kpi-value">$120K</div>
-  </section>
+  </div>
 </div>
 
 
-.kpi-row {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
-  align-items: stretch;
-}
-
-.kpi-card {
+/* card box */
+.box-md {
   background: #e8f1f5;
   border: 1px solid #cfe0e8;
   border-radius: 10px;
   padding: 14px 16px;
   box-shadow: 0 2px 6px rgba(0,0,0,.06);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  min-height: 110px;
 }
 
-.kpi-head {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 6px;
-}
-
-.kpi-title {
+/* title */
+.budget-box-h1 {
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   color: #294b5a;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
 }
 
-.kpi-icon {
-  width: 16px;
-  height: 16px;
-  opacity: .85;
-}
-
-.kpi-value {
-  margin-top: 6px;
+/* big value */
+.budget-box-h2 {
   font-size: 26px;
   font-weight: 700;
   color: #143846;
-  line-height: 1.1;
+  line-height: 1.2;
 }
 
-.kpi-main {
-  margin-top: 6px;
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-}
-
-.kpi-percent {
+/* percent on utilization */
+.percent {
   font-size: 16px;
   font-weight: 600;
   color: #476e7f;
 }
 
-/* utilization only */
-.kpi--util .kpi-bar {
-  margin-top: 10px;
-  height: 10px;
+/* bar for utilization */
+.progress {
   background: #d7e7ee;
   border-radius: 6px;
+  height: 10px;
   overflow: hidden;
 }
-
-.kpi--util .kpi-bar-fill {
-  display: block;
-  height: 100%;
+.progress-bar {
   background: #2d8cdf;
-  border-radius: 6px 0 0 6px;
+  height: 100%;
 }
 
-.kpi--util .kpi-meta {
-  margin-top: 6px;
+/* small labels under bar */
+.small {
   font-size: 12px;
   color: #476e7f;
-  display: flex;
-  justify-content: space-between;
 
   strong {
-    font-weight: 700; /* makes 1.2M and 2M bold */
-    color: #143846;
+    font-weight: 700;
+    color: #143846; /* makes 1.2M / 2M bold */
   }
+}
+
+/* card icons */
+.imgvi {
+  width: 18px;
+  height: 18px;
+  opacity: .85;
 }
