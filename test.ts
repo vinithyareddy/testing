@@ -120,7 +120,7 @@ export class AvgLaborCostRegionComponent {
   chartOptions: Highcharts.Options = {
     chart: { map: worldMap as any, backgroundColor: 'transparent' },
     title: { text: '' },
-    credits: { enabled: false },ng g c 
+    credits: { enabled: false },
     legend: { enabled: false },
     mapNavigation: {
       enabled: true,
