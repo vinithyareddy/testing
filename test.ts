@@ -1,47 +1,58 @@
-<div class="budget-card-box-lg">
-  <div class="budget-box-chart-lg">
-    <!-- Header -->
-    <div class="header-row">
-      <div class="d-flex justify-content-between align-items-center flex-wrap">
-        <!-- Left Section -->
-        <div class="widget-heading pointer mt-1 col-md-8 d-flex align-items-center">
-          <span>
-            Workforce Supply (FTE) by Grade
-            <ng-template [ngTemplateOutlet]="infotemp"></ng-template>
-          </span>
-        </div>
+<!-- Chart -->
+<div class="content-area">
+  <button class="nav-arrow left-arrow"><i class="fa fa-chevron-left"></i></button>
 
-        <!-- Right Section -->
-        <div class="col-md-4 d-flex justify-content-end align-items-center header-icons">
-          <div class="togglebtn d-flex">
-            <div class="lft-toggle" [class.lft-toggle-active]="widgetType == 'th'" (click)="loadWidget('th')">
-              <i class="fa fa-table fnticon" aria-hidden="true"></i>
-            </div>
-            <div class="rgt-toggle" [class.rgt-toggle-active]="widgetType == 'ch'" (click)="loadWidget('ch')">
-              <i class="fa fa-bar-chart fnticon" aria-hidden="true"></i>
-            </div>
-          </div>
-          <div class="d-flex gap-3">
-            <span class="view"><i class="fas fa-expand" title="Zoom"></i></span>
-            <div class="ellipsis ml-2"><i class="fas fa-ellipsis-v"></i></div>
-          </div>
-        </div>
-      </div>
-    </div>
+  <highcharts-chart
+    [Highcharts]="Highcharts"
+    [options]="chartOptions"
+    style="width: 100%; height: 290px; display: block;">
+  </highcharts-chart>
 
-    <!-- Chart -->
-    <div class="content-area">
-      <highcharts-chart
-        [Highcharts]="Highcharts"
-        [options]="chartOptions"
-        style="width: 100%; height: 290px; display: block;">
-      </highcharts-chart>
-    </div>
-
-    <!-- Footer always at bottom of card -->
-    <div class="viewmore">
-      <span>View More</span>
-      <i class="fa fa-angle-right"></i>
-    </div>
-  </div>
+  <button class="nav-arrow right-arrow"><i class="fa fa-chevron-right"></i></button>
 </div>
+
+<div class="viewmore pointer mt-3 pt-3">
+  <span>View More&nbsp;&nbsp;</span>
+  <i class="fa fa-angle-right"></i>
+</div>
+
+
+
+.content-area {
+  position: relative;
+  border: 1px solid #ccd5df;
+  border-radius: 8px;
+  padding-bottom: 20px;
+  background: #fff;
+}
+
+/* shared arrow styles */
+.nav-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #fff;
+  border: 1px solid #ccd5df;
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0071bc;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+
+  i {
+    font-size: 14px;
+  }
+}
+
+/* left/right placement */
+.left-arrow {
+  left: -12px;   // stick just outside chart border
+}
+
+.right-arrow {
+  right: -12px;
+}
