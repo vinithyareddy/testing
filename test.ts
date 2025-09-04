@@ -1,58 +1,69 @@
-<!-- Chart -->
-<div class="content-area">
-  <button class="nav-arrow left-arrow"><i class="fa fa-chevron-left"></i></button>
+import { Component } from '@angular/core';
+import * as Highcharts from 'highcharts';
 
-  <highcharts-chart
-    [Highcharts]="Highcharts"
-    [options]="chartOptions"
-    style="width: 100%; height: 290px; display: block;">
-  </highcharts-chart>
+type Row = { grade: string; amount: number };
 
-  <button class="nav-arrow right-arrow"><i class="fa fa-chevron-right"></i></button>
-</div>
+@Component({
+  selector: 'app-avg-labor-cost-grade',
+  templateUrl: './avg-labor-cost-grade.component.html',
+  styleUrls: ['./avg-labor-cost-grade.component.scss']
+})
+export class AvgLaborCostGradeComponent {
 
-<div class="viewmore pointer mt-3 pt-3">
-  <span>View More&nbsp;&nbsp;</span>
-  <i class="fa fa-angle-right"></i>
-</div>
+  Highcharts: typeof Highcharts = Highcharts;
 
+  // Dummy values (drives chart automatically)
+  data: Row[] = [
+    { grade: 'GI', amount: 400 },
+    { grade: 'GH', amount: 330 },
+    { grade: 'GG', amount: 220 },
+    { grade: 'GF', amount: 150 },
+    { grade: 'GE', amount: 76 }
+  ];
 
+  chartOptions: Highcharts.Options = {
+    chart: {
+      type: 'bar'
+    },
+    title: { text: '' },
+    credits: { enabled: false },
+    legend: { enabled: false },
 
-.content-area {
-  position: relative;
-  border: 1px solid #ccd5df;
-  border-radius: 8px;
-  padding-bottom: 20px;
-  background: #fff;
-}
+    xAxis: {
+      categories: this.data.map(d => d.grade),
+      title: {
+        text: 'Grades',
+        style: { color: '#111827', fontWeight: '500', fontSize: '13px' }
+      },
+      labels: { style: { color: '#111827', fontWeight: '600', fontSize: '12px' } },
+      lineWidth: 0
+    },
 
-/* shared arrow styles */
-.nav-arrow {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background: #fff;
-  border: 1px solid #ccd5df;
-  border-radius: 4px;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #0071bc;
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    yAxis: {
+      min: 0,
+      tickInterval: 50,
+      title: {
+        text: 'Amount (in millions)',
+        style: { color: '#111827', fontWeight: '500', fontSize: '13px' }
+      },
+      gridLineWidth: 1,
+      gridLineDashStyle: 'Dash',
+      gridLineColor: '#D1D5DB'
+    },
 
-  i {
-    font-size: 14px;
-  }
-}
+    plotOptions: {
+      bar: {
+        borderWidth: 0,
+        pointPadding: 0.1,
+        dataLabels: { enabled: true, style: { fontWeight: '600' } } as any
+      }
+    },
 
-/* left/right placement */
-.left-arrow {
-  left: -12px;   // stick just outside chart border
-}
-
-.right-arrow {
-  right: -12px;
+    series: [{
+      type: 'bar',
+      name: 'Amount',
+      color: '#6c63ff',  // purple like your screenshot
+      data: this.data.map(d => d.amount)
+    }]
+  };
 }
