@@ -120,7 +120,7 @@ export class AvgLaborCostRegionComponent {
   chartOptions: Highcharts.Options = {
     chart: { map: worldMap as any, backgroundColor: 'transparent' },
     title: { text: '' },
-    credits: { enabled: false },
+    credits: { enabled: false },ng g c 
     legend: { enabled: false },
     mapNavigation: {
       enabled: true,
@@ -137,3 +137,6 @@ export class AvgLaborCostRegionComponent {
     }]
   };
 }
+
+
+"node_modules/flag-icons/css/flag-icons.min.css",
