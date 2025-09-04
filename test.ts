@@ -1,100 +1,104 @@
-<div class="budget-card-box-lg">
-  <div class="budget-box-chart-lg">
-    <!-- Header -->
-    <div class="header-row">
-      <div class="widget-heading">
-        <span>
-          Average Labor cost by Region
-          <lift-popover popoverTitle="" popoverText="">
-            <i class="far fa-info-circle ml-1"></i>
-          </lift-popover>
-        </span>
-      </div>
-    </div>
-
-    <!-- Body -->
-    <div class="content-area globe-container">
-      <div class="globe-chart">
-        <highcharts-chart
-          [Highcharts]="Highcharts"
-          [constructorType]="'mapChart'"
-          [options]="chartOptions"
-          style="width:100%; height:400px; display:block;">
-        </highcharts-chart>
-      </div>
-
-      <div class="region-list">
-        <h4>Average Labor cost by Region</h4>
-        <table>
-          <tbody>
-            <tr *ngFor="let row of data">
-              <td>
-                <span *ngIf="row.flag" class="fi fi-{{row.flag}}"></span>
-                &nbsp; {{ row.name }}
-              </td>
-              <td class="text-end">${{ row.value }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Footer -->
-    <div class="viewmore">
-      <span>View More</span>
-      <i class="fa fa-angle-right"></i>
-    </div>
-  </div>
-</div>
-
-
-.content-area.globe-container {
+.globe-widget {
   display: flex;
-  gap: 20px;
-  border: 1px solid #ccd5df;
-  border-radius: 10px;
+  background: #0b2540; // dark blue background
+  border-radius: 8px;
+  overflow: hidden;
+  color: #fff;
+}
+
+.globe-chart {
+  flex: 1;
+}
+
+.region-list {
+  flex: 1;
   padding: 16px;
-  background: #0a3358; // dark blue background
+  background: #0b2540;
   color: #fff;
 
-  .globe-chart { flex: 1; }
+  h4 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
 
-  .region-list {
-    flex: 1;
-    background: rgba(255,255,255,0.08);
-    border-radius: 6px;
-    padding: 12px;
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
 
-    h4 {
-      margin-bottom: 10px;
+    .region-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      cursor: pointer;
       font-weight: 600;
-      font-size: 15px;
-      color: #fff;
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 14px;
+    .toggle {
+      margin-right: 6px;
+    }
 
-      td {
-        padding: 8px;
-        color: #f9fafb;
-        vertical-align: middle;
+    .country-list {
+      margin-left: 20px;
+
+      li {
+        display: flex;
+        justify-content: space-between;
+        padding: 3px 0;
+        font-weight: 400;
       }
 
-      .text-end { text-align: right; }
-      .fi { margin-right: 6px; }
+      .flag {
+        margin-right: 6px;
+      }
+    }
+
+    .value {
+      margin-left: auto;
     }
   }
 }
 
+
+<div class="globe-widget">
+  <!-- Left: Globe -->
+  <div class="globe-chart">
+    <highcharts-chart
+      [Highcharts]="Highcharts"
+      [constructorType]="'mapChart'"
+      [options]="chartOptions"
+      style="width:100%; height:400px; display:block">
+    </highcharts-chart>
+  </div>
+
+  <!-- Right: Region + Country List -->
+  <div class="region-list">
+    <h4>Average Labor cost by Region</h4>
+    <ul>
+      <li *ngFor="let r of data">
+        <div class="region-row" (click)="toggleRegion(r)">
+          <span class="toggle">{{ r.expanded ? '-' : '+' }}</span>
+          <span class="region">{{ r.region }}</span>
+          <span class="value">\${{ r.value }}</span>
+        </div>
+        <ul *ngIf="r.expanded && r.countries.length" class="country-list">
+          <li *ngFor="let c of r.countries">
+            <span class="flag">{{ c.flag }}</span>
+            <span class="country">{{ c.name }}</span>
+            <span class="value">\${{ c.value }}</span>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+</div>
+
+
 import { Component } from '@angular/core';
 import * as Highcharts from 'highcharts';
-import HC_map from 'highcharts/modules/map';
 import worldMap from '@highcharts/map-collection/custom/world.geo.json';
-
-HC_map(Highcharts);
 
 @Component({
   selector: 'app-avg-labor-cost-region',
@@ -104,21 +108,31 @@ HC_map(Highcharts);
 export class AvgLaborCostRegionComponent {
   Highcharts: typeof Highcharts = Highcharts;
 
-  // dummy data with flags
+  // region + country dummy data
   data = [
-    { code: 'US', name: 'United States', value: 57, flag: 'us' },
-    { code: 'CA', name: 'Canada', value: 7, flag: 'ca' },
-    { code: 'MX', name: 'Mexico', value: 3, flag: 'mx' },
-    { code: 'BR', name: 'South America', value: 3, flag: '' },
-    { code: 'EU', name: 'Europe', value: 11, flag: '' },
-    { code: 'AF', name: 'Africa', value: 19, flag: '' },
-    { code: 'AS', name: 'Asia', value: 20, flag: '' },
-    { code: 'OC', name: 'Oceania', value: 13, flag: '' },
-    { code: 'AN', name: 'Antarctica', value: 5, flag: '' }
+    {
+      region: 'North America',
+      value: 67,
+      expanded: true,
+      countries: [
+        { name: 'United States', flag: '🇺🇸', value: 57 },
+        { name: 'Canada', flag: '🇨🇦', value: 7 },
+        { name: 'Mexico', flag: '🇲🇽', value: 3 }
+      ]
+    },
+    { region: 'South America', value: 3, expanded: false, countries: [] },
+    { region: 'Europe', value: 11, expanded: false, countries: [] },
+    { region: 'Africa', value: 19, expanded: false, countries: [] },
+    { region: 'Asia', value: 20, expanded: false, countries: [] },
+    { region: 'Oceania', value: 13, expanded: false, countries: [] },
+    { region: 'Antarctica', value: 5, expanded: false, countries: [] }
   ];
 
   chartOptions: Highcharts.Options = {
-    chart: { map: worldMap as any, backgroundColor: 'transparent' },
+    chart: {
+      map: worldMap as any,
+      backgroundColor: '#0b2540' // dark blue background like screenshot
+    },
     title: { text: '' },
     credits: { enabled: false },
     legend: { enabled: false },
@@ -131,12 +145,19 @@ export class AvgLaborCostRegionComponent {
     },
     series: [{
       type: 'map',
-      data: this.data.map(d => [d.code, d.value]),
+      mapData: worldMap as any,
+      joinBy: ['iso-a2', 'code'],
       name: 'Average Cost',
+      data: [
+        ['US', 57], ['CA', 7], ['MX', 3],
+        ['BR', 3], ['FR', 11], ['ZA', 19],
+        ['CN', 20], ['AU', 13], ['AQ', 5]
+      ],
       states: { hover: { color: '#1E90FF' } }
     }]
   };
+
+  toggleRegion(region: any) {
+    region.expanded = !region.expanded;
+  }
 }
-
-
-"node_modules/flag-icons/css/flag-icons.min.css",
