@@ -93,4 +93,27 @@
 }
 
 /* Arrow buttons */
-.chart
+.chart-nav {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  transform: translateY(-50%);
+  pointer-events: none; // let chart clicks through, except arrows
+}
+
+.chart-nav .arrow {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #374151;
+  cursor: pointer;
+  pointer-events: all;
+}
