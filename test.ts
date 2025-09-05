@@ -1,95 +1,159 @@
-<div class="legend-card">
-  <div class="legend-header">Average Labor cost by Region</div>
-  <div class="legend-body">
+import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import * as THREE from 'three';
+import Globe from 'three-globe';
+
+@Component({
+  selector: 'app-avg-labor-cost-region',
+  templateUrl: './avg-labor-cost-region.component.html',
+  styleUrls: ['./avg-labor-cost-region.component.scss']
+})
+export class AvgLaborCostRegionComponent implements OnInit {
+  @ViewChild('globeContainer', { static: true }) globeContainer!: ElementRef;
+
+  laborData = [
+    { region: 'North America', country: 'United States', avgCost: 57, lat: 37, lon: -95, flag: '🇺🇸' },
+    { region: 'North America', country: 'Canada', avgCost: 7, lat: 56, lon: -106, flag: '🇨🇦' },
+    { region: 'North America', country: 'Mexico', avgCost: 3, lat: 23, lon: -102, flag: '🇲🇽' },
+    { region: 'South America', country: '', avgCost: 3, lat: -15, lon: -60, flag: '' },
+    { region: 'Europe', country: '', avgCost: 11, lat: 54, lon: 15, flag: '' },
+    { region: 'Africa', country: '', avgCost: 19, lat: 1, lon: 17, flag: '' },
+    { region: 'Asia', country: '', avgCost: 20, lat: 34, lon: 100, flag: '' },
+    { region: 'Oceania', country: '', avgCost: 13, lat: -25, lon: 133, flag: '' },
+    { region: 'Antarctica', country: '', avgCost: 5, lat: -90, lon: 0, flag: '' }
+  ];
+
+  private renderer!: THREE.WebGLRenderer;
+  private camera!: THREE.PerspectiveCamera;
+  private scene!: THREE.Scene;
+  private globe!: any;
+
+  ngOnInit(): void {}
+
+  ngAfterViewInit() {
+    this.initGlobe();
+  }
+
+  initGlobe() {
+    const width = this.globeContainer.nativeElement.offsetWidth;
+    const height = this.globeContainer.nativeElement.offsetHeight;
+
+    // Scene & Camera
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
+    this.camera.position.z = 250;
+
+    // Renderer
+    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer.setSize(width, height);
+    this.globeContainer.nativeElement.appendChild(this.renderer.domElement);
+
+    // Globe
+    this.globe = new Globe()
+      .globeImageUrl('//unpkg.com/three-globe/example/img/earth-dark.jpg')
+      .bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png')
+      .pointsData(this.laborData)
+      .pointLat('lat')
+      .pointLng('lon')
+      .pointAltitude(() => 0.05)
+      .pointColor(() => 'orange')
+      .pointLabel((d: any) => `${d.country || d.region}<br/>Cost: $${d.avgCost}`);
+
+    this.scene.add(this.globe);
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0xbbbbbb);
+    this.scene.add(ambientLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    directionalLight.position.set(1, 1, 1);
+    this.scene.add(directionalLight);
+
+    // Animate
+    const animate = () => {
+      requestAnimationFrame(animate);
+      this.globe.rotation.y += 0.001; // slow rotation
+      this.renderer.render(this.scene, this.camera);
+    };
+    animate();
+  }
+}
+
+
+<div class="widget-container">
+  <div #globeContainer class="globe"></div>
+
+  <div class="legend">
+    <h3>Average Labor cost by Region</h3>
     <table>
+      <thead>
+        <tr>
+          <th>Region and Country</th>
+          <th>Average Cost</th>
+        </tr>
+      </thead>
       <tbody>
-        <tr *ngFor="let d of data">
-          <td class="legend-label">
-            <span *ngIf="d.flag" class="flag">{{ d.flag }}</span>
-            {{ d.name }}
-          </td>
-          <td class="legend-value">\${{ d.value }}</td>
+        <tr *ngFor="let row of laborData">
+          <td>{{ row.flag }} {{ row.country || row.region }}</td>
+          <td>\${{ row.avgCost }}</td>
         </tr>
       </tbody>
     </table>
   </div>
-  <div class="legend-footer">
-    <span>View More</span>
-    <i class="fa fa-angle-right"></i>
-  </div>
 </div>
 
-.legend-card {
-  background: #0d2b45;        // deep blue background
-  border-radius: 6px;
-  color: #fff;
-  padding: 14px 18px;
+
+.widget-container {
   display: flex;
-  flex-direction: column;
-  height: 100%;
+  flex-direction: row;
+  background-color: #0a4c78;
+  padding: 20px;
+  border-radius: 8px;
+  color: #fff;
+  min-height: 520px;
+}
 
-  .legend-header {
-    font-size: 14px;
-    font-weight: 700;
-    margin-bottom: 12px;
-  }
+.globe {
+  flex: 1;
+  height: 500px;
+}
 
-  .legend-body {
-    flex: 1;
-    overflow-y: auto;
+.legend {
+  flex: 1;
+  margin-left: 20px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 15px;
+  border-radius: 6px;
+
+  h3 {
+    margin-bottom: 15px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
   }
 
   table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
+
+    th {
+      padding: 8px;
+      text-align: left;
+      font-size: 14px;
+      font-weight: 600;
+      color: #ddd;
+    }
+
+    td {
+      padding: 8px;
+      font-size: 14px;
+      color: #f5f5f5;
+    }
 
     tr {
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
 
-    .legend-label {
-      text-align: left;
-      padding: 6px 4px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-
-      .flag {
-        font-size: 14px;
+      &:hover {
+        background: rgba(255, 255, 255, 0.12);
       }
-    }
-
-    .legend-value {
-      text-align: right;
-      padding: 6px 4px;
-      font-weight: 600;
-    }
-  }
-
-  .legend-footer {
-    margin-top: 10px;
-    color: #85caf7;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    cursor: pointer;
-
-    i {
-      font-size: 12px;
     }
   }
 }
-
-data = [
-  { code: 'US', name: 'United States', value: 57, flag: '🇺🇸' },
-  { code: 'CA', name: 'Canada', value: 7, flag: '🇨🇦' },
-  { code: 'MX', name: 'Mexico', value: 3, flag: '🇲🇽' },
-  { code: 'SA', name: 'South America', value: 3, flag: '' },
-  { code: 'EU', name: 'Europe', value: 11, flag: '' },
-  { code: 'AF', name: 'Africa', value: 19, flag: '' },
-  { code: 'AS', name: 'Asia', value: 20, flag: '' },
-  { code: 'OC', name: 'Oceania', value: 13, flag: '' },
-  { code: 'AN', name: 'Antarctica', value: 5, flag: '' }
-];
