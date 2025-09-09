@@ -1,8 +1,10 @@
 import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
 import Globe from 'three-globe';
 import * as THREE from 'three';
+
+// ✅ import topojson + world-atlas
 import * as topojson from 'topojson-client';
-import worldData from 'world-atlas/countries-110m.json'; // requires resolveJsonModule in tsconfig
+import worldData from 'world-atlas/countries-110m.json';
 
 @Component({
   selector: 'app-avg-labor-cost-region',
@@ -29,15 +31,12 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(globeDiv.offsetWidth, globeDiv.offsetHeight);
-    renderer.setClearColor(0x000000, 0); // transparent
+    renderer.setClearColor(0x000000, 0);
     globeDiv.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(
-      75,
-      globeDiv.offsetWidth / globeDiv.offsetHeight,
-      0.1,
-      1000
+      75, globeDiv.offsetWidth / globeDiv.offsetHeight, 0.1, 1000
     );
     camera.position.z = 200;
 
@@ -46,23 +45,18 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       .showGlobe(true)
       .showGraticules(false);
 
-    (globe as any).globeMaterial(
-      new THREE.MeshPhongMaterial({ color: 0x87cefa })
-    );
+    (globe as any).globeMaterial(new THREE.MeshPhongMaterial({ color: 0x87cefa }));
 
-    // Convert topojson → geojson
-    const countries = topojson.feature(
-      worldData as any,
-      (worldData as any).objects.countries
-    ).features;
+    // ✅ Convert TopoJSON -> GeoJSON
+    const countries = topojson.feature(worldData as any, (worldData as any).objects.countries);
 
-    // Find cost for region
+    // Helper: find cost for region
     const getCost = (name: string) => {
-      const match = this.laborData.find(d => d.region === name);
-      return match ? match.cost : null;
+      const found = this.laborData.find(d => d.region === name);
+      return found ? found.cost : null;
     };
 
-    // Color scale (light blue → dark blue)
+    // Color scale
     const getColor = (name: string) => {
       const cost = getCost(name);
       if (cost === null) return 'lightgrey';
@@ -73,7 +67,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     };
 
     globe
-      .polygonsData(countries)
+      .polygonsData(countries.features)  // ✅ features now exists
       .polygonCapColor((d: any) => getColor(d.properties.name))
       .polygonSideColor(() => 'rgba(0,0,0,0.1)')
       .polygonStrokeColor(() => '#111');
@@ -86,28 +80,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     dirLight.position.set(5, 3, 5);
     scene.add(dirLight);
 
-    // Tooltip
-    const tooltip = document.createElement('div');
-    tooltip.style.position = 'absolute';
-    tooltip.style.background = 'white';
-    tooltip.style.padding = '4px 8px';
-    tooltip.style.borderRadius = '4px';
-    tooltip.style.pointerEvents = 'none';
-    tooltip.style.display = 'none';
-    globeDiv.appendChild(tooltip);
-
-    globe.onPolygonHover((polygon: any) => {
-      if (polygon) {
-        const name = polygon.properties.name;
-        const cost = getCost(name);
-        tooltip.style.display = 'block';
-        tooltip.innerHTML = `<b>${name}</b><br/>Average Cost: $${cost ?? 'N/A'}`;
-      } else {
-        tooltip.style.display = 'none';
-      }
-    });
-
-    // Animate
+    // Renderer
     const animate = () => {
       requestAnimationFrame(animate);
       renderer.render(scene, camera);
