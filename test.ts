@@ -13,16 +13,17 @@ import { FeatureCollection, Geometry } from 'geojson';
 export class AvgLaborCostRegionComponent implements AfterViewInit {
   @ViewChild('globeContainer', { static: true }) globeContainer!: ElementRef;
 
+  // Use exact country names from world-atlas
   laborData = [
-    { region: 'United States', cost: 57 },
-    { region: 'Canada', cost: 7 },
-    { region: 'Mexico', cost: 3 },
-    { region: 'South America', cost: 3 },
-    { region: 'Europe', cost: 11 },
-    { region: 'Africa', cost: 19 },
-    { region: 'Asia', cost: 20 },
-    { region: 'Oceania', cost: 13 },
-    { region: 'Antarctica', cost: 5 }
+    { country: 'United States of America', cost: 57 },
+    { country: 'Canada', cost: 7 },
+    { country: 'Mexico', cost: 3 },
+    { country: 'Brazil', cost: 3 },
+    { country: 'France', cost: 11 },
+    { country: 'Nigeria', cost: 19 },
+    { country: 'India', cost: 20 },
+    { country: 'Australia', cost: 13 },
+    { country: 'Antarctica', cost: 5 }
   ];
 
   ngAfterViewInit() {
@@ -30,7 +31,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(globeDiv.offsetWidth, globeDiv.offsetHeight);
-    renderer.setClearColor(0x000000, 0); // transparent background
     globeDiv.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
@@ -40,27 +40,23 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       0.1,
       1000
     );
-    camera.position.z = 200;
+    camera.position.z = 170;
 
-    // Base globe
-    const globe: any = new Globe()
-      .showGlobe(true)
-      .showGraticules(false);
+    const globe: any = new Globe().showGlobe(true).showGraticules(false);
 
     (globe as any).globeMaterial(
       new THREE.MeshPhongMaterial({ color: 0x87cefa })
     );
 
-    // Helper: get cost for a region
+    // helper: lookup cost
     const getCost = (name: string) => {
-      const found = this.laborData.find((d) => d.region === name);
+      const found = this.laborData.find((d) => d.country === name);
       return found ? found.cost : null;
     };
 
-    // Color scale (light blue → dark blue)
     const getColor = (name: string) => {
       const cost = getCost(name);
-      if (cost === null) return 'lightgrey';
+      if (cost === null) return 'lightgrey'; // no data
       if (cost > 40) return '#08306b';
       if (cost > 20) return '#2171b5';
       if (cost > 10) return '#6baed6';
@@ -71,16 +67,14 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     const countries = topojson.feature(
       worldData as any,
       (worldData as any).objects.countries
-    );
+    ) as FeatureCollection<Geometry, any>;
 
-    // ✅ Only use polygons if features exist
-    if ((countries as FeatureCollection<Geometry, any>).features) {
-      globe
-        .polygonsData((countries as FeatureCollection<Geometry, any>).features)
-        .polygonCapColor((d: any) => getColor(d.properties.name))
-        .polygonSideColor(() => 'rgba(0,0,0,0.1)')
-        .polygonStrokeColor(() => '#111');
-    }
+    // Apply polygons with dynamic color
+    globe
+      .polygonsData(countries.features)
+      .polygonCapColor((d: any) => getColor(d.properties.name))
+      .polygonSideColor(() => 'rgba(0,0,0,0.1)')
+      .polygonStrokeColor(() => '#111');
 
     scene.add(globe);
 
@@ -91,6 +85,37 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
     directionalLight.position.set(5, 3, 5);
     scene.add(directionalLight);
+
+    // Tooltip (like second screenshot)
+    const tooltip = document.createElement('div');
+    tooltip.style.position = 'absolute';
+    tooltip.style.background = 'white';
+    tooltip.style.padding = '4px 8px';
+    tooltip.style.border = '1px solid black';
+    tooltip.style.borderRadius = '4px';
+    tooltip.style.pointerEvents = 'none';
+    tooltip.style.display = 'none';
+    document.body.appendChild(tooltip);
+
+    globe.onPolygonHover((polygon: any) => {
+      if (polygon) {
+        const country = polygon.properties.name;
+        const cost = getCost(country);
+        if (cost !== null) {
+          tooltip.innerHTML = `<b>${country}</b><br/>Average Cost: $${cost}`;
+          tooltip.style.display = 'block';
+        } else {
+          tooltip.style.display = 'none';
+        }
+      } else {
+        tooltip.style.display = 'none';
+      }
+    });
+
+    window.addEventListener('mousemove', (event) => {
+      tooltip.style.left = event.pageX + 10 + 'px';
+      tooltip.style.top = event.pageY + 10 + 'px';
+    });
 
     // Renderer loop (no rotation)
     const animate = () => {
