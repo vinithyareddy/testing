@@ -1,100 +1,101 @@
-ngAfterViewInit() {
-  const globeDiv = this.globeContainer.nativeElement;
+import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
+import Globe from 'three-globe';
+import * as THREE from 'three';
+import * as topojson from 'topojson-client';
+import worldData from 'world-atlas/countries-110m.json';
+import { FeatureCollection, Geometry } from 'geojson';
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setSize(globeDiv.offsetWidth, globeDiv.offsetHeight);
-  globeDiv.appendChild(renderer.domElement);
+@Component({
+  selector: 'app-avg-labor-cost-region',
+  templateUrl: './avg-labor-cost-region.component.html',
+  styleUrls: ['./avg-labor-cost-region.component.scss']
+})
+export class AvgLaborCostRegionComponent implements AfterViewInit {
+  @ViewChild('globeContainer', { static: true }) globeContainer!: ElementRef;
 
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(
-    75,
-    globeDiv.offsetWidth / globeDiv.offsetHeight,
-    0.1,
-    1000
-  );
-  camera.position.z = 170;
+  // ✅ Dummy data with regions
+  laborData = [
+    { country: 'United States of America', region: 'North America', cost: 57 },
+    { country: 'Canada', region: 'North America', cost: 7 },
+    { country: 'Mexico', region: 'North America', cost: 3 },
+    { country: 'Brazil', region: 'South America', cost: 3 },
+    { country: 'France', region: 'Europe', cost: 11 },
+    { country: 'Nigeria', region: 'Africa', cost: 19 },
+    { country: 'India', region: 'Asia', cost: 20 },
+    { country: 'Australia', region: 'Oceania', cost: 13 },
+    { country: 'Antarctica', region: 'Antarctica', cost: 5 }
+  ];
 
-  const globe: any = new Globe().showGlobe(true).showGraticules(false);
-
-  (globe as any).globeMaterial(
-    new THREE.MeshPhongMaterial({ color: 0x87cefa })
-  );
-
-  const getCost = (name: string) => {
-    const found = this.laborData.find((d) => d.country === name);
-    return found ? found.cost : null;
+  // ✅ Region → Color mapping
+  regionColors: Record<string, string> = {
+    'North America': '#1f77b4', // blue
+    'South America': '#2ca02c', // green
+    Europe: '#9467bd',          // purple
+    Africa: '#d62728',          // red
+    Asia: '#ff7f0e',            // orange
+    Oceania: '#17becf',         // teal
+    Antarctica: '#7f7f7f'       // grey
   };
 
-  const getColor = (name: string) => {
-    const cost = getCost(name);
-    if (cost === null) return 'lightgrey';
-    if (cost > 40) return '#08306b';
-    if (cost > 20) return '#2171b5';
-    if (cost > 10) return '#6baed6';
-    return '#c6dbef';
-  };
+  ngAfterViewInit() {
+    const globeDiv = this.globeContainer.nativeElement;
 
-  const countries = topojson.feature(
-    worldData as any,
-    (worldData as any).objects.countries
-  ) as unknown as FeatureCollection<Geometry, any>;
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(globeDiv.offsetWidth, globeDiv.offsetHeight);
+    globeDiv.appendChild(renderer.domElement);
 
-  globe
-    .polygonsData(countries.features)
-    .polygonCapColor((d: any) => getColor(d.properties.name))
-    .polygonSideColor(() => 'rgba(0,0,0,0.1)')
-    .polygonStrokeColor(() => '#111');
+    const scene = new THREE.Scene();
 
-  scene.add(globe);
+    const camera = new THREE.PerspectiveCamera(
+      75,
+      globeDiv.offsetWidth / globeDiv.offsetHeight,
+      0.1,
+      1000
+    );
+    camera.position.z = 170;
 
-  // ✅ Tooltip
-  const tooltip = document.createElement('div');
-  tooltip.style.position = 'absolute';
-  tooltip.style.background = 'white';
-  tooltip.style.color = 'black';
-  tooltip.style.padding = '4px 8px';
-  tooltip.style.borderRadius = '4px';
-  tooltip.style.pointerEvents = 'none';
-  tooltip.style.display = 'none';
-  document.body.appendChild(tooltip);
+    // Base globe
+    const globe: any = new Globe().showGlobe(true).showGraticules(false);
 
-  const raycaster = new THREE.Raycaster();
-  const mouse = new THREE.Vector2();
+    (globe as any).globeMaterial(
+      new THREE.MeshPhongMaterial({ color: 0x87cefa })
+    );
 
-  globeDiv.addEventListener('mousemove', (event: MouseEvent) => {
-    const rect = globeDiv.getBoundingClientRect();
-    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    // Helper to get region color
+    const getColor = (name: string) => {
+      const found = this.laborData.find((d) => d.country === name);
+      if (!found) return 'lightgrey';
+      return this.regionColors[found.region] || 'lightgrey';
+    };
 
-    raycaster.setFromCamera(mouse, camera);
+    // Convert TopoJSON → GeoJSON
+    const countries = topojson.feature(
+      worldData as any,
+      (worldData as any).objects.countries
+    ) as unknown as FeatureCollection<Geometry, any>;
 
-    const intersects = raycaster.intersectObjects(scene.children, true);
-    if (intersects.length > 0) {
-      const obj: any = intersects[0].object.__data; // polygon data
-      if (obj && obj.properties) {
-        const cost = getCost(obj.properties.name);
-        tooltip.style.display = 'block';
-        tooltip.style.left = event.pageX + 10 + 'px';
-        tooltip.style.top = event.pageY + 10 + 'px';
-        tooltip.innerHTML = `<b>${obj.properties.name}</b><br/>Average Cost: ${
-          cost !== null ? '$' + cost : 'N/A'
-        }`;
-        return;
-      }
-    }
-    tooltip.style.display = 'none';
-  });
+    // Apply polygons with region-based colors
+    globe
+      .polygonsData(countries.features)
+      .polygonCapColor((d: any) => getColor(d.properties.name))
+      .polygonSideColor(() => 'rgba(0,0,0,0.1)')
+      .polygonStrokeColor(() => '#111');
 
-  const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
-  scene.add(ambientLight);
+    scene.add(globe);
 
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-  directionalLight.position.set(5, 3, 5);
-  scene.add(directionalLight);
+    // Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+    scene.add(ambientLight);
 
-  const animate = () => {
-    requestAnimationFrame(animate);
-    renderer.render(scene, camera);
-  };
-  animate();
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(5, 3, 5);
+    scene.add(directionalLight);
+
+    // Render loop (no rotation)
+    const animate = () => {
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    };
+    animate();
+  }
 }
