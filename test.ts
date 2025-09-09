@@ -1,8 +1,6 @@
 import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
 import Globe from 'three-globe';
 import * as THREE from 'three';
-import * as topojson from 'topojson-client';
-import worldData from 'world-atlas/countries-110m.json'; // TS may need resolveJsonModule=true in tsconfig
 
 @Component({
   selector: 'app-avg-labor-cost-region',
@@ -29,6 +27,8 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(globeDiv.offsetWidth, globeDiv.offsetHeight);
+    // 🔹 Transparent background → your dashboard's dark blue shows through
+    renderer.setClearColor(0x000000, 0);
     globeDiv.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
@@ -37,27 +37,14 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     );
     camera.position.z = 350;
 
-    // 🌍 Flat-style globe (no texture)
+    // 🌍 Simple light-blue globe (no topojson, no texture complexity)
     const globe: any = new Globe()
-      .showGlobe(true)
-      .showGraticules(false)
-      .backgroundColor('rgba(0,0,0,0)'); // transparent so dashboard bg shows
+      .globeImageUrl('//unpkg.com/three-globe/example/img/earth-blue-marble.jpg') // base map
+      .bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png');    // gives some relief
 
     globe.setPointOfView({ lat: 20, lng: 0, altitude: 2 });
 
-    // 🗺 Country polygons (light blue fill, darker border)
-    const countries = topojson.feature(
-      worldData as any,
-      (worldData as any).objects.countries
-    ).features;
-
-    globe
-      .polygonsData(countries)
-      .polygonCapColor(() => 'rgba(0,150,255,0.7)') // fill
-      .polygonSideColor(() => 'rgba(0,150,255,0.3)')
-      .polygonStrokeColor(() => '#003366'); // borders
-
-    // 📌 Labels (your labor data)
+    // 📌 Labels from data
     globe
       .labelsData(this.laborData)
       .labelLat('lat')
@@ -70,11 +57,11 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
     scene.add(globe);
 
-    // 💡 Lights (soft)
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+    // 💡 Lights (bright enough so globe looks light)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
     directionalLight.position.set(5, 3, 5);
     scene.add(directionalLight);
 
