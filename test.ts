@@ -10,7 +10,6 @@ import * as THREE from 'three';
 export class AvgLaborCostRegionComponent implements AfterViewInit {
   @ViewChild('globeContainer', { static: true }) globeContainer!: ElementRef;
 
-  // Dummy labor cost data (simple array)
   laborData: { [key: string]: number } = {
     'United States': 57,
     'Canada': 7,
@@ -38,30 +37,28 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       0.1,
       1000
     );
-    camera.position.z = 200;
+    camera.position.z = 170;
 
-    // 🌍 Simple globe with polygons from a public GeoJSON
-    const globe: any = new Globe()
-      .showGlobe(true)
-      .showGraticules(false)
-      .polygonsData([])
-      .polygonCapColor(() => '#87CEFA') // default until data loads
-      .polygonSideColor(() => 'rgba(0,0,0,0.1)')
-      .polygonStrokeColor(() => '#111');
+    // 🌍 Base globe
+    const globe: any = new Globe().showGlobe(true).showGraticules(false);
+    globe.setPointOfView({ lat: 20, lng: 0, altitude: 2 });
 
-    // Load country polygons directly (no topojson import needed)
+    // 🗺 Load polygons (countries) and color them
     fetch('//unpkg.com/world-atlas/countries-110m.geojson')
       .then(res => res.json())
       .then(countries => {
-        globe.polygonsData(countries.features).polygonCapColor((d: any) => {
-          const region = d.properties.name;
-          const cost = this.laborData[region];
-          if (!cost) return 'lightgrey';
-          if (cost > 20) return '#084594';
-          if (cost > 10) return '#2171b5';
-          if (cost > 5) return '#4292c6';
-          return '#6baed6';
-        });
+        globe.polygonsData(countries.features)
+          .polygonCapColor((d: any) => {
+            const region = d.properties.name;
+            const cost = this.laborData[region];
+            if (!cost) return 'lightgrey';
+            if (cost > 20) return '#084594';
+            if (cost > 10) return '#2171b5';
+            if (cost > 5) return '#4292c6';
+            return '#6baed6';
+          })
+          .polygonSideColor(() => 'rgba(0,0,0,0.1)')
+          .polygonStrokeColor(() => '#111');
       });
 
     // 📌 Tooltip
@@ -105,7 +102,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     directionalLight.position.set(5, 3, 5);
     scene.add(directionalLight);
 
-    // 🎥 Animate (no rotation)
+    // 🎥 Animate (no rotation now)
     const animate = () => {
       requestAnimationFrame(animate);
       renderer.render(scene, camera);
