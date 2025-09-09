@@ -41,13 +41,16 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
     // 🌍 Base globe
     const globe: any = new Globe().showGlobe(true).showGraticules(false);
+    (globe as any).globeMaterial(new THREE.MeshPhongMaterial({ color: 0x87CEFA }));
+
     globe.setPointOfView({ lat: 20, lng: 0, altitude: 2 });
 
-    // 🗺 Load polygons (countries) and color them
+    // 🗺 Add polygons and color them based on cost
     fetch('//unpkg.com/world-atlas/countries-110m.geojson')
       .then(res => res.json())
       .then(countries => {
-        globe.polygonsData(countries.features)
+        globe
+          .polygonsData(countries.features)
           .polygonCapColor((d: any) => {
             const region = d.properties.name;
             const cost = this.laborData[region];
