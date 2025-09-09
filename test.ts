@@ -113,3 +113,60 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     group.expanded = !group.expanded;
   }
 }
+<div class="globe-wrapper">
+  <div #globeContainer class="globe-container"></div>
+
+  <div class="legend">
+    <h3>Average Labor cost by Region</h3>
+    <ul>
+      <li *ngFor="let group of regionGroups">
+        <span (click)="toggleExpand(group)">
+          ▶ {{ group.region }} — ${{ group.total }}
+        </span>
+        <ul *ngIf="group.expanded">
+          <li *ngFor="let c of group.countries">
+            &nbsp;&nbsp;• {{ c.country }} — ${{ c.cost }}
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+</div>
+.globe-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: #154361;
+  padding: 15px;
+  border-radius: 10px;
+  color: #fff;
+}
+
+.globe-container {
+  width: 70%;
+  height: 600px;
+}
+
+.legend {
+  width: 28%;
+  background: #0b3d91;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  font-size: 0.9rem;
+}
+
+.legend h3 {
+  margin-top: 0;
+  text-align: center;
+}
+
+.legend ul {
+  list-style: none;
+  padding: 0;
+}
+
+.legend li {
+  cursor: pointer;
+  margin: 6px 0;
+}
