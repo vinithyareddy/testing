@@ -51,19 +51,13 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       new THREE.MeshPhongMaterial({ color: 0x87cefa })
     );
 
-    // ✅ Convert TopoJSON → FeatureCollection
-    const countries = topojson.feature(
-      worldData as any,
-      (worldData as any).objects.countries
-    ) as FeatureCollection<Geometry, any>;
-
-    // Helper: find cost for a region
+    // Helper: get cost for a region
     const getCost = (name: string) => {
-      const found = this.laborData.find(d => d.region === name);
+      const found = this.laborData.find((d) => d.region === name);
       return found ? found.cost : null;
     };
 
-    // Color scale
+    // Color scale (light blue → dark blue)
     const getColor = (name: string) => {
       const cost = getCost(name);
       if (cost === null) return 'lightgrey';
@@ -73,22 +67,32 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       return '#c6dbef';
     };
 
-    // Apply polygons with colors
-    globe
-      .polygonsData(countries.features)
-      .polygonCapColor((d: any) => getColor(d.properties.name))
-      .polygonSideColor(() => 'rgba(0,0,0,0.1)')
-      .polygonStrokeColor(() => '#111');
+    // Convert TopoJSON → GeoJSON
+    const countries = topojson.feature(
+      worldData as any,
+      (worldData as any).objects.countries
+    );
+
+    // ✅ Only use polygons if features exist
+    if ((countries as FeatureCollection<Geometry, any>).features) {
+      globe
+        .polygonsData((countries as FeatureCollection<Geometry, any>).features)
+        .polygonCapColor((d: any) => getColor(d.properties.name))
+        .polygonSideColor(() => 'rgba(0,0,0,0.1)')
+        .polygonStrokeColor(() => '#111');
+    }
 
     scene.add(globe);
 
     // Lights
-    scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    dirLight.position.set(5, 3, 5);
-    scene.add(dirLight);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+    scene.add(ambientLight);
 
-    // Renderer loop
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(5, 3, 5);
+    scene.add(directionalLight);
+
+    // Renderer loop (no rotation)
     const animate = () => {
       requestAnimationFrame(animate);
       renderer.render(scene, camera);
