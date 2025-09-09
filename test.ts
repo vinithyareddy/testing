@@ -1,16 +1,6 @@
-globe
-  .polygonsData(countries.features)
-  .polygonCapColor((d: any) => {
-    const countryName = d.properties.name;
-
-    // Check laborData first
-    const entry = this.laborData.find(c => c.country === countryName);
-    if (entry) {
-      return this.REGION_COLORS[entry.region] ?? '#ffffff';
-    }
-
-    // Default → white
-    return '#ffffff';
-  })
-  .polygonSideColor(() => 'rgba(0,0,0,0.1)')
-  .polygonStrokeColor(() => '#10283b');
+// Explicit overrides for territories that should be treated as South America
+{ country: 'French Guiana', region: 'South America', cost: 3 },
+{ country: 'Guadeloupe', region: 'North America', cost: 0 },   // Caribbean
+{ country: 'Martinique', region: 'North America', cost: 0 },   // Caribbean
+{ country: 'Reunion', region: 'Africa', cost: 0 },             // off Madagascar
+{ country: 'Mayotte', region: 'Africa', cost: 0 }              // near Comoros
