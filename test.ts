@@ -39,26 +39,26 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       0.1,
       1000
     );
-    camera.position.z = 200; // good zoom
+    camera.position.z = 200;
 
-    // 🌍 Globe with polygons (no markers)
+    // 🌍 Globe base
     const globe: any = new Globe().showGlobe(true).showGraticules(false);
 
     globe.setPointOfView({ lat: 20, lng: 0, altitude: 2 });
 
-    // 🗺 Country polygons
-    const countries = topojson.feature(
+    // 🗺 Country polygons (force cast to any so TS is happy)
+    const countries: any = (topojson.feature(
       worldData as any,
       (worldData as any).objects.countries
-    ).features;
+    ) as any).features;
 
-    // helper: find cost for a region
+    // Helper: get cost for region
     const getCost = (region: string) => {
       const found = this.laborData.find(d => d.region === region);
       return found ? found.cost : null;
     };
 
-    // simple color scale
+    // Color scale
     const getColor = (region: string) => {
       const cost = getCost(region);
       if (cost === null) return 'lightgrey';
@@ -116,7 +116,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     directionalLight.position.set(5, 3, 5);
     scene.add(directionalLight);
 
-    // 🎥 Animate (no rotation now)
+    // 🎥 Animate (no rotation)
     const animate = () => {
       requestAnimationFrame(animate);
       renderer.render(scene, camera);
