@@ -1,8 +1,6 @@
 import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
 import Globe from 'three-globe';
 import * as THREE from 'three';
-import * as topojson from 'topojson-client';
-import worldData from 'world-atlas/countries-110m.json'; // needs "resolveJsonModule": true in tsconfig
 
 @Component({
   selector: 'app-avg-labor-cost-region',
@@ -12,17 +10,18 @@ import worldData from 'world-atlas/countries-110m.json'; // needs "resolveJsonMo
 export class AvgLaborCostRegionComponent implements AfterViewInit {
   @ViewChild('globeContainer', { static: true }) globeContainer!: ElementRef;
 
-  laborData = [
-    { region: 'United States', cost: 57 },
-    { region: 'Canada', cost: 7 },
-    { region: 'Mexico', cost: 3 },
-    { region: 'South America', cost: 3 },
-    { region: 'Europe', cost: 11 },
-    { region: 'Africa', cost: 19 },
-    { region: 'Asia', cost: 20 },
-    { region: 'Oceania', cost: 13 },
-    { region: 'Antarctica', cost: 5 }
-  ];
+  // Dummy labor cost data (simple array)
+  laborData: { [key: string]: number } = {
+    'United States': 57,
+    'Canada': 7,
+    'Mexico': 3,
+    'South America': 3,
+    'Europe': 11,
+    'Africa': 19,
+    'Asia': 20,
+    'Oceania': 13,
+    'Antarctica': 5
+  };
 
   ngAfterViewInit() {
     const globeDiv = this.globeContainer.nativeElement;
@@ -41,39 +40,29 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     );
     camera.position.z = 200;
 
-    // 🌍 Globe base
-    const globe: any = new Globe().showGlobe(true).showGraticules(false);
-
-    globe.setPointOfView({ lat: 20, lng: 0, altitude: 2 });
-
-    // 🗺 Country polygons (force cast to any so TS is happy)
-    const countries: any = (topojson.feature(
-      worldData as any,
-      (worldData as any).objects.countries
-    ) as any).features;
-
-    // Helper: get cost for region
-    const getCost = (region: string) => {
-      const found = this.laborData.find(d => d.region === region);
-      return found ? found.cost : null;
-    };
-
-    // Color scale
-    const getColor = (region: string) => {
-      const cost = getCost(region);
-      if (cost === null) return 'lightgrey';
-      if (cost > 20) return '#084594';
-      if (cost > 10) return '#2171b5';
-      if (cost > 5) return '#4292c6';
-      if (cost > 0) return '#6baed6';
-      return '#c6dbef';
-    };
-
-    globe
-      .polygonsData(countries)
-      .polygonCapColor((d: any) => getColor(d.properties.name))
+    // 🌍 Simple globe with polygons from a public GeoJSON
+    const globe: any = new Globe()
+      .showGlobe(true)
+      .showGraticules(false)
+      .polygonsData([])
+      .polygonCapColor(() => '#87CEFA') // default until data loads
       .polygonSideColor(() => 'rgba(0,0,0,0.1)')
       .polygonStrokeColor(() => '#111');
+
+    // Load country polygons directly (no topojson import needed)
+    fetch('//unpkg.com/world-atlas/countries-110m.geojson')
+      .then(res => res.json())
+      .then(countries => {
+        globe.polygonsData(countries.features).polygonCapColor((d: any) => {
+          const region = d.properties.name;
+          const cost = this.laborData[region];
+          if (!cost) return 'lightgrey';
+          if (cost > 20) return '#084594';
+          if (cost > 10) return '#2171b5';
+          if (cost > 5) return '#4292c6';
+          return '#6baed6';
+        });
+      });
 
     // 📌 Tooltip
     const tooltip = document.createElement('div');
@@ -90,8 +79,8 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     globe.onPolygonHover((polygon: any) => {
       if (polygon) {
         const region = polygon.properties.name;
-        const cost = getCost(region);
-        if (cost !== null) {
+        const cost = this.laborData[region];
+        if (cost) {
           tooltip.style.display = 'block';
           tooltip.innerHTML = `<b>${region}</b><br/>Average Cost: $${cost}`;
         } else {
