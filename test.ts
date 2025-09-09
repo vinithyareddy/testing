@@ -5,9 +5,13 @@ globe
     return this.REGION_COLORS[region] || this.REGION_COLORS['Other'];
   })
   .polygonSideColor(() => '#84c9f6')
-  .polygonLabel((d: any) => {
+  .polygonStrokeColor(() => '#111')
+  .polygonTooltip((d: any) => {
     const country = this.laborData.find(c => c.country === d.properties.name);
     return country
-      ? `<div><b>${country.country}</b><br/>Average Cost: $${country.cost}</div>`
-      : `<div><b>${d.properties.name}</b></div>`;
+      ? `<div style="padding:6px; font-size:13px;">
+           <b>${country.country}</b><br/>
+           Average Cost: $${country.cost}
+         </div>`
+      : `<div style="padding:6px; font-size:13px;"><b>${d.properties.name}</b></div>`;
   });
