@@ -1,152 +1,100 @@
-import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
-import Globe from 'three-globe';
-import * as THREE from 'three';
-import * as topojson from 'topojson-client';
-import worldData from 'world-atlas/countries-110m.json';
-import { FeatureCollection, Geometry } from 'geojson';
+ngAfterViewInit() {
+  const globeDiv = this.globeContainer.nativeElement;
 
-@Component({
-  selector: 'app-avg-labor-cost-region',
-  templateUrl: './avg-labor-cost-region.component.html',
-  styleUrls: ['./avg-labor-cost-region.component.scss']
-})
-export class AvgLaborCostRegionComponent implements AfterViewInit {
-  @ViewChild('globeContainer', { static: true }) globeContainer!: ElementRef;
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(globeDiv.offsetWidth, globeDiv.offsetHeight);
+  globeDiv.appendChild(renderer.domElement);
 
-  laborData = [
-    { country: 'United States of America', cost: 57 },
-    { country: 'Canada', cost: 7 },
-    { country: 'Mexico', cost: 3 },
-    { country: 'Brazil', cost: 3 },
-    { country: 'France', cost: 11 },
-    { country: 'Nigeria', cost: 19 },
-    { country: 'India', cost: 20 },
-    { country: 'Australia', cost: 13 },
-    { country: 'Antarctica', cost: 5 }
-  ];
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(
+    75,
+    globeDiv.offsetWidth / globeDiv.offsetHeight,
+    0.1,
+    1000
+  );
+  camera.position.z = 170;
 
-  regionMap: Record<string, string> = {
-    'United States of America': 'North America',
-    'Canada': 'North America',
-    'Mexico': 'North America',
-    'Brazil': 'South America',
-    'France': 'Europe',
-    'Nigeria': 'Africa',
-    'India': 'Asia',
-    'Australia': 'Oceania',
-    'Antarctica': 'Antarctica'
+  const globe: any = new Globe().showGlobe(true).showGraticules(false);
+
+  (globe as any).globeMaterial(
+    new THREE.MeshPhongMaterial({ color: 0x87cefa })
+  );
+
+  const getCost = (name: string) => {
+    const found = this.laborData.find((d) => d.country === name);
+    return found ? found.cost : null;
   };
 
-  regionAverages: { region: string; avgCost: number }[] = [];
+  const getColor = (name: string) => {
+    const cost = getCost(name);
+    if (cost === null) return 'lightgrey';
+    if (cost > 40) return '#08306b';
+    if (cost > 20) return '#2171b5';
+    if (cost > 10) return '#6baed6';
+    return '#c6dbef';
+  };
 
-  ngAfterViewInit() {
-    const globeDiv = this.globeContainer.nativeElement;
+  const countries = topojson.feature(
+    worldData as any,
+    (worldData as any).objects.countries
+  ) as unknown as FeatureCollection<Geometry, any>;
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(globeDiv.offsetWidth, globeDiv.offsetHeight);
-    globeDiv.appendChild(renderer.domElement);
+  globe
+    .polygonsData(countries.features)
+    .polygonCapColor((d: any) => getColor(d.properties.name))
+    .polygonSideColor(() => 'rgba(0,0,0,0.1)')
+    .polygonStrokeColor(() => '#111');
 
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(
-      75,
-      globeDiv.offsetWidth / globeDiv.offsetHeight,
-      0.1,
-      1000
-    );
-    camera.position.z = 170;
+  scene.add(globe);
 
-    const globe: any = new Globe().showGlobe(true).showGraticules(false);
+  // ✅ Tooltip
+  const tooltip = document.createElement('div');
+  tooltip.style.position = 'absolute';
+  tooltip.style.background = 'white';
+  tooltip.style.color = 'black';
+  tooltip.style.padding = '4px 8px';
+  tooltip.style.borderRadius = '4px';
+  tooltip.style.pointerEvents = 'none';
+  tooltip.style.display = 'none';
+  document.body.appendChild(tooltip);
 
-    (globe as any).globeMaterial(
-      new THREE.MeshPhongMaterial({ color: 0x87cefa })
-    );
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
 
-    const getCost = (name: string) => {
-      const found = this.laborData.find((d) => d.country === name);
-      return found ? found.cost : null;
-    };
+  globeDiv.addEventListener('mousemove', (event: MouseEvent) => {
+    const rect = globeDiv.getBoundingClientRect();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-    const getColor = (name: string) => {
-      const cost = getCost(name);
-      if (cost === null) return 'lightgrey';
-      if (cost > 40) return '#08306b';
-      if (cost > 20) return '#2171b5';
-      if (cost > 10) return '#6baed6';
-      return '#c6dbef';
-    };
+    raycaster.setFromCamera(mouse, camera);
 
-    const countries = topojson.feature(
-      worldData as any,
-      (worldData as any).objects.countries
-    ) as unknown as FeatureCollection<Geometry, any>;
-
-    // ✅ Apply polygons (without polygonLabel)
-    globe
-      .polygonsData(countries.features)
-      .polygonCapColor((d: any) => getColor(d.properties.name))
-      .polygonSideColor(() => 'rgba(0,0,0,0.1)')
-      .polygonStrokeColor(() => '#111');
-
-    // ✅ Add tooltip manually
-    const tooltip = document.createElement('div');
-    tooltip.style.position = 'absolute';
-    tooltip.style.background = 'white';
-    tooltip.style.color = 'black';
-    tooltip.style.padding = '4px 8px';
-    tooltip.style.borderRadius = '4px';
-    tooltip.style.pointerEvents = 'none';
-    tooltip.style.display = 'none';
-    document.body.appendChild(tooltip);
-
-    globe.onPolygonHover((d: any) => {
-      if (d) {
-        const cost = getCost(d.properties.name);
+    const intersects = raycaster.intersectObjects(scene.children, true);
+    if (intersects.length > 0) {
+      const obj: any = intersects[0].object.__data; // polygon data
+      if (obj && obj.properties) {
+        const cost = getCost(obj.properties.name);
         tooltip.style.display = 'block';
-        tooltip.innerHTML = `<b>${d.properties.name}</b><br/>Average Cost: ${
+        tooltip.style.left = event.pageX + 10 + 'px';
+        tooltip.style.top = event.pageY + 10 + 'px';
+        tooltip.innerHTML = `<b>${obj.properties.name}</b><br/>Average Cost: ${
           cost !== null ? '$' + cost : 'N/A'
         }`;
-      } else {
-        tooltip.style.display = 'none';
+        return;
       }
-    });
+    }
+    tooltip.style.display = 'none';
+  });
 
-    // move tooltip with mouse
-    globeDiv.addEventListener('mousemove', (event: MouseEvent) => {
-      tooltip.style.left = event.pageX + 10 + 'px';
-      tooltip.style.top = event.pageY + 10 + 'px';
-    });
+  const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+  scene.add(ambientLight);
 
-    scene.add(globe);
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  directionalLight.position.set(5, 3, 5);
+  scene.add(directionalLight);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
-    scene.add(ambientLight);
-
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(5, 3, 5);
-    scene.add(directionalLight);
-
-    this.computeRegionAverages();
-
-    const animate = () => {
-      requestAnimationFrame(animate);
-      renderer.render(scene, camera);
-    };
-    animate();
-  }
-
-  private computeRegionAverages() {
-    const regionCosts: Record<string, number[]> = {};
-    this.laborData.forEach((item) => {
-      const region = this.regionMap[item.country];
-      if (region) {
-        if (!regionCosts[region]) regionCosts[region] = [];
-        regionCosts[region].push(item.cost);
-      }
-    });
-
-    this.regionAverages = Object.entries(regionCosts).map(([region, costs]) => ({
-      region,
-      avgCost: Math.round(costs.reduce((a, b) => a + b, 0) / costs.length)
-    }));
-  }
+  const animate = () => {
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+  };
+  animate();
 }
