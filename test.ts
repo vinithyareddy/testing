@@ -1,16 +1,28 @@
-laborData: CountryCost[] = [
-  // Existing colored regions
-  { country: 'United States of America', region: 'North America', cost: 57, code: 'US' },
-  { country: 'Canada', region: 'North America', cost: 7, code: 'CA' },
-  { country: 'Mexico', region: 'North America', cost: 3, code: 'MX' },
-  { country: 'Brazil', region: 'South America', cost: 12, code: 'BR' },
-  { country: 'Argentina', region: 'South America', cost: 9, code: 'AR' },
-  { country: 'Colombia', region: 'South America', cost: 5, code: 'CO' },
+globe
+  .polygonsData(countries.features)
+  .polygonCapColor((d: any) => {
+    const region = getRegion(d.properties.name);
+    return this.REGION_COLORS[region] || this.REGION_COLORS['Other'];
+  })
+  .polygonSideColor(() => 'rgba(0,0,0,0.2)')
+  .polygonStrokeColor(() => '#111')
+  // ✅ Tooltip when hovering
+  .polygonLabel((d: any) => {
+    const countryName = d.properties.name;
+    const match = this.laborData.find(c => c.country === countryName);
 
-  // New regions (no country breakdown, just totals)
-  { country: '—', region: 'Europe', cost: 11, code: '' },
-  { country: '—', region: 'Africa', cost: 19, code: '' },
-  { country: '—', region: 'Asia', cost: 20, code: '' },
-  { country: '—', region: 'Oceania', cost: 13, code: '' },
-  { country: '—', region: 'Antarctica', cost: 5, code: '' }
-];
+    if (match) {
+      return `
+        <div style="padding:6px 10px; font-size:13px; color:#000; text-align:left; background:#fff; border-radius:4px;">
+          <div style="font-weight:bold; margin-bottom:4px;">
+            <img src="https://flagcdn.com/24x18/${match.code.toLowerCase()}.png" 
+                 style="width:20px; margin-right:6px; vertical-align:middle;" />
+            ${match.country}
+          </div>
+          <div>Average Cost <b>$${match.cost}</b></div>
+        </div>
+      `;
+    }
+
+    return `<div style="padding:6px 10px; font-size:13px; color:#000; background:#fff; border-radius:4px;">${countryName}</div>`;
+  });
