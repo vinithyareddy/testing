@@ -13,7 +13,6 @@ import { FeatureCollection, Geometry } from 'geojson';
 export class AvgLaborCostRegionComponent implements AfterViewInit {
   @ViewChild('globeContainer', { static: true }) globeContainer!: ElementRef;
 
-  // Dummy country-level data
   laborData = [
     { country: 'United States of America', cost: 57 },
     { country: 'Canada', cost: 7 },
@@ -26,7 +25,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     { country: 'Antarctica', cost: 5 }
   ];
 
-  // Map each country to a region
   regionMap: Record<string, string> = {
     'United States of America': 'North America',
     'Canada': 'North America',
@@ -39,7 +37,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     'Antarctica': 'Antarctica'
   };
 
-  // Computed region averages
   regionAverages: { region: string; avgCost: number }[] = [];
 
   ngAfterViewInit() {
@@ -59,17 +56,16 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     camera.position.z = 170;
 
     const globe: any = new Globe().showGlobe(true).showGraticules(false);
+
     (globe as any).globeMaterial(
       new THREE.MeshPhongMaterial({ color: 0x87cefa })
     );
 
-    // Helper: get cost for a country
     const getCost = (name: string) => {
       const found = this.laborData.find((d) => d.country === name);
       return found ? found.cost : null;
     };
 
-    // Color scale (light blue → dark blue)
     const getColor = (name: string) => {
       const cost = getCost(name);
       if (cost === null) return 'lightgrey';
@@ -79,38 +75,58 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       return '#c6dbef';
     };
 
-    // Convert TopoJSON → GeoJSON
     const countries = topojson.feature(
       worldData as any,
       (worldData as any).objects.countries
     ) as unknown as FeatureCollection<Geometry, any>;
 
-    // Apply polygons
+    // ✅ Apply polygons (without polygonLabel)
     globe
       .polygonsData(countries.features)
       .polygonCapColor((d: any) => getColor(d.properties.name))
       .polygonSideColor(() => 'rgba(0,0,0,0.1)')
-      .polygonStrokeColor(() => '#111')
-      .polygonLabel((d: any) => {
+      .polygonStrokeColor(() => '#111');
+
+    // ✅ Add tooltip manually
+    const tooltip = document.createElement('div');
+    tooltip.style.position = 'absolute';
+    tooltip.style.background = 'white';
+    tooltip.style.color = 'black';
+    tooltip.style.padding = '4px 8px';
+    tooltip.style.borderRadius = '4px';
+    tooltip.style.pointerEvents = 'none';
+    tooltip.style.display = 'none';
+    document.body.appendChild(tooltip);
+
+    globe.onPolygonHover((d: any) => {
+      if (d) {
         const cost = getCost(d.properties.name);
-        return `<b>${d.properties.name}</b><br/>Average Cost: ${
+        tooltip.style.display = 'block';
+        tooltip.innerHTML = `<b>${d.properties.name}</b><br/>Average Cost: ${
           cost !== null ? '$' + cost : 'N/A'
         }`;
-      });
+      } else {
+        tooltip.style.display = 'none';
+      }
+    });
+
+    // move tooltip with mouse
+    globeDiv.addEventListener('mousemove', (event: MouseEvent) => {
+      tooltip.style.left = event.pageX + 10 + 'px';
+      tooltip.style.top = event.pageY + 10 + 'px';
+    });
 
     scene.add(globe);
 
-    // Lights
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
     scene.add(ambientLight);
+
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
     directionalLight.position.set(5, 3, 5);
     scene.add(directionalLight);
 
-    // Compute region averages
     this.computeRegionAverages();
 
-    // Renderer loop
     const animate = () => {
       requestAnimationFrame(animate);
       renderer.render(scene, camera);
@@ -130,17 +146,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
     this.regionAverages = Object.entries(regionCosts).map(([region, costs]) => ({
       region,
-      avgCost: Math.round(
-        costs.reduce((a, b) => a + b, 0) / costs.length
-      )
+      avgCost: Math.round(costs.reduce((a, b) => a + b, 0) / costs.length)
     }));
   }
 }
-
-
-<tbody>
-  <tr *ngFor="let item of regionAverages">
-    <td>{{ item.region }}</td>
-    <td>\${{ item.avgCost }}</td>
-  </tr>
-</tbody>
