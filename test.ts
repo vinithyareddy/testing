@@ -1,47 +1,51 @@
 private getTooltipContent(d: any, mode: 'region' | 'country'): string {
   if (mode === 'region') {
     const regionName = this.getRegion(d.properties.name);
-    const regionData = this.regionGroups.find(r => r.region === regionName);
-    if (regionData) {
-      return `
-        <div style="padding:6px; font-size:13px;">
-          <strong>${regionData.region}</strong><br/>
-          Average Cost: $${regionData.total}
-        </div>
-      `;
-    }
+    if (!regionName || regionName === REGION_OTHER) return '';
+
+    // Calculate total cost for that region on the fly
+    const regionCountries = this.laborData.filter(c => c.region === regionName);
+    const total = regionCountries.reduce((s, c) => s + c.cost, 0);
+
+    return `
+      <div style="
+        padding:6px;
+        font-size:13px;
+        background:#fff;
+        color:#000;
+        border:1px solid #ccc;
+        border-radius:4px;">
+        <strong>${regionName}</strong><br/>
+        Average Cost: $${total}
+      </div>
+    `;
   } else {
     const entry = this.laborData.find(c => c.country === d.properties.name);
-    if (entry) {
-      return `
-        <div style="padding:6px; font-size:13px;">
-          <img src="https://flagcdn.com/16x12/${entry.code.toLowerCase()}.png" 
-               style="margin-right:6px; vertical-align:middle;" />
-          <strong>${entry.country}</strong><br/>
-          Average Cost: $${entry.cost}
-        </div>
-      `;
-    }
+    if (!entry) return '';
+
+    return `
+      <div style="
+        padding:6px;
+        font-size:13px;
+        background:#fff;
+        color:#000;
+        border:1px solid #ccc;
+        border-radius:4px;">
+        <img src="https://flagcdn.com/16x12/${entry.code.toLowerCase()}.png"
+             style="margin-right:6px; vertical-align:middle;" />
+        <strong>${entry.country}</strong><br/>
+        Average Cost: $${entry.cost}
+      </div>
+    `;
   }
-  return '';
 }
 
 
-private applyColors(mode: 'region' | 'country') {
-  if (!this.countries) return;
+this.globe.polygonsData(this.countries.features)
+  .polygonCapColor(...)
+  .polygonSideColor(...)
+  .polygonStrokeColor(...)
+  .polygonLabel((d: any) => this.getTooltipContent(d, mode)); // always returns string
 
-  this.globe.polygonsData(this.countries.features)
-    .polygonCapColor((d: any) => {
-      if (mode === 'region') {
-        const region = this.getRegion(d.properties.name);
-        return REGION_COLORS[region] || REGION_COLORS[REGION_OTHER];
-      } else {
-        const entry = this.laborData.find(c => c.country === d.properties.name);
-        return entry ? this.countryColorScale(entry.cost) : FALLBACK_COLOR;
-      }
-    })
-    .polygonSideColor(() => DEFAULT_GLOBE_COLOR)
-    .polygonStrokeColor(() => mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION)
-    // ✅ Tooltip
-    .polygonLabel((d: any) => this.getTooltipContent(d, mode));
-}
+
+  .polygonLabel((d: any) => this.getTooltipContent(d, mode));
