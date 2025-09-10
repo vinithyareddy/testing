@@ -1,15 +1,30 @@
-const ROTATION_SPEED = 0.002; // tweak this (smaller = slower)
+zoomIn() {
+  this.currentZoom = Math.max(this.currentZoom - ZOOM_STEP, MIN_ZOOM);
+  this.updateCameraZoom();
+}
 
+zoomOut() {
+  this.currentZoom = Math.min(this.currentZoom + ZOOM_STEP, MAX_ZOOM);
+  this.updateCameraZoom();
+}
 
-const animate = () => {
-  requestAnimationFrame(animate);
-
-  // 🌍 Auto-rotate the globe
-  if (this.globe) {
-    this.globe.rotation.y += ROTATION_SPEED;
+private updateCameraZoom() {
+  if (this.controls.object instanceof THREE.OrthographicCamera) {
+    this.controls.object.position.z = this.currentZoom;
   }
+}
 
-  this.controls.update();
-  renderer.render(scene, camera);
-};
-animate();
+const aspect = globeDiv.offsetWidth / globeDiv.offsetHeight;
+const d = 250; // zoom scaling factor (adjust for size)
+
+const camera = new THREE.OrthographicCamera(
+  -d * aspect,  // left
+  d * aspect,   // right
+  d,            // top
+  -d,           // bottom
+  0.1,          // near
+  2000          // far
+);
+
+camera.position.set(0, 0, this.currentZoom); // z distance
+camera.lookAt(0, 0, 0);
