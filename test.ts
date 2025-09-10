@@ -1,65 +1,168 @@
-<!-- Right Section -->
-<div class="col-md-4 d-flex justify-content-end align-items-center header-icons">
+import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
+import Globe from 'three-globe';
+import * as THREE from 'three';
+import * as topojson from 'topojson-client';
+import worldData from 'world-atlas/countries-110m.json';
+import { FeatureCollection, Geometry } from 'geojson';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
-  <!-- Full Screen -->
-  <div class="d-flex gap-3 align-items-center">
+type CountryCost = { country: string; region: string; cost: number; code: string };
 
-    <span class="view">
-      <i class="fas fa-expand" title="Full Screen"></i>
-    </span>
+@Component({
+  selector: 'app-avg-labor-cost-region',
+  templateUrl: './avg-labor-cost-region.component.html',
+  styleUrls: ['./avg-labor-cost-region.component.scss']
+})
+export class AvgLaborCostRegionComponent implements AfterViewInit {
+  @ViewChild('globeContainer', { static: true }) globeContainer!: ElementRef;
 
-    <!-- Custom Dropdown -->
-    <div class="dropdown custom-dropdown">
-      <button class="btn btn-light dropdown-toggle" type="button" id="dropdownMenuButton"
-              data-bs-toggle="dropdown" aria-expanded="false">
-        {{ selectedView }}
-      </button>
-      <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-        <li (click)="setView('By Country')">
-          <a class="dropdown-item">
-            By Country <i *ngIf="selectedView === 'By Country'" class="fas fa-check ms-2"></i>
-          </a>
-        </li>
-        <li (click)="setView('By Region')">
-          <a class="dropdown-item">
-            By Region <i *ngIf="selectedView === 'By Region'" class="fas fa-check ms-2"></i>
-          </a>
-        </li>
-      </ul>
-    </div>
+  // ✅ Dummy labor cost data
+  laborData: CountryCost[] = [
+    { country: 'United States of America', region: 'North America', cost: 57, code: 'US' },
+    { country: 'Canada', region: 'North America', cost: 7, code: 'CA' },
+    { country: 'Mexico', region: 'North America', cost: 3, code: 'MX' },
+    { country: 'Brazil', region: 'South America', cost: 12, code: 'BR' },
+    { country: 'Argentina', region: 'South America', cost: 9, code: 'AR' },
+    { country: 'Colombia', region: 'South America', cost: 5, code: 'CO' },
+    { country: 'Germany', region: 'Europe', cost: 11, code: 'DE' },
+    { country: 'Nigeria', region: 'Africa', cost: 19, code: 'NG' },
+    { country: 'India', region: 'Asia', cost: 20, code: 'IN' },
+    { country: 'Australia', region: 'Oceania', cost: 13, code: 'AU' },
+    { country: 'Antarctica', region: 'Antarctica', cost: 5, code: 'AQ' }
+  ];
 
-    <!-- Ellipsis Menu -->
-    <i class="fas fa-ellipsis-v ml-2"></i>
-  </div>
-</div>
+  regionGroups: { region: string; total: number; countries: CountryCost[]; expanded?: boolean }[] = [];
 
+  REGION_COLORS: Record<string, string> = {
+    'North America': '#3c87d7',
+    'South America': '#144c88',
+    'Other': '#adcdee' // fallback for all other regions
+  };
 
-.custom-dropdown {
-  .btn {
-    padding: 2px 10px;
-    font-size: 14px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    background: #fff;
-  }
+  // ✅ Zoom + Filter state
+  private controls!: OrbitControls;
+  currentZoom: number = 180; // initial camera z
+  selectedView: string = 'By Region';
 
-  .dropdown-menu {
-    font-size: 14px;
-    min-width: 140px;
-  }
+  ngAfterViewInit() {
+    const globeDiv = this.globeContainer.nativeElement;
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(globeDiv.offsetWidth, globeDiv.offsetHeight);
+    globeDiv.appendChild(renderer.domElement);
 
-  .dropdown-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, globeDiv.offsetWidth / globeDiv.offsetHeight, 0.1, 1000);
+    camera.position.z = this.currentZoom;
 
-    &:hover {
-      background-color: #f5f5f5;
+    this.controls = new OrbitControls(camera, renderer.domElement);
+    this.controls.enableDamping = true;
+    this.controls.rotateSpeed = 0.5;
+    this.controls.zoomSpeed = 0.8;
+
+    const globe: any = new Globe().showGlobe(true).showGraticules(false);
+    globe.globeMaterial(new THREE.MeshBasicMaterial({ color: new THREE.Color('#84c9f6') }));
+
+    const countries = topojson.feature(
+      worldData as any,
+      (worldData as any).objects.countries
+    ) as unknown as FeatureCollection<Geometry, any>;
+
+    // ✅ Region mapping function
+    const getRegion = (countryName: string): string => {
+      const northAmerica = [
+        'United States of America', 'Canada', 'Mexico',
+        'Guatemala', 'Belize', 'Honduras', 'El Salvador',
+        'Nicaragua', 'Costa Rica', 'Panama',
+        'Cuba', 'Haiti', 'Dominican Republic', 'Jamaica',
+        'Bahamas', 'Trinidad and Tobago', 'Barbados',
+        'Saint Lucia', 'Grenada', 'Saint Vincent and the Grenadines',
+        'Antigua and Barbuda', 'Dominica', 'Saint Kitts and Nevis'
+      ];
+
+      const southAmerica = [
+        'Brazil', 'Argentina', 'Colombia', 'Chile', 'Peru',
+        'Ecuador', 'Venezuela', 'Bolivia', 'Uruguay', 'Paraguay',
+        'Guyana', 'Suriname', 'French Guiana'
+      ];
+
+      if (northAmerica.includes(countryName)) return 'North America';
+      if (southAmerica.includes(countryName)) return 'South America';
+      return 'Other';
+    };
+
+    globe
+      .polygonsData(countries.features)
+      .polygonCapColor((d: any) => {
+        const region = getRegion(d.properties.name);
+        return this.REGION_COLORS[region] || this.REGION_COLORS['Other'];
+      })
+      .polygonSideColor(() => '#84c9f6');
+
+    scene.add(globe);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+    const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+    dir.position.set(5, 3, 5);
+    scene.add(dir);
+
+    // ✅ Group data into regions for legend
+    const grouped: Record<string, CountryCost[]> = {};
+    for (const c of this.laborData) {
+      (grouped[c.region] ||= []).push(c);
     }
 
-    i {
-      color: #007bff; // blue checkmark
+    this.regionGroups = Object.keys(grouped).map(region => {
+      const arr = grouped[region];
+      const total = arr.reduce((s, x) => s + x.cost, 0);
+      return { region, total, countries: arr, expanded: false };
+    });
+
+    const animate = () => {
+      requestAnimationFrame(animate);
+      this.controls.update();
+      renderer.render(scene, camera);
+    };
+    animate();
+  }
+
+  expandRow(region: any) {
+    region.expanded = !region.expanded;
+  }
+
+  // ✅ Zoom Buttons
+  zoomIn() {
+    this.currentZoom = Math.max(this.currentZoom - 20, 50); // clamp
+    this.updateCameraZoom();
+  }
+
+  zoomOut() {
+    this.currentZoom = Math.min(this.currentZoom + 20, 400); // clamp
+    this.updateCameraZoom();
+  }
+
+  private updateCameraZoom() {
+    if (this.controls.object) {
+      this.controls.object.position.z = this.currentZoom;
     }
+  }
+
+  // ✅ Dropdown Filter
+  setView(view: string) {
+    this.selectedView = view;
+    if (view === 'By Region') {
+      this.showRegionData();
+    } else {
+      this.showCountryData();
+    }
+  }
+
+  private showRegionData() {
+    console.log("Switched to Region view");
+    // hook into your regionGroups display logic
+  }
+
+  private showCountryData() {
+    console.log("Switched to Country view");
+    // hook into your country-level display logic
   }
 }
