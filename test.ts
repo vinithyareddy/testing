@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { HttpClientModule, HttpClient } from '@angular/common/http';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { HighchartsChartModule } from 'highcharts-angular';
 import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
+
 import Globe from 'three-globe';
 import * as THREE from 'three';
 import * as topojson from 'topojson-client';
@@ -11,7 +12,6 @@ import { FeatureCollection, Geometry } from 'geojson';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import * as d3 from 'd3';
 
-// ✅ Types
 type CountryCost = { country: string; region: string; cost: number; code: string };
 
 // ✅ Constants
@@ -32,24 +32,6 @@ const ZOOM_STEP = 20;
 const MIN_ZOOM = 50;
 const MAX_ZOOM = 400;
 
-// ✅ Region mapping
-const REGION_MAP: Record<string, string[]> = {
-  'North America': [
-    'United States of America', 'Canada', 'Mexico',
-    'Guatemala', 'Belize', 'Honduras', 'El Salvador',
-    'Nicaragua', 'Costa Rica', 'Panama',
-    'Cuba', 'Haiti', 'Dominican Republic', 'Jamaica',
-    'Bahamas', 'Trinidad and Tobago', 'Barbados',
-    'Saint Lucia', 'Grenada', 'Saint Vincent and the Grenadines',
-    'Antigua and Barbuda', 'Dominica', 'Saint Kitts and Nevis'
-  ],
-  'South America': [
-    'Brazil', 'Argentina', 'Colombia', 'Chile', 'Peru',
-    'Ecuador', 'Venezuela', 'Bolivia', 'Uruguay', 'Paraguay',
-    'Guyana', 'Suriname', 'French Guiana'
-  ]
-};
-
 @Component({
   selector: 'app-avg-labor-cost-region',
   templateUrl: './avg-labor-cost-region.component.html',
@@ -60,7 +42,6 @@ const REGION_MAP: Record<string, string[]> = {
 export class AvgLaborCostRegionComponent implements AfterViewInit {
   @ViewChild('globeContainer', { static: true }) globeContainer!: ElementRef;
 
-  // ✅ Data holders
   laborData: CountryCost[] = [];
   regionGroups: { region: string; total: number; countries: CountryCost[]; expanded?: boolean }[] = [];
   countryList: CountryCost[] = [];
@@ -76,27 +57,12 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
   // Color scale for country view
   private countryColorScale = d3.scaleLinear<string>()
-    .domain([0, 100]) // updated once JSON loads
+    .domain([0, 100]) // default, updated later
     .range(COUNTRY_COLOR_RANGE);
 
   constructor(private http: HttpClient) {}
 
   ngAfterViewInit() {
-    // ✅ Load JSON dynamically
-    this.http.get<{ countries: CountryCost[] }>('/assets/data/world-skill-data.json').subscribe(data => {
-      this.laborData = data.countries;
-
-      // update color scale dynamically
-      const maxCost = d3.max(this.laborData, d => d.cost) || 100;
-      this.countryColorScale.domain([0, maxCost]);
-
-      // now init globe
-      this.initGlobe();
-      this.showRegionData();
-    });
-  }
-
-  private initGlobe() {
     const globeDiv = this.globeContainer.nativeElement;
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(globeDiv.offsetWidth, globeDiv.offsetHeight);
@@ -119,13 +85,29 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       (worldData as any).objects.countries
     ) as unknown as FeatureCollection<Geometry, any>;
 
-    this.applyColors('region');
     scene.add(this.globe);
-
     scene.add(new THREE.AmbientLight(0xffffff, 1.2));
     const dir = new THREE.DirectionalLight(0xffffff, 0.8);
     dir.position.set(5, 3, 5);
     scene.add(dir);
+
+    // ✅ Load JSON data
+    this.http.get<{ countries: any[] }>('assets/data/world-skill-data.json')
+      .subscribe(data => {
+        this.laborData = data.countries.map(c => ({
+          country: c.name,
+          region: c.subregion || c.region || REGION_OTHER,
+          code: c.code,
+          cost: c.skillSupply || 0   // ✅ map skillSupply → cost
+        }));
+
+        // update scale based on actual values
+        const maxCost = d3.max(this.laborData, d => d.cost) || 100;
+        this.countryColorScale.domain([0, maxCost]);
+
+        this.showRegionData();
+        this.applyColors('region');
+      });
 
     const animate = () => {
       requestAnimationFrame(animate);
@@ -190,20 +172,13 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   }
 
   // ✅ Globe Coloring
-  private getRegion(countryName: string): string {
-    for (const [region, countries] of Object.entries(REGION_MAP)) {
-      if (countries.includes(countryName)) return region;
-    }
-    return REGION_OTHER;
-  }
-
   private applyColors(mode: 'region' | 'country') {
     if (!this.countries) return;
 
     this.globe.polygonsData(this.countries.features)
       .polygonCapColor((d: any) => {
         if (mode === 'region') {
-          const region = this.getRegion(d.properties.name);
+          const region = d.properties.continent || d.properties.subregion || REGION_OTHER;
           return REGION_COLORS[region] || REGION_COLORS[REGION_OTHER];
         } else {
           const entry = this.laborData.find(c => c.country === d.properties.name);
