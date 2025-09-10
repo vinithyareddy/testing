@@ -1,16 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
-import { FormsModule } from '@angular/forms';
-import { Component, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
-
-import Globe from 'three-globe';
+import { Component, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import * as THREE from 'three';
+import Globe from 'three-globe';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import * as topojson from 'topojson-client';
 import worldData from 'world-atlas/countries-110m.json';
 import { FeatureCollection, Geometry } from 'geojson';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
-type CountrySkill = {
+type Country = {
   country: string;
   code: string;
   uniqueSkills: number;
@@ -19,26 +17,26 @@ type CountrySkill = {
 
 @Component({
   selector: 'app-ss-by-location',
-  templateUrl: './ss-by-location.component.html',
-  styleUrls: ['./ss-by-location.component.scss'],
   standalone: true,
-  imports: [CommonModule, HttpClientModule, FormsModule]
+  imports: [CommonModule, HttpClientModule],
+  templateUrl: './ss-by-location.component.html',
+  styleUrls: ['./ss-by-location.component.scss']
 })
 export class SsByLocationComponent implements AfterViewInit {
   @ViewChild('globeContainer', { static: true }) globeContainer!: ElementRef;
 
-  countriesList: CountrySkill[] = [];
-  filteredList: CountrySkill[] = [];
+  countriesList: Country[] = [];
+  filteredList: Country[] = [];
 
   private globe: any;
-  private controls!: OrbitControls;
   private countries: FeatureCollection<Geometry, any> | undefined;
+  private controls!: OrbitControls;
 
-  searchTerm: string = '';
+  currentZoom = 170;
 
   constructor(private http: HttpClient) {}
 
-  ngAfterViewInit(): void {
+  ngAfterViewInit() {
     const globeDiv = this.globeContainer.nativeElement;
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(globeDiv.offsetWidth, globeDiv.offsetHeight);
@@ -51,7 +49,7 @@ export class SsByLocationComponent implements AfterViewInit {
       0.1,
       1000
     );
-    camera.position.z = 300;
+    camera.position.z = this.currentZoom;
 
     this.controls = new OrbitControls(camera, renderer.domElement);
     this.controls.enableDamping = true;
@@ -60,9 +58,8 @@ export class SsByLocationComponent implements AfterViewInit {
     this.globe = new Globe()
       .showGlobe(true)
       .showGraticules(false)
-      .backgroundColor('#0d2c46'); // match first widget bg
-
-    this.globe.globeMaterial(new THREE.MeshPhongMaterial({ color: '#5dade2' }));
+      .globeImageUrl('//unpkg.com/three-globe/example/img/earth-blue-marble.jpg') // satellite-like look
+      .bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png');
 
     this.countries = topojson.feature(
       worldData as any,
@@ -71,137 +68,179 @@ export class SsByLocationComponent implements AfterViewInit {
 
     scene.add(this.globe);
     scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-    const dir = new THREE.DirectionalLight(0xffffff, 0.6);
+    const dir = new THREE.DirectionalLight(0xffffff, 0.8);
     dir.position.set(5, 3, 5);
     scene.add(dir);
 
-    // ✅ Load JSON with skill data
-    this.http.get<any>('assets/data/world-globe-data.json').subscribe(data => {
+    // 📂 Load data from JSON
+    this.http.get<any>('assets/data/world-globe-data.json').subscribe((data) => {
       this.countriesList = data.countries.map((c: any) => ({
         country: c.name,
         code: c.code,
-        uniqueSkills: c.uniqueSkills > 0 ? c.uniqueSkills : Math.floor(Math.random() * 100),
-        skillSupply: c.skillSupply > 0 ? c.skillSupply : Math.floor(Math.random() * 50)
+        uniqueSkills: c.uniqueSkills && c.uniqueSkills > 0 ? c.uniqueSkills : Math.floor(Math.random() * 100),
+        skillSupply: c.skillSupply && c.skillSupply > 0 ? c.skillSupply : Math.floor(Math.random() * 50)
       }));
 
       this.filteredList = [...this.countriesList];
 
       this.globe
         .polygonsData(this.countries.features)
-        .polygonCapColor(() => '#2ecc71')
+        .polygonCapColor(() => '#2ca02c') // green like screenshot
         .polygonSideColor(() => '#154361')
-        .polygonStrokeColor(() => '#fff')
+        .polygonStrokeColor(() => '#111')
         .labelsData(this.countries.features)
-        .labelLat((d: any) => d.properties.latitude || 0)
-        .labelLng((d: any) => d.properties.longitude || 0)
+        .labelLat((d: any) => d.properties.lat || 0)
+        .labelLng((d: any) => d.properties.lng || 0)
         .labelText((d: any) => d.properties.name)
-        .labelSize(1.2)
-        .labelDotRadius(0.3)
-        .labelColor(() => 'white');
+        .labelSize(0.8)
+        .labelColor(() => 'white')
+        .labelResolution(2);
     });
 
-    // 🎥 Animate
     const animate = () => {
       requestAnimationFrame(animate);
-      this.globe.rotation.y += 0.002;
       this.controls.update();
       renderer.render(scene, camera);
     };
     animate();
   }
 
-  onSearchChange() {
+  // 🔎 Search filter
+  filterCountries(term: string) {
+    const lower = term.toLowerCase();
     this.filteredList = this.countriesList.filter(c =>
-      c.country.toLowerCase().includes(this.searchTerm.toLowerCase())
+      c.country.toLowerCase().includes(lower)
     );
   }
 }
 
 
 <div class="ss-wrapper">
-  <!-- Sidebar -->
+  <!-- Left Sidebar -->
   <div class="sidebar">
     <h3>Skill Supply by Location</h3>
     <input
       type="text"
       placeholder="Search by country"
-      [(ngModel)]="searchTerm"
-      (input)="onSearchChange()"
+      (input)="filterCountries($event.target.value)"
     />
+
     <div class="country-list">
-      <div *ngFor="let c of filteredList" class="country-item">
-        <img [src]="'https://flagcdn.com/24x18/' + c.code.toLowerCase() + '.png'" />
-        <div class="country-info">
-          <strong>{{ c.country }}</strong>
-          <p>Unique Skills {{ c.uniqueSkills }}</p>
-          <p>Skill Supply (FTE) {{ c.skillSupply }}</p>
+      <div *ngFor="let c of filteredList" class="country-card">
+        <div class="flag-name">
+          <img
+            [src]="'https://flagcdn.com/24x18/' + c.code.toLowerCase() + '.png'"
+            alt="{{ c.country }}"
+          />
+          <span>{{ c.country }}</span>
+        </div>
+        <div class="skills">
+          <div>Unique Skills <strong>{{ c.uniqueSkills }}</strong></div>
+          <div>Skill Supply (FTE) <strong>{{ c.skillSupply }}</strong></div>
         </div>
       </div>
     </div>
   </div>
 
   <!-- Globe -->
-  <div class="globe-container" #globeContainer></div>
+  <div class="globe-wrapper">
+    <div #globeContainer class="globe-container"></div>
+    <div class="zoom-buttons">
+      <button (click)="currentZoom = currentZoom - 20">+</button>
+      <button (click)="currentZoom = currentZoom + 20">-</button>
+    </div>
+  </div>
 </div>
 
 
 .ss-wrapper {
   display: flex;
-  height: 800px;
-  background: #0d2c46;
+  background: #154361;
   color: #fff;
+  height: 100%;
 }
 
 .sidebar {
-  width: 320px;
+  width: 25%;
   padding: 15px;
-  background: #0d2c46;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  flex-direction: column;
+  background: #fff;
+  color: #000;
+  overflow-y: auto;
 
   h3 {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     margin-bottom: 10px;
   }
 
   input {
-    margin-bottom: 10px;
+    width: 100%;
     padding: 6px 10px;
+    margin-bottom: 10px;
     border: 1px solid #ccc;
     border-radius: 4px;
   }
 
   .country-list {
-    flex: 1;
+    max-height: 700px;
     overflow-y: auto;
   }
 
-  .country-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: #fff;
-    color: #000;
-    padding: 8px;
-    border-radius: 4px;
-    margin-bottom: 8px;
-  }
+  .country-card {
+    border-bottom: 1px solid #ddd;
+    padding: 10px 0;
 
-  img {
-    width: 24px;
-    height: auto;
-  }
+    .flag-name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
 
-  .country-info {
-    p {
-      margin: 0;
-      font-size: 0.8rem;
+      img {
+        width: 20px;
+        height: 15px;
+      }
+    }
+
+    .skills {
+      font-size: 0.85rem;
+      margin-top: 4px;
+
+      div {
+        display: flex;
+        justify-content: space-between;
+      }
+
+      strong {
+        margin-left: 8px;
+      }
     }
   }
 }
 
-.globe-container {
+.globe-wrapper {
   flex: 1;
-  aspect-ratio: 1 / 1;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  .globe-container {
+    width: 100%;
+    height: 800px;
+  }
+
+  .zoom-buttons {
+    position: absolute;
+    right: 20px;
+    bottom: 20px;
+    display: flex;
+    flex-direction: column;
+
+    button {
+      margin: 2px 0;
+      background: #fff;
+      border: 1px solid #ccc;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  }
 }
