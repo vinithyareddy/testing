@@ -1,5 +1,8 @@
+import { CommonModule } from '@angular/common';
+import { HttpClientModule, HttpClient } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
+import { HighchartsChartModule } from 'highcharts-angular';
 import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import Globe from 'three-globe';
 import * as THREE from 'three';
 import * as topojson from 'topojson-client';
@@ -8,62 +11,89 @@ import { FeatureCollection, Geometry } from 'geojson';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import * as d3 from 'd3';
 
-type CountryCost = {
-  name: string;
-  code: string;
-  region: string;
-  subregion: string;
-  lat: number;
-  lng: number;
-  uniqueSkills: number;
-  skillSupply: number;
+// ✅ Types
+type CountryCost = { country: string; region: string; cost: number; code: string };
+
+// ✅ Constants
+const DEFAULT_GLOBE_COLOR = '#84c9f6';
+const REGION_COLORS: Record<string, string> = {
+  'North America': '#3c87d7',
+  'South America': '#144c88',
+  'Other': '#adcdee'
+};
+const COUNTRY_COLOR_RANGE: [string, string] = ['#bcd3ebff', '#144c88'];
+const STROKE_COLOR_COUNTRY = '#7e8790';
+const STROKE_COLOR_REGION = '#84c9f6';
+const FALLBACK_COLOR = '#e0e0e0';
+const REGION_OTHER = 'Other';
+
+const INITIAL_ZOOM = 170;
+const ZOOM_STEP = 20;
+const MIN_ZOOM = 50;
+const MAX_ZOOM = 400;
+
+// ✅ Region mapping
+const REGION_MAP: Record<string, string[]> = {
+  'North America': [
+    'United States of America', 'Canada', 'Mexico',
+    'Guatemala', 'Belize', 'Honduras', 'El Salvador',
+    'Nicaragua', 'Costa Rica', 'Panama',
+    'Cuba', 'Haiti', 'Dominican Republic', 'Jamaica',
+    'Bahamas', 'Trinidad and Tobago', 'Barbados',
+    'Saint Lucia', 'Grenada', 'Saint Vincent and the Grenadines',
+    'Antigua and Barbuda', 'Dominica', 'Saint Kitts and Nevis'
+  ],
+  'South America': [
+    'Brazil', 'Argentina', 'Colombia', 'Chile', 'Peru',
+    'Ecuador', 'Venezuela', 'Bolivia', 'Uruguay', 'Paraguay',
+    'Guyana', 'Suriname', 'French Guiana'
+  ]
 };
 
 @Component({
   selector: 'app-avg-labor-cost-region',
   templateUrl: './avg-labor-cost-region.component.html',
+  standalone: true,
+  imports: [CommonModule, FormsModule, HttpClientModule, HighchartsChartModule],
   styleUrls: ['./avg-labor-cost-region.component.scss']
 })
 export class AvgLaborCostRegionComponent implements AfterViewInit {
   @ViewChild('globeContainer', { static: true }) globeContainer!: ElementRef;
 
-  // Data holders
+  // ✅ Data holders
   laborData: CountryCost[] = [];
   regionGroups: { region: string; total: number; countries: CountryCost[]; expanded?: boolean }[] = [];
   countryList: CountryCost[] = [];
 
-  REGION_COLORS: Record<string, string> = {
-    'North America': '#3c87d7',
-    'South America': '#144c88',
-    'Other': '#adcdee'
-  };
-
+  // Globe + camera state
   private controls!: OrbitControls;
   private globe: any;
   private countries: FeatureCollection<Geometry, any> | undefined;
 
-  currentZoom: number = 170;
+  currentZoom: number = INITIAL_ZOOM;
   selectedView: string = 'By Region';
   showMenu: boolean = false;
 
+  // Color scale for country view
   private countryColorScale = d3.scaleLinear<string>()
-    .domain([0, 100]) // will be updated after data load
-    .range(["#bcd3ebff", "#144c88"]);
+    .domain([0, 100]) // updated once JSON loads
+    .range(COUNTRY_COLOR_RANGE);
 
   constructor(private http: HttpClient) {}
 
   ngAfterViewInit() {
-    this.http.get<{ countries: CountryCost[] }>('/assets/data/world-skill-data.json')
-      .subscribe(data => {
-        this.laborData = data.countries;
+    // ✅ Load JSON dynamically
+    this.http.get<{ countries: CountryCost[] }>('/assets/data/world-skill-data.json').subscribe(data => {
+      this.laborData = data.countries;
 
-        // update scale based on max value
-        const maxSupply = d3.max(this.laborData, d => d.skillSupply) || 100;
-        this.countryColorScale.domain([0, maxSupply]);
+      // update color scale dynamically
+      const maxCost = d3.max(this.laborData, d => d.cost) || 100;
+      this.countryColorScale.domain([0, maxCost]);
 
-        this.initGlobe();
-        this.showRegionData();
-      });
+      // now init globe
+      this.initGlobe();
+      this.showRegionData();
+    });
   }
 
   private initGlobe() {
@@ -78,17 +108,20 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
     this.controls = new OrbitControls(camera, renderer.domElement);
     this.controls.enableDamping = true;
+    this.controls.rotateSpeed = 0.5;
+    this.controls.zoomSpeed = 0.8;
 
     this.globe = new Globe().showGlobe(true).showGraticules(false);
-    this.globe.globeMaterial(new THREE.MeshBasicMaterial({ color: new THREE.Color('#84c9f6') }));
+    this.globe.globeMaterial(new THREE.MeshBasicMaterial({ color: new THREE.Color(DEFAULT_GLOBE_COLOR) }));
 
     this.countries = topojson.feature(
       worldData as any,
       (worldData as any).objects.countries
     ) as unknown as FeatureCollection<Geometry, any>;
 
-    this.applyRegionColors();
+    this.applyColors('region');
     scene.add(this.globe);
+
     scene.add(new THREE.AmbientLight(0xffffff, 1.2));
     const dir = new THREE.DirectionalLight(0xffffff, 0.8);
     dir.position.set(5, 3, 5);
@@ -106,13 +139,14 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     region.expanded = !region.expanded;
   }
 
+  // ✅ Zoom
   zoomIn() {
-    this.currentZoom = Math.max(this.currentZoom - 20, 50);
+    this.currentZoom = Math.max(this.currentZoom - ZOOM_STEP, MIN_ZOOM);
     this.updateCameraZoom();
   }
 
   zoomOut() {
-    this.currentZoom = Math.min(this.currentZoom + 20, 400);
+    this.currentZoom = Math.min(this.currentZoom + ZOOM_STEP, MAX_ZOOM);
     this.updateCameraZoom();
   }
 
@@ -122,62 +156,61 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     }
   }
 
+  // ✅ Dropdown Filter
   setView(view: string) {
     this.selectedView = view;
     if (view === 'By Region') {
       this.showRegionData();
-      this.applyRegionColors();
+      this.applyColors('region');
     } else {
       this.showCountryData();
-      this.applyCountryColors();
+      this.applyColors('country');
     }
   }
 
   private showRegionData() {
-    const grouped: Record<string, CountryCost[]> = {};
-    for (const c of this.laborData) {
-      (grouped[c.region] ||= []).push(c);
-    }
+    const grouped = this.laborData.reduce((acc, c) => {
+      (acc[c.region] ||= []).push(c);
+      return acc;
+    }, {} as Record<string, CountryCost[]>);
 
-    this.regionGroups = Object.keys(grouped).map(region => {
-      const arr = grouped[region];
-      const total = arr.reduce((s, x) => s + x.skillSupply, 0);
-      return { region, total, countries: arr, expanded: false };
-    });
+    this.regionGroups = Object.entries(grouped).map(([region, arr]) => ({
+      region,
+      total: arr.reduce((s, x) => s + x.cost, 0),
+      countries: arr,
+      expanded: false
+    }));
 
     this.countryList = [];
   }
 
   private showCountryData() {
-    this.countryList = [...this.laborData].sort((a, b) => a.name.localeCompare(b.name));
+    this.countryList = [...this.laborData].sort((a, b) => a.country.localeCompare(b.country));
     this.regionGroups = [];
   }
 
+  // ✅ Globe Coloring
   private getRegion(countryName: string): string {
-    // You can map here if needed, fallback = "Other"
-    return this.laborData.find(c => c.name === countryName)?.region || 'Other';
+    for (const [region, countries] of Object.entries(REGION_MAP)) {
+      if (countries.includes(countryName)) return region;
+    }
+    return REGION_OTHER;
   }
 
-  private applyRegionColors() {
+  private applyColors(mode: 'region' | 'country') {
     if (!this.countries) return;
 
     this.globe.polygonsData(this.countries.features)
       .polygonCapColor((d: any) => {
-        const region = this.getRegion(d.properties.name);
-        return this.REGION_COLORS[region] || this.REGION_COLORS['Other'];
+        if (mode === 'region') {
+          const region = this.getRegion(d.properties.name);
+          return REGION_COLORS[region] || REGION_COLORS[REGION_OTHER];
+        } else {
+          const entry = this.laborData.find(c => c.country === d.properties.name);
+          return entry ? this.countryColorScale(entry.cost) : FALLBACK_COLOR;
+        }
       })
-      .polygonSideColor(() => '#84c9f6');
-  }
-
-  private applyCountryColors() {
-    if (!this.countries) return;
-
-    this.globe.polygonsData(this.countries.features)
-      .polygonCapColor((d: any) => {
-        const entry = this.laborData.find(c => c.name === d.properties.name);
-        return entry ? this.countryColorScale(entry.skillSupply) : "#e0e0e0";
-      })
-      .polygonSideColor(() => '#84c9f6')
-      .polygonStrokeColor(() => '#7e8790');
+      .polygonSideColor(() => DEFAULT_GLOBE_COLOR)
+      .polygonStrokeColor(() => mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION);
   }
 }
