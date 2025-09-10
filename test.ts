@@ -101,20 +101,21 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       this.laborData = data.countries.map((c: any) => ({
         country: c.name,
         region: c.region,
-        cost: c.cost, // 👈 now using actual cost from JSON
+        cost: c.cost ?? Math.floor(Math.random() * 2000), // ✅ safe fallback
         code: c.code
       }));
-
+    
       // recompute scale dynamically
       const minCost = d3.min(this.laborData, d => d.cost) || 0;
       const maxCost = d3.max(this.laborData, d => d.cost) || 1;
       this.countryColorScale = d3.scaleLinear<string>()
         .domain([minCost, maxCost])
         .range(COUNTRY_COLOR_RANGE);
-
+    
       this.showRegionData();
       this.applyColors('region');
     });
+    
 
     const animate = () => {
       requestAnimationFrame(animate);
