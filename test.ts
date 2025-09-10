@@ -14,7 +14,7 @@ import * as d3 from 'd3';
 
 type CountryCost = {
   name: string;
-  code: string; // Alpha-2 (e.g., "US")
+  code: string;
   region: string;
   subregion: string;
   lat: number;
@@ -22,6 +22,7 @@ type CountryCost = {
   cost: number;
 };
 
+// 🎨 Colors
 const DEFAULT_GLOBE_COLOR = '#84c9f6';
 const REGION_COLORS: Record<string, string> = {
   'North America': '#3c87d7',
@@ -37,7 +38,6 @@ const COUNTRY_COLOR_RANGE: [string, string] = ['#bcd3ebff', '#144c88'];
 const STROKE_COLOR_COUNTRY = '#7e8790';
 const STROKE_COLOR_REGION = '#84c9f6';
 const FALLBACK_COLOR = '#e0e0e0';
-const REGION_OTHER = 'Other';
 
 const INITIAL_ZOOM = 170;
 const ZOOM_STEP = 20;
@@ -66,27 +66,14 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   selectedView: string = 'By Region';
   showMenu: boolean = false;
 
+  // 🎨 Cost scale
   private countryColorScale = d3.scaleLinear<string>()
-    .domain([0, 2000]) // assuming random cost range
+    .domain([0, 2000]) // adjust max based on your dataset
     .range(COUNTRY_COLOR_RANGE);
 
   constructor(private http: HttpClient) {}
 
   ngAfterViewInit() {
-    this.http.get<{ countries: CountryCost[] }>('/assets/data/world-skill-data.json')
-      .subscribe(data => {
-        // Assign random cost for now
-        this.laborData = data.countries.map(c => ({
-          ...c,
-          cost: Math.floor(Math.random() * 2000)
-        }));
-
-        this.initGlobe();
-        this.showRegionData();
-      });
-  }
-
-  private initGlobe() {
     const globeDiv = this.globeContainer.nativeElement;
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(globeDiv.offsetWidth, globeDiv.offsetHeight);
@@ -109,13 +96,23 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       (worldData as any).objects.countries
     ) as unknown as FeatureCollection<Geometry, any>;
 
-    this.applyColors('region');
     scene.add(this.globe);
-
     scene.add(new THREE.AmbientLight(0xffffff, 1.2));
     const dir = new THREE.DirectionalLight(0xffffff, 0.8);
     dir.position.set(5, 3, 5);
     scene.add(dir);
+
+    // Load JSON
+    this.http.get<{ countries: CountryCost[] }>('assets/data/world-skill-data.json')
+      .subscribe(data => {
+        // assign random costs for demo
+        this.laborData = data.countries.map(c => ({
+          ...c,
+          cost: Math.floor(Math.random() * 2000)
+        }));
+        this.showRegionData();
+        this.applyColors('region');
+      });
 
     const animate = () => {
       requestAnimationFrame(animate);
@@ -125,10 +122,61 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     animate();
   }
 
-  expandRow(region: any) {
-    region.expanded = !region.expanded;
+  // 📊 Region View
+  private showRegionData() {
+    const grouped = this.laborData.reduce((acc, c) => {
+      (acc[c.region] ||= []).push(c);
+      return acc;
+    }, {} as Record<string, CountryCost[]>);
+
+    this.regionGroups = Object.entries(grouped).map(([region, arr]) => ({
+      region,
+      total: arr.reduce((s, x) => s + x.cost, 0),
+      countries: arr,
+      expanded: false
+    }));
+
+    this.countryList = []; // clear country list in region mode
   }
 
+  // 📊 Country View
+  private showCountryData() {
+    this.countryList = [...this.laborData].sort((a, b) => a.name.localeCompare(b.name));
+    this.regionGroups = []; // clear regions in country mode
+  }
+
+  // 🎨 Coloring
+  private applyColors(mode: 'region' | 'country') {
+    if (!this.countries) return;
+
+    this.globe.polygonsData(this.countries.features)
+      .polygonCapColor((d: any) => {
+        const countryName = d.properties.name;
+        const entry = this.laborData.find(c => c.name === countryName);
+
+        if (mode === 'region') {
+          return entry ? (REGION_COLORS[entry.region] || REGION_COLORS['Other']) : REGION_COLORS['Other'];
+        } else {
+          return entry ? this.countryColorScale(entry.cost) : FALLBACK_COLOR;
+        }
+      })
+      .polygonSideColor(() => DEFAULT_GLOBE_COLOR)
+      .polygonStrokeColor(() => mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION);
+  }
+
+  // 🔄 Switch View
+  setView(view: string) {
+    this.selectedView = view;
+    if (view === 'By Region') {
+      this.showRegionData();
+      this.applyColors('region');
+    } else {
+      this.showCountryData();
+      this.applyColors('country');
+    }
+  }
+
+  // 🔍 Zoom
   zoomIn() {
     this.currentZoom = Math.max(this.currentZoom - ZOOM_STEP, MIN_ZOOM);
     this.updateCameraZoom();
@@ -143,61 +191,5 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     if (this.controls.object) {
       this.controls.object.position.z = this.currentZoom;
     }
-  }
-
-  setView(view: string) {
-    this.selectedView = view;
-    if (view === 'By Region') {
-      this.showRegionData();
-      this.applyColors('region');
-    } else {
-      this.showCountryData();
-      this.applyColors('country');
-    }
-  }
-
-  private showRegionData() {
-    const grouped = this.laborData.reduce((acc, c) => {
-      (acc[c.region] ||= []).push(c);
-      return acc;
-    }, {} as Record<string, CountryCost[]>);
-
-    this.regionGroups = Object.entries(grouped).map(([region, arr]) => ({
-      region,
-      total: arr.reduce((s, x) => s + x.cost, 0),
-      countries: arr,
-      expanded: false
-    }));
-
-    this.countryList = [];
-  }
-
-  private showCountryData() {
-    this.countryList = [...this.laborData].sort((a, b) => a.name.localeCompare(b.name));
-    this.regionGroups = [];
-  }
-
-  private applyColors(mode: 'region' | 'country') {
-    if (!this.countries) return;
-
-    this.globe.polygonsData(this.countries.features)
-      .polygonCapColor((d: any) => {
-        // Match by ISO Alpha-2 code
-        const entry = this.laborData.find(c => c.code === d.id);
-
-        if (mode === 'region') {
-          return entry
-            ? REGION_COLORS[entry.region] || REGION_COLORS[REGION_OTHER]
-            : REGION_COLORS[REGION_OTHER];
-        } else {
-          return entry
-            ? this.countryColorScale(entry.cost)
-            : FALLBACK_COLOR;
-        }
-      })
-      .polygonSideColor(() => DEFAULT_GLOBE_COLOR)
-      .polygonStrokeColor(() =>
-        mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION
-      );
   }
 }
