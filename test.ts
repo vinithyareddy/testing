@@ -16,7 +16,7 @@ type CountryCost = { country: string; region: string; cost: number; code: string
 export class AvgLaborCostRegionComponent implements AfterViewInit {
   @ViewChild('globeContainer', { static: true }) globeContainer!: ElementRef;
 
-  // Country + Region data
+  // ✅ Dummy labor cost data
   laborData: CountryCost[] = [
     { country: 'United States of America', region: 'North America', cost: 57, code: 'US' },
     { country: 'Canada', region: 'North America', cost: 7, code: 'CA' },
@@ -36,7 +36,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   REGION_COLORS: Record<string, string> = {
     'North America': '#3c87d7',
     'South America': '#144c88',
-    'Other': '#adcdee'
+    'Other': '#adcdee' // fallback for all other regions
   };
 
   ngAfterViewInit() {
@@ -62,9 +62,24 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       (worldData as any).objects.countries
     ) as unknown as FeatureCollection<Geometry, any>;
 
+    // ✅ Region mapping function (kept full dummy lists for coloring)
     const getRegion = (countryName: string): string => {
-      const northAmerica = ['United States of America', 'Canada', 'Mexico'];
-      const southAmerica = ['Brazil', 'Argentina', 'Colombia'];
+      const northAmerica = [
+        'United States of America', 'Canada', 'Mexico',
+        'Guatemala', 'Belize', 'Honduras', 'El Salvador',
+        'Nicaragua', 'Costa Rica', 'Panama',
+        'Cuba', 'Haiti', 'Dominican Republic', 'Jamaica',
+        'Bahamas', 'Trinidad and Tobago', 'Barbados',
+        'Saint Lucia', 'Grenada', 'Saint Vincent and the Grenadines',
+        'Antigua and Barbuda', 'Dominica', 'Saint Kitts and Nevis'
+      ];
+
+      const southAmerica = [
+        'Brazil', 'Argentina', 'Colombia', 'Chile', 'Peru',
+        'Ecuador', 'Venezuela', 'Bolivia', 'Uruguay', 'Paraguay',
+        'Guyana', 'Suriname', 'French Guiana'
+      ];
+
       if (northAmerica.includes(countryName)) return 'North America';
       if (southAmerica.includes(countryName)) return 'South America';
       return 'Other';
@@ -85,7 +100,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     dir.position.set(5, 3, 5);
     scene.add(dir);
 
-    // Group data by region
+    // ✅ Group data into regions for legend
     const grouped: Record<string, CountryCost[]> = {};
     for (const c of this.laborData) {
       (grouped[c.region] ||= []).push(c);
