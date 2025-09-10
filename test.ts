@@ -12,26 +12,18 @@ import { FeatureCollection, Geometry } from 'geojson';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import * as d3 from 'd3';
 
-type CountryCost = {
-  name: string;
-  code: string;
-  region: string;
-  subregion: string;
-  lat: number;
-  lng: number;
-  cost: number;
-};
+type CountryCost = { country: string; region: string; cost: number; code: string };
 
-// 🎨 Colors
+// 🎨 Visual constants (styling specific to this globe)
 const DEFAULT_GLOBE_COLOR = '#84c9f6';
 const REGION_COLORS: Record<string, string> = {
   'North America': '#3c87d7',
-  'South America': '#144c88',
-  'Europe': '#a32cc4',
-  'Asia': '#d97706',
-  'Africa': '#16a34a',
-  'Oceania': '#2563eb',
-  'Antarctica': '#64748b',
+  'South America': '#c05757ff',
+  'Asia': '#144c88',
+  'Europe': '#d46f4d',
+  'Africa': '#2ca02c',
+  'Oceania': '#9467bd',
+  'Antarctic': '#8c564b',
   'Other': '#adcdee'
 };
 const COUNTRY_COLOR_RANGE: [string, string] = ['#bcd3ebff', '#144c88'];
@@ -39,10 +31,13 @@ const STROKE_COLOR_COUNTRY = '#7e8790';
 const STROKE_COLOR_REGION = '#84c9f6';
 const FALLBACK_COLOR = '#e0e0e0';
 
-const INITIAL_ZOOM = 170;
-const ZOOM_STEP = 20;
-const MIN_ZOOM = 50;
-const MAX_ZOOM = 400;
+// 🔍 Zoom configuration
+const ZOOM = {
+  initial: 170,
+  step: 20,
+  min: 50,
+  max: 400
+};
 
 @Component({
   selector: 'app-avg-labor-cost-region',
@@ -62,13 +57,12 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   private globe: any;
   private countries: FeatureCollection<Geometry, any> | undefined;
 
-  currentZoom: number = INITIAL_ZOOM;
+  currentZoom: number = ZOOM.initial;
   selectedView: string = 'By Region';
   showMenu: boolean = false;
 
-  // 🎨 Cost scale
   private countryColorScale = d3.scaleLinear<string>()
-    .domain([0, 2000]) // adjust max based on your dataset
+    .domain([0, 1]) // temporary, recomputed after data load
     .range(COUNTRY_COLOR_RANGE);
 
   constructor(private http: HttpClient) {}
@@ -102,17 +96,25 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     dir.position.set(5, 3, 5);
     scene.add(dir);
 
-    // Load JSON
-    this.http.get<{ countries: CountryCost[] }>('assets/data/world-skill-data.json')
-      .subscribe(data => {
-        // assign random costs for demo
-        this.laborData = data.countries.map(c => ({
-          ...c,
-          cost: Math.floor(Math.random() * 2000)
-        }));
-        this.showRegionData();
-        this.applyColors('region');
-      });
+    // ✅ Load JSON with all countries + real costs
+    this.http.get<any>('assets/data/world-globe-data.json').subscribe(data => {
+      this.laborData = data.countries.map((c: any) => ({
+        country: c.name,
+        region: c.region,
+        cost: c.cost, // 👈 now using actual cost from JSON
+        code: c.code
+      }));
+
+      // recompute scale dynamically
+      const minCost = d3.min(this.laborData, d => d.cost) || 0;
+      const maxCost = d3.max(this.laborData, d => d.cost) || 1;
+      this.countryColorScale = d3.scaleLinear<string>()
+        .domain([minCost, maxCost])
+        .range(COUNTRY_COLOR_RANGE);
+
+      this.showRegionData();
+      this.applyColors('region');
+    });
 
     const animate = () => {
       requestAnimationFrame(animate);
@@ -122,7 +124,37 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     animate();
   }
 
-  // 📊 Region View
+  expandRow(region: any) {
+    region.expanded = !region.expanded;
+  }
+
+  zoomIn() {
+    this.currentZoom = Math.max(this.currentZoom - ZOOM.step, ZOOM.min);
+    this.updateCameraZoom();
+  }
+
+  zoomOut() {
+    this.currentZoom = Math.min(this.currentZoom + ZOOM.step, ZOOM.max);
+    this.updateCameraZoom();
+  }
+
+  private updateCameraZoom() {
+    if (this.controls.object) {
+      this.controls.object.position.z = this.currentZoom;
+    }
+  }
+
+  setView(view: string) {
+    this.selectedView = view;
+    if (view === 'By Region') {
+      this.showRegionData();
+      this.applyColors('region');
+    } else {
+      this.showCountryData();
+      this.applyColors('country');
+    }
+  }
+
   private showRegionData() {
     const grouped = this.laborData.reduce((acc, c) => {
       (acc[c.region] ||= []).push(c);
@@ -136,60 +168,29 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       expanded: false
     }));
 
-    this.countryList = []; // clear country list in region mode
+    this.countryList = [];
   }
 
-  // 📊 Country View
   private showCountryData() {
-    this.countryList = [...this.laborData].sort((a, b) => a.name.localeCompare(b.name));
-    this.regionGroups = []; // clear regions in country mode
+    this.countryList = [...this.laborData].sort((a, b) => a.country.localeCompare(b.country));
+    this.regionGroups = [];
   }
 
-  // 🎨 Coloring
   private applyColors(mode: 'region' | 'country') {
     if (!this.countries) return;
 
     this.globe.polygonsData(this.countries.features)
       .polygonCapColor((d: any) => {
         const countryName = d.properties.name;
-        const entry = this.laborData.find(c => c.name === countryName);
+        const entry = this.laborData.find(c => c.country === countryName);
 
         if (mode === 'region') {
-          return entry ? (REGION_COLORS[entry.region] || REGION_COLORS['Other']) : REGION_COLORS['Other'];
+          return entry ? REGION_COLORS[entry.region] || REGION_COLORS['Other'] : REGION_COLORS['Other'];
         } else {
           return entry ? this.countryColorScale(entry.cost) : FALLBACK_COLOR;
         }
       })
       .polygonSideColor(() => DEFAULT_GLOBE_COLOR)
       .polygonStrokeColor(() => mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION);
-  }
-
-  // 🔄 Switch View
-  setView(view: string) {
-    this.selectedView = view;
-    if (view === 'By Region') {
-      this.showRegionData();
-      this.applyColors('region');
-    } else {
-      this.showCountryData();
-      this.applyColors('country');
-    }
-  }
-
-  // 🔍 Zoom
-  zoomIn() {
-    this.currentZoom = Math.max(this.currentZoom - ZOOM_STEP, MIN_ZOOM);
-    this.updateCameraZoom();
-  }
-
-  zoomOut() {
-    this.currentZoom = Math.min(this.currentZoom + ZOOM_STEP, MAX_ZOOM);
-    this.updateCameraZoom();
-  }
-
-  private updateCameraZoom() {
-    if (this.controls.object) {
-      this.controls.object.position.z = this.currentZoom;
-    }
   }
 }
