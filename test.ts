@@ -1,49 +1,119 @@
+import { CommonModule } from '@angular/common';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
+import { HighchartsChartModule } from 'highcharts-angular';
 import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
-import Globe from 'globe.gl';
+
+import Globe from 'three-globe';
+import * as THREE from 'three';
+import * as topojson from 'topojson-client';
+import worldData from 'world-atlas/countries-110m.json';
+import { FeatureCollection, Geometry } from 'geojson';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { geoCentroid } from 'd3-geo';
+
+type CountrySkill = { country: string; code: string; uniqueSkills: number; skillSupply: number };
+
+const ROTATION_SPEED = 0.002;
+const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
 
 @Component({
   selector: 'app-ss-by-location',
   templateUrl: './ss-by-location.component.html',
-  styleUrls: ['./ss-by-location.component.scss'],
-  standalone: true
+  standalone: true,
+  imports: [CommonModule, FormsModule, HttpClientModule, HighchartsChartModule],
+  styleUrls: ['./ss-by-location.component.scss']
 })
 export class SsByLocationComponent implements AfterViewInit {
   @ViewChild('globeContainer', { static: true }) globeContainer!: ElementRef;
 
+  countriesList: CountrySkill[] = [];
+  filteredList: CountrySkill[] = [];
+
+  private controls!: OrbitControls;
+  private globe: any;
+  private countries!: FeatureCollection<Geometry, any>;
+
+  currentZoom: number = ZOOM.initial;
+
+  constructor(private http: HttpClient) {}
+
   ngAfterViewInit() {
-    const globe = Globe()
-      .globeImageUrl('//unpkg.com/three-globe/example/img/earth-blue-marble.jpg') // ocean + land
-      .bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png')     // relief
-      .showAtmosphere(true)
-      .atmosphereColor('lightskyblue')
-      .atmosphereAltitude(0.25)
-      .backgroundColor('#ffffff')  // white background like your screenshot
-      .showGraticules(true);       // latitude/longitude lines
+    const host = this.globeContainer.nativeElement as HTMLDivElement;
 
-    // Render into container
-    globe(this.globeContainer.nativeElement);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(host.offsetWidth, host.offsetHeight);
+    host.appendChild(renderer.domElement);
 
-    // Auto-rotate
-    globe.controls().autoRotate = true;
-    globe.controls().autoRotateSpeed = 0.8;
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, host.offsetWidth / host.offsetHeight, 0.1, 1000);
+    camera.position.z = this.currentZoom;
+
+    this.controls = new OrbitControls(camera, renderer.domElement);
+    this.controls.enableDamping = true;
+    this.controls.rotateSpeed = 0.5;
+    this.controls.zoomSpeed = 0.8;
+
+    // 🌍 Flat style globe (no texture)
+    this.globe = new Globe()
+      .showGlobe(true)
+      .showGraticules(true);
+
+    // Ocean color
+    this.globe.globeMaterial(new THREE.MeshBasicMaterial({ color: 0x84c9f6 }));
+
+    // Countries geometry
+    this.countries = topojson.feature(
+      worldData as any,
+      (worldData as any).objects.countries
+    ) as unknown as FeatureCollection<Geometry, any>;
+
+    // Flat polygon colors (modern map style)
+    this.globe
+      .polygonsData(this.countries.features)
+      .polygonCapColor(() => '#a8d5a2')              // pale green land
+      .polygonSideColor(() => 'rgba(0,0,0,0)')       // no side shading
+      .polygonStrokeColor(() => '#ffffff');          // white borders
+
+    scene.add(this.globe);
+    scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+    const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+    dir.position.set(5, 3, 5);
+    scene.add(dir);
+
+    // Load skills JSON (random fallback if missing)
+    this.http.get<any>('assets/data/world-globe-data.json').subscribe(data => {
+      this.countriesList = data.countries.map((c: any) => ({
+        country: c.name,
+        code: c.code,
+        uniqueSkills: c.uniqueSkills > 0 ? c.uniqueSkills : Math.floor(Math.random() * 100),
+        skillSupply: c.skillSupply > 0 ? c.skillSupply : Math.floor(Math.random() * 50)
+      }));
+      this.filteredList = [...this.countriesList];
+    });
+
+    const animate = () => {
+      requestAnimationFrame(animate);
+      this.globe.rotation.y += ROTATION_SPEED; // smooth auto-rotate
+      this.controls.update();
+      renderer.render(scene, camera);
+    };
+    animate();
   }
-}
 
+  zoomIn() {
+    this.currentZoom = Math.max(this.currentZoom - ZOOM.step, ZOOM.min);
+    this.updateCameraZoom();
+  }
 
-<div #globeContainer class="globe-wrapper"></div>
+  zoomOut() {
+    this.currentZoom = Math.min(this.currentZoom + ZOOM.step, ZOOM.max);
+    this.updateCameraZoom();
+  }
 
-
-.globe-wrapper {
-  width: 100%;
-  height: 80vh;       // make it large
-  margin: auto;
-  position: relative;
-  background: #f5f8fa; // soft background
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
-}
-
-canvas {
-  border-radius: 12px;
+  private updateCameraZoom() {
+    if (this.controls.object) {
+      this.controls.object.position.z = this.currentZoom;
+    }
+  }
 }
