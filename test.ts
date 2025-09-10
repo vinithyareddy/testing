@@ -19,13 +19,15 @@ const REGION_COLORS: Record<string, string> = {
 const COUNTRY_COLOR_RANGE: [string, string] = ['#bcd3ebff', '#144c88'];
 const STROKE_COLOR_COUNTRY = '#7e8790';
 const STROKE_COLOR_REGION = '#84c9f6';
+const FALLBACK_COLOR = '#e0e0e0';
+const REGION_OTHER = 'Other';
 
 const INITIAL_ZOOM = 170;
 const ZOOM_STEP = 20;
 const MIN_ZOOM = 50;
 const MAX_ZOOM = 400;
 
-// ✅ Region mapping (simpler)
+// ✅ Region mapping
 const REGION_MAP: Record<string, string[]> = {
   'North America': [
     'United States of America', 'Canada', 'Mexico',
@@ -51,7 +53,7 @@ const REGION_MAP: Record<string, string[]> = {
 export class AvgLaborCostRegionComponent implements AfterViewInit {
   @ViewChild('globeContainer', { static: true }) globeContainer!: ElementRef;
 
-  // Dummy data
+  // ✅ Dummy data
   laborData: CountryCost[] = [
     { country: 'United States of America', region: 'North America', cost: 57, code: 'US' },
     { country: 'Canada', region: 'North America', cost: 7, code: 'CA' },
@@ -128,7 +130,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     region.expanded = !region.expanded;
   }
 
-  // Zoom Buttons
+  // ✅ Zoom
   zoomIn() {
     this.currentZoom = Math.max(this.currentZoom - ZOOM_STEP, MIN_ZOOM);
     this.updateCameraZoom();
@@ -145,7 +147,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     }
   }
 
-  // Dropdown Filter
+  // ✅ Dropdown Filter
   setView(view: string) {
     this.selectedView = view;
     if (view === 'By Region') {
@@ -183,7 +185,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     for (const [region, countries] of Object.entries(REGION_MAP)) {
       if (countries.includes(countryName)) return region;
     }
-    return 'Other';
+    return REGION_OTHER;
   }
 
   private applyColors(mode: 'region' | 'country') {
@@ -193,10 +195,10 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       .polygonCapColor((d: any) => {
         if (mode === 'region') {
           const region = this.getRegion(d.properties.name);
-          return REGION_COLORS[region] || REGION_COLORS['Other'];
+          return REGION_COLORS[region] || REGION_COLORS[REGION_OTHER];
         } else {
           const entry = this.laborData.find(c => c.country === d.properties.name);
-          return entry ? this.countryColorScale(entry.cost) : '#e0e0e0';
+          return entry ? this.countryColorScale(entry.cost) : FALLBACK_COLOR;
         }
       })
       .polygonSideColor(() => DEFAULT_GLOBE_COLOR)
