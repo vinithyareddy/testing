@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { HighchartsChartModule } from 'highcharts-angular';
-import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, ViewChild, OnDestroy } from '@angular/core';
 
 import Globe from 'three-globe';
 import * as THREE from 'three';
@@ -32,7 +32,7 @@ const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
   imports: [CommonModule, FormsModule, HttpClientModule, HighchartsChartModule],
   styleUrls: ['./ss-by-location.component.scss']
 })
-export class SsByLocationComponent implements AfterViewInit {
+export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   @ViewChild('globeContainer', { static: true }) globeContainer!: ElementRef;
   @ViewChild('tooltip', { static: true }) tooltip!: ElementRef;
 
@@ -51,6 +51,8 @@ export class SsByLocationComponent implements AfterViewInit {
   private raycaster = new THREE.Raycaster();
   private mouse = new THREE.Vector2();
   private scene!: THREE.Scene;
+  private countryMeshes: Map<string, THREE.Object3D> = new Map();
+  private labelMeshes: Map<string, THREE.Object3D> = new Map();
 
   currentZoom: number = ZOOM.initial;
 
@@ -114,13 +116,22 @@ export class SsByLocationComponent implements AfterViewInit {
       (worldData as any).objects.countries
     ) as unknown as FeatureCollection<Geometry, any>;
 
-    // Add country polygons (invisible but interactive)
+    // Add country polygons with slight visibility for interaction
     this.globe
       .polygonsData(this.countries.features)
-      .polygonCapColor(() => 'rgba(0,0,0,0)')
-      .polygonSideColor(() => 'rgba(0,0,0,0)')
-      .polygonStrokeColor(() => 'rgba(0,0,0,0)')
-      .polygonAltitude(0.01); // Slight altitude for raycasting
+      .polygonCapColor(() => 'rgba(0,100,200,0.1)') // Slight blue tint for debugging
+      .polygonSideColor(() => 'rgba(0,100,200,0.05)')
+      .polygonStrokeColor(() => 'rgba(0,0,0,0.2)')
+      .polygonAltitude(0.02) // Higher altitude for better raycasting
+      .onPolygonHover((polygon: any) => {
+        // This callback helps with hover detection
+        console.log('Polygon hover:', polygon ? polygon.properties.name : 'none');
+      })
+      .onPolygonClick((polygon: any) => {
+        if (polygon) {
+          console.log('Polygon clicked:', polygon.properties.name);
+        }
+      });
 
     this.scene.add(this.globe);
     this.scene.add(new THREE.AmbientLight(0xffffff, 1.2));
@@ -142,41 +153,74 @@ export class SsByLocationComponent implements AfterViewInit {
   }
 
   private loadCountryData() {
-    this.http.get<any>('assets/data/world-globe-data.json').subscribe(data => {
-      this.countriesList = data.countries.map((c: any) => ({
-        country: c.name,
-        code: c.code,
-        region: c.region,
-        uniqueSkills: c.uniqueSkills > 0 ? c.uniqueSkills : Math.floor(Math.random() * 100),
-        skillSupply: c.skillSupply > 0 ? c.skillSupply : Math.floor(Math.random() * 50),
-        lat: c.lat,
-        lng: c.lng
-      }));
-      this.filteredList = [...this.countriesList];
+    this.http.get<any>('assets/data/world-globe-data.json').subscribe({
+      next: (data) => {
+        this.countriesList = data.countries.map((c: any) => ({
+          country: c.name,
+          code: c.code,
+          region: c.region,
+          uniqueSkills: c.uniqueSkills > 0 ? c.uniqueSkills : Math.floor(Math.random() * 100),
+          skillSupply: c.skillSupply > 0 ? c.skillSupply : Math.floor(Math.random() * 50),
+          lat: c.lat,
+          lng: c.lng
+        }));
+        this.filteredList = [...this.countriesList];
 
-      // Build lookup maps
-      for (const c of this.countriesList) {
-        this.nameToCode.set(c.country, c.code);
-        if (typeof c.lat === 'number' && typeof c.lng === 'number') {
-          this.coordsByCode.set(c.code, { lat: c.lat, lng: c.lng });
+        // Build lookup maps
+        for (const c of this.countriesList) {
+          this.nameToCode.set(c.country, c.code);
+          // Also add some common country name variations
+          this.nameToCode.set(c.country.toLowerCase(), c.code);
+          if (typeof c.lat === 'number' && typeof c.lng === 'number') {
+            this.coordsByCode.set(c.code, { lat: c.lat, lng: c.lng });
+          }
         }
-      }
 
-      // Add country labels
-      this.addCountryLabels();
-      
-      // Setup userData for polygons after data is loaded
-      setTimeout(() => {
-        this.setupPolygonUserData();
-      }, 500);
+        // Add country labels
+        this.addCountryLabels();
+        
+        console.log('Countries loaded:', this.countriesList.length);
+      },
+      error: (error) => {
+        console.error('Error loading country data:', error);
+        // Fallback with sample data
+        this.createSampleData();
+      }
     });
+  }
+
+  private createSampleData() {
+    // Sample data if JSON file is not available
+    this.countriesList = [
+      { country: 'United States', code: 'US', uniqueSkills: 57, skillSupply: 20, lat: 39.8283, lng: -98.5795 },
+      { country: 'Canada', code: 'CA', uniqueSkills: 45, skillSupply: 15, lat: 56.1304, lng: -106.3468 },
+      { country: 'United Kingdom', code: 'GB', uniqueSkills: 42, skillSupply: 18, lat: 55.3781, lng: -3.4360 },
+      { country: 'Germany', code: 'DE', uniqueSkills: 50, skillSupply: 22, lat: 51.1657, lng: 10.4515 },
+      { country: 'France', code: 'FR', uniqueSkills: 38, skillSupply: 16, lat: 46.2276, lng: 2.2137 },
+      { country: 'Japan', code: 'JP', uniqueSkills: 48, skillSupply: 19, lat: 36.2048, lng: 138.2529 },
+      { country: 'Australia', code: 'AU', uniqueSkills: 35, skillSupply: 14, lat: -25.2744, lng: 133.7751 },
+      { country: 'Brazil', code: 'BR', uniqueSkills: 33, skillSupply: 12, lat: -14.2350, lng: -51.9253 },
+      { country: 'India', code: 'IN', uniqueSkills: 52, skillSupply: 25, lat: 20.5937, lng: 78.9629 },
+      { country: 'China', code: 'CN', uniqueSkills: 55, skillSupply: 28, lat: 35.8617, lng: 104.1954 }
+    ];
+    this.filteredList = [...this.countriesList];
+
+    for (const c of this.countriesList) {
+      this.nameToCode.set(c.country, c.code);
+      this.nameToCode.set(c.country.toLowerCase(), c.code);
+      if (typeof c.lat === 'number' && typeof c.lng === 'number') {
+        this.coordsByCode.set(c.code, { lat: c.lat, lng: c.lng });
+      }
+    }
+
+    this.addCountryLabels();
   }
 
   private addCountryLabels() {
     const labelData = this.countries.features
       .map((f: any) => {
         const name = f.properties.name as string;
-        const code = this.nameToCode.get(name);
+        const code = this.nameToCode.get(name) || this.nameToCode.get(name.toLowerCase());
         if (!code) return null;
 
         const fixed = this.coordsByCode.get(code);
@@ -196,57 +240,41 @@ export class SsByLocationComponent implements AfterViewInit {
         .labelText((d: any) => d.code)
         .labelLat((d: any) => d.lat)
         .labelLng((d: any) => d.lng)
-        .labelAltitude(0.012)
-        .labelSize(0.95)
-        .labelDotRadius(0.16)
+        .labelAltitude(0.015)
+        .labelSize(1.0)
+        .labelDotRadius(0.2)
         .labelColor(() => 'rgba(0,0,0,0.9)')
-        .labelResolution(2);
-
-      // Setup userData for labels after they're created
-      setTimeout(() => {
-        this.setupLabelUserData(labelData);
-      }, 300);
-    }
-  }
-
-  private setupPolygonUserData() {
-    // Attach userData to polygons for raycasting
-    if (this.globe && this.globe.children) {
-      this.countries.features.forEach((feature: any, index: number) => {
-        // Find matching globe children and attach polygon data
-        this.globe.children.forEach((child: any) => {
-          if (child.geometry && child.geometry.type === 'BufferGeometry') {
-            if (!child.userData.polygon) {
-              child.userData = { polygon: feature };
-            }
+        .labelResolution(3)
+        .onLabelHover((label: any) => {
+          console.log('Label hover:', label ? label.country : 'none');
+        })
+        .onLabelClick((label: any) => {
+          if (label) {
+            console.log('Label clicked:', label.country);
           }
         });
-      });
-    }
-  }
 
-  private setupLabelUserData(labelData: any[]) {
-    // Attach userData to labels for raycasting
-    if (this.globe && this.globe.children) {
-      labelData.forEach((label: any, index: number) => {
-        // Find text mesh objects and attach label data
-        this.globe.children.forEach((child: any) => {
-          if (child.type === 'Mesh' && child.material && child.material.map) {
-            if (!child.userData.label) {
-              child.userData = { label };
-            }
-          }
-        });
-      });
+      console.log('Labels added:', labelData.length);
     }
   }
 
   private setupMouseEvents() {
     const canvas = this.renderer.domElement;
+    let isMouseDown = false;
+    
+    canvas.addEventListener('mousedown', () => {
+      isMouseDown = true;
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      isMouseDown = false;
+    });
     
     canvas.addEventListener('mousemove', (event: MouseEvent) => {
-      this.updateMousePosition(event);
-      this.handleMouseMove(event);
+      if (!isMouseDown) { // Only show tooltip when not dragging
+        this.updateMousePosition(event);
+        this.handleMouseMove(event);
+      }
     });
 
     canvas.addEventListener('click', (event: MouseEvent) => {
@@ -257,6 +285,21 @@ export class SsByLocationComponent implements AfterViewInit {
     canvas.addEventListener('mouseleave', () => {
       this.hideTooltip();
     });
+
+    // Handle resize
+    window.addEventListener('resize', () => {
+      this.handleResize();
+    });
+  }
+
+  private handleResize() {
+    const host = this.globeContainer.nativeElement as HTMLDivElement;
+    const width = host.offsetWidth;
+    const height = host.offsetHeight;
+
+    this.camera.aspect = width / height;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(width, height);
   }
 
   private updateMousePosition(event: MouseEvent) {
@@ -266,88 +309,97 @@ export class SsByLocationComponent implements AfterViewInit {
   }
 
   private handleMouseMove(event: MouseEvent) {
-    const country = this.getIntersectedCountry();
+    const country = this.getIntersectedCountry(event);
     if (country) {
       this.showTooltip(country, event);
       this.renderer.domElement.style.cursor = 'pointer';
     } else {
       this.hideTooltip();
-      this.renderer.domElement.style.cursor = 'default';
+      this.renderer.domElement.style.cursor = 'grab';
     }
   }
 
   private handleClick(event: MouseEvent) {
-    const country = this.getIntersectedCountry();
+    const country = this.getIntersectedCountry(event);
     if (country) {
-      // Handle country click - you can add navigation or detailed view here
-      console.log('Clicked on:', country);
-      // Example: You could emit an event or navigate to a detail view
-      // this.router.navigate(['/country-detail', country.code]);
+      console.log('Clicked on:', country.country, country);
     }
   }
 
-  private getIntersectedCountry(): CountrySkill | null {
+  private getIntersectedCountry(event: MouseEvent): CountrySkill | null {
     this.raycaster.setFromCamera(this.mouse, this.camera);
-    const intersects = this.raycaster.intersectObjects(this.globe.children, true);
-
-    for (const intersect of intersects) {
-      if (intersect.object && intersect.object.userData) {
-        let countryName: string | null = null;
-
-        // Check for label data
-        if (intersect.object.userData.label) {
-          countryName = intersect.object.userData.label.country;
-        }
-        // Check for polygon data
-        else if (intersect.object.userData.polygon && intersect.object.userData.polygon.properties) {
-          countryName = intersect.object.userData.polygon.properties.name;
-        }
-
-        if (countryName) {
-          const match = this.countriesList.find(c => 
-            c.country.trim().toLowerCase() === countryName!.trim().toLowerCase()
-          );
-          if (match) {
-            return match;
-          }
-        }
-      }
-    }
     
-    // Fallback: try to match by approximate position if direct userData matching fails
+    // First try to get country from globe's built-in hover detection
+    const intersects = this.raycaster.intersectObjects(this.globe.children, true);
+    
     if (intersects.length > 0) {
       const point = intersects[0].point;
-      // Convert 3D point to lat/lng and find closest country
-      const lat = Math.asin(point.y / 100) * 180 / Math.PI;
-      const lng = Math.atan2(point.x, point.z) * 180 / Math.PI;
       
-      // Find closest country by coordinates (simplified approach)
+      // Convert 3D world position to latitude/longitude
+      const radius = 100; // Globe radius
+      const lat = Math.asin(point.y / radius) * (180 / Math.PI);
+      const lng = Math.atan2(point.z, point.x) * (180 / Math.PI);
+      
+      // Find the closest country by coordinates
       let closestCountry: CountrySkill | null = null;
       let minDistance = Infinity;
       
       for (const country of this.countriesList) {
         if (country.lat !== undefined && country.lng !== undefined) {
-          const distance = Math.sqrt(
-            Math.pow(country.lat - lat, 2) + Math.pow(country.lng - lng, 2)
-          );
-          if (distance < minDistance && distance < 10) { // Within 10 degrees
+          // Calculate distance using Haversine-like formula (simplified)
+          const latDiff = country.lat - lat;
+          const lngDiff = country.lng - lng;
+          const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
+          
+          if (distance < minDistance) {
             minDistance = distance;
             closestCountry = country;
           }
         }
       }
       
-      return closestCountry;
+      // Only return country if it's reasonably close (within ~15 degrees)
+      if (closestCountry && minDistance < 15) {
+        return closestCountry;
+      }
     }
-
+    
+    // Fallback: try to match against polygon features
+    for (const feature of this.countries.features) {
+      const countryName = feature.properties.name;
+      const country = this.countriesList.find(c => 
+        c.country.toLowerCase() === countryName.toLowerCase()
+      );
+      
+      if (country) {
+        // Simple bounding box check
+        const [lng, lat] = geoCentroid(feature) as [number, number];
+        const point = intersects[0]?.point;
+        
+        if (point) {
+          const worldLat = Math.asin(point.y / 100) * (180 / Math.PI);
+          const worldLng = Math.atan2(point.z, point.x) * (180 / Math.PI);
+          
+          if (Math.abs(worldLat - lat) < 10 && Math.abs(worldLng - lng) < 10) {
+            return country;
+          }
+        }
+      }
+    }
+    
     return null;
   }
 
   private showTooltip(country: CountrySkill, event: MouseEvent) {
+    if (!this.tooltip || !this.tooltip.nativeElement) {
+      console.warn('Tooltip element not found');
+      return;
+    }
+
     const tooltip = this.tooltip.nativeElement;
     const rect = this.renderer.domElement.getBoundingClientRect();
     
-    // Format tooltip content to match the second image
+    // Format tooltip content
     tooltip.innerHTML = `
       <div class="country-header">
         <img src="https://flagcdn.com/20x15/${country.code.toLowerCase()}.png" 
@@ -370,11 +422,12 @@ export class SsByLocationComponent implements AfterViewInit {
 
     // Position tooltip
     const x = event.clientX - rect.left + 15;
-    const y = event.clientY - rect.top - 15; // Position above cursor
+    const y = event.clientY - rect.top - 60; // Position above cursor
     
     tooltip.style.left = x + 'px';
     tooltip.style.top = y + 'px';
     tooltip.style.display = 'block';
+    tooltip.style.opacity = '1';
 
     // Ensure tooltip stays within bounds
     setTimeout(() => {
@@ -384,25 +437,28 @@ export class SsByLocationComponent implements AfterViewInit {
       let adjustedX = x;
       let adjustedY = y;
       
-      // Adjust horizontal position if tooltip goes off-screen
+      // Adjust horizontal position
       if (x + tooltipRect.width > containerRect.width - 10) {
         adjustedX = x - tooltipRect.width - 30;
       }
       
-      // Adjust vertical position if tooltip goes off-screen
+      // Adjust vertical position
       if (y < 10) {
-        adjustedY = event.clientY - rect.top + 25; // Position below cursor instead
+        adjustedY = event.clientY - rect.top + 25;
       } else if (y + tooltipRect.height > containerRect.height - 10) {
         adjustedY = containerRect.height - tooltipRect.height - 10;
       }
       
       tooltip.style.left = adjustedX + 'px';
       tooltip.style.top = adjustedY + 'px';
-    }, 0);
+    }, 10);
   }
 
   private hideTooltip() {
-    this.tooltip.nativeElement.style.display = 'none';
+    if (this.tooltip && this.tooltip.nativeElement) {
+      this.tooltip.nativeElement.style.display = 'none';
+      this.tooltip.nativeElement.style.opacity = '0';
+    }
   }
 
   filterList() {
@@ -430,24 +486,16 @@ export class SsByLocationComponent implements AfterViewInit {
     }
   }
 
-  // Method to handle country selection from sidebar
   selectCountry(country: CountrySkill) {
     if (country.lat !== undefined && country.lng !== undefined) {
-      // Animate camera to focus on selected country
-      const phi = (90 - country.lat) * Math.PI / 180;
-      const theta = (country.lng + 180) * Math.PI / 180;
-
-      const x = -100 * Math.sin(phi) * Math.cos(theta);
-      const y = 100 * Math.cos(phi);
-      const z = 100 * Math.sin(phi) * Math.sin(theta);
-
       // Update globe rotation to center the country
       this.globe.rotation.y = -country.lng * Math.PI / 180;
       this.globe.rotation.x = -country.lat * Math.PI / 180;
+      
+      console.log('Selected country:', country.country);
     }
   }
 
-  // Cleanup method
   ngOnDestroy() {
     if (this.renderer) {
       this.renderer.dispose();
@@ -455,85 +503,6 @@ export class SsByLocationComponent implements AfterViewInit {
     if (this.controls) {
       this.controls.dispose();
     }
+    window.removeEventListener('resize', this.handleResize);
   }
-}
-
-
-// Tooltip styling - matches the second image style
-.globe-tooltip {
-  position: absolute;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 12px 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  font-size: 13px;
-  line-height: 1.5;
-  pointer-events: none;
-  display: none;
-  z-index: 2000;
-  max-width: 250px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-
-  // Flag and country header styling
-  .country-header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 8px;
-    
-    .flag-icon {
-      width: 20px;
-      height: auto;
-      margin-right: 8px;
-      border-radius: 2px;
-    }
-    
-    .country-name {
-      font-weight: 600;
-      color: #1f2937;
-      font-size: 14px;
-    }
-  }
-
-  // Metrics styling
-  .tooltip-metrics {
-    .metric-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 4px;
-      color: #4b5563;
-      
-      &:last-child {
-        margin-bottom: 0;
-      }
-      
-      .metric-label {
-        font-size: 12px;
-      }
-      
-      .metric-value {
-        font-weight: 600;
-        color: #1f2937;
-        font-size: 12px;
-      }
-    }
-  }
-}
-
-// Also update the canvas cursor style
-canvas {
-  border-radius: 12px;
-  cursor: default;
-}
-
-// Ensure tooltip appears above everything
-:host ::ng-deep .globe-tooltip {
-  background: #ffffff !important;
-  border: 1px solid #e5e7eb !important;
-  border-radius: 8px !important;
-  padding: 12px 16px !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-  font-size: 13px !important;
-  line-height: 1.5 !important;
-  z-index: 2000 !important;
 }
