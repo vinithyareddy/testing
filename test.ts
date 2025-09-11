@@ -6,6 +6,9 @@ import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
 
 import Globe from 'three-globe';
 import * as THREE from 'three';
+import * as topojson from 'topojson-client';
+import worldData from 'world-atlas/countries-110m.json';
+import { FeatureCollection, Geometry } from 'geojson';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
 type CountrySkill = {
@@ -14,15 +17,14 @@ type CountrySkill = {
   region?: string;
   uniqueSkills: number;
   skillSupply: number;
-  lat?: number;
-  lng?: number;
-  screenX?: number;
-  screenY?: number;
+  lat: number;
+  lng: number;
+  position?: THREE.Vector3;
 };
 
 const ROTATION_SPEED = 0.002;
 const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
-const RADIUS = 100;
+const RADIUS = 100; // globe radius
 
 @Component({
   selector: 'app-ss-by-location',
@@ -40,60 +42,56 @@ export class SsByLocationComponent implements AfterViewInit {
   legendCollapsed = false;
   private controls!: OrbitControls;
   private globe: any;
-  private camera!: THREE.PerspectiveCamera;
-  private renderer!: THREE.WebGLRenderer;
-  private tooltip!: HTMLDivElement;
+  private countries!: FeatureCollection<Geometry, any>;
   currentZoom: number = ZOOM.initial;
 
   constructor(private http: HttpClient) {}
 
-  // Convert lat/lon → 3D vector on globe
-  private latLngToVector3(lat: number, lng: number, radius: number) {
+  private latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
     const phi = (90 - lat) * (Math.PI / 180);
     const theta = (lng + 180) * (Math.PI / 180);
     return new THREE.Vector3(
-      -(radius * Math.sin(phi) * Math.cos(theta)),
-      radius * Math.cos(phi),
-      radius * Math.sin(phi) * Math.sin(theta)
+      -radius * Math.sin(phi) * Math.cos(theta),
+       radius * Math.cos(phi),
+       radius * Math.sin(phi) * Math.sin(theta)
     );
   }
 
   ngAfterViewInit() {
     const host = this.globeContainer.nativeElement as HTMLDivElement;
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    this.renderer.setSize(host.offsetWidth, host.offsetHeight);
-    this.renderer.setClearColor(0x000000, 0);
-    host.appendChild(this.renderer.domElement);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(host.offsetWidth, host.offsetHeight);
+    renderer.setClearColor(0x000000, 0);
+    host.appendChild(renderer.domElement);
 
     // Tooltip element
-    this.tooltip = document.createElement('div');
-    this.tooltip.style.position = 'absolute';
-    this.tooltip.style.pointerEvents = 'none';
-    this.tooltip.style.background = 'rgba(0,0,0,0.85)';
-    this.tooltip.style.color = '#fff';
-    this.tooltip.style.padding = '6px 12px';
-    this.tooltip.style.borderRadius = '6px';
-    this.tooltip.style.fontSize = '13px';
-    this.tooltip.style.zIndex = '10';
-    this.tooltip.style.display = 'none';
-    host.appendChild(this.tooltip);
+    const tooltip = document.createElement('div');
+    tooltip.style.position = 'absolute';
+    tooltip.style.pointerEvents = 'none';
+    tooltip.style.background = 'rgba(0,0,0,0.85)';
+    tooltip.style.color = '#fff';
+    tooltip.style.padding = '6px 12px';
+    tooltip.style.borderRadius = '6px';
+    tooltip.style.fontSize = '13px';
+    tooltip.style.zIndex = '10';
+    tooltip.style.display = 'none';
+    host.appendChild(tooltip);
 
     const scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(
+    const camera = new THREE.PerspectiveCamera(
       75,
       host.offsetWidth / host.offsetHeight,
       0.1,
       1000
     );
-    this.camera.position.z = this.currentZoom;
+    camera.position.z = this.currentZoom;
 
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls = new OrbitControls(camera, renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.rotateSpeed = 0.5;
     this.controls.zoomSpeed = 0.8;
 
-    // Base globe
     this.globe = new Globe().showGraticules(true).showAtmosphere(true);
     this.globe.atmosphereColor('#9ec2ff').atmosphereAltitude(0.25);
 
@@ -101,22 +99,29 @@ export class SsByLocationComponent implements AfterViewInit {
     const earthTex = texLoader.load(
       'https://unpkg.com/three-globe@2.30.0/example/img/earth-blue-marble.jpg'
     );
-    const bumpTex = texLoader.load(
-      'https://unpkg.com/three-globe@2.30.0/example/img/earth-topology.png'
-    );
 
     const earth = new THREE.Mesh(
       new THREE.SphereGeometry(RADIUS, 75, 75),
       new THREE.MeshPhongMaterial({
         map: earthTex,
-        bumpMap: bumpTex,
-        bumpScale: 0.4,
         specular: new THREE.Color(0x222222),
         shininess: 3
       })
     );
-    earth.rotation.y = -Math.PI / 2;
+    scene.add(earth);
     this.globe.add(earth);
+
+    this.countries = topojson.feature(
+      worldData as any,
+      (worldData as any).objects.countries
+    ) as unknown as FeatureCollection<Geometry, any>;
+
+    this.globe
+      .polygonsData(this.countries.features)
+      .polygonCapColor(() => 'rgba(0,0,0,0)')
+      .polygonSideColor(() => 'rgba(0,0,0,0)')
+      .polygonStrokeColor(() => 'rgba(0,0,0,0)')
+      .polygonAltitude(0);
 
     scene.add(this.globe);
     scene.add(new THREE.AmbientLight(0xffffff, 1.2));
@@ -124,7 +129,6 @@ export class SsByLocationComponent implements AfterViewInit {
     dir.position.set(5, 3, 5);
     scene.add(dir);
 
-    // Load JSON with lat/lon
     this.http.get<any>('assets/data/world-globe-data.json').subscribe(data => {
       this.countriesList = data.countries.map((c: any) => ({
         country: c.name,
@@ -135,75 +139,64 @@ export class SsByLocationComponent implements AfterViewInit {
         skillSupply:
           c.skillSupply > 0 ? c.skillSupply : Math.floor(Math.random() * 50),
         lat: c.lat,
-        lng: c.lng
+        lng: c.lng,
+        position: this.latLngToVector3(c.lat, c.lng, RADIUS)
       }));
       this.filteredList = [...this.countriesList];
-    });
 
-    // Mouse move → check distance to projected lat/lon
-    this.renderer.domElement.addEventListener('mousemove', (event: MouseEvent) => {
-      if (!this.countriesList.length) return;
+      // Tooltip logic based on lat/lon positions
+      const handleHover = (event: MouseEvent) => {
+        const mouse = new THREE.Vector2(
+          (event.offsetX / renderer.domElement.clientWidth) * 2 - 1,
+          -(event.offsetY / renderer.domElement.clientHeight) * 2 + 1
+        );
 
-      let hovered: CountrySkill | null = null;
-      let minDist = 9999;
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, camera);
 
-      for (const c of this.countriesList) {
-        if (c.lat == null || c.lng == null) continue;
+        const intersects = raycaster.intersectObject(earth);
+        if (intersects.length > 0) {
+          const point = intersects[0].point;
 
-        const vec = this.latLngToVector3(c.lat, c.lng, RADIUS);
-        const projected = vec.clone().project(this.camera);
-        const x = (projected.x * 0.5 + 0.5) * this.renderer.domElement.clientWidth;
-        const y = (-projected.y * 0.5 + 0.5) * this.renderer.domElement.clientHeight;
+          // find closest country by 3D distance
+          let closest: CountrySkill | null = null;
+          let minDist = Infinity;
+          for (const c of this.countriesList) {
+            if (!c.position) continue;
+            const dist = point.distanceTo(c.position);
+            if (dist < minDist) {
+              minDist = dist;
+              closest = c;
+            }
+          }
 
-        c.screenX = x;
-        c.screenY = y;
+          if (closest) {
+            const vector = closest.position!.clone().project(camera);
+            const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
+            const y = (-vector.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
 
-        const dx = event.offsetX - x;
-        const dy = event.offsetY - y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist < 20 && dist < minDist) {
-          hovered = c;
-          minDist = dist;
+            tooltip.innerHTML = `<b>${closest.country}</b><br>Unique Skills: ${closest.uniqueSkills}<br>Skill Supply: ${closest.skillSupply}`;
+            tooltip.style.left = `${x + 15}px`;
+            tooltip.style.top = `${y + 15}px`;
+            tooltip.style.display = 'block';
+            return;
+          }
         }
-      }
+        tooltip.style.display = 'none';
+      };
 
-      if (hovered) {
-        this.tooltip.innerHTML = `
-          <b>${hovered.country}</b><br>
-          Unique Skills: ${hovered.uniqueSkills}<br>
-          Skill Supply: ${hovered.skillSupply}
-        `;
-        this.tooltip.style.left = `${hovered.screenX! + 10}px`;
-        this.tooltip.style.top = `${hovered.screenY! + 10}px`;
-        this.tooltip.style.display = 'block';
-      } else {
-        this.tooltip.style.display = 'none';
-      }
+      renderer.domElement.addEventListener('mousemove', handleHover);
+      renderer.domElement.addEventListener('click', handleHover);
+      renderer.domElement.addEventListener('mouseleave', () => {
+        tooltip.style.display = 'none';
+      });
     });
 
-    this.renderer.domElement.addEventListener('mouseleave', () => {
-      this.tooltip.style.display = 'none';
-    });
-
-    // Animation
     const animate = () => {
       requestAnimationFrame(animate);
-
-      // Update projected screen coords for all countries each frame
-      for (const c of this.countriesList) {
-        if (c.lat == null || c.lng == null) continue;
-        const vec = this.latLngToVector3(c.lat, c.lng, RADIUS);
-        const projected = vec.clone().project(this.camera);
-        c.screenX =
-          (projected.x * 0.5 + 0.5) * this.renderer.domElement.clientWidth;
-        c.screenY =
-          (-projected.y * 0.5 + 0.5) * this.renderer.domElement.clientHeight;
-      }
-
       this.globe.rotation.y += ROTATION_SPEED;
       this.controls.update();
-      this.renderer.render(scene, this.camera);
+      renderer.render(scene, camera);
     };
     animate();
   }
@@ -230,7 +223,6 @@ export class SsByLocationComponent implements AfterViewInit {
   }
 
   private updateCameraZoom() {
-    if (this.controls.object)
-      this.controls.object.position.z = this.currentZoom;
+    if (this.controls.object) this.controls.object.position.z = this.currentZoom;
   }
 }
