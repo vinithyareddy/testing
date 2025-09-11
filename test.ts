@@ -13,21 +13,37 @@ renderer.domElement.addEventListener('mousemove', (event: MouseEvent) => {
   if (intersects.length > 0) {
     for (const intersect of intersects) {
       if (intersect.object && intersect.object.userData) {
-        let countryName = null;
+        let countryName: string | null = null;
+        let code: string | null = null;
 
         if (intersect.object.userData.label) {
           countryName = intersect.object.userData.label.country || null;
+          code = intersect.object.userData.label.code || null;
         } else if (intersect.object.userData.polygon?.properties) {
           countryName = intersect.object.userData.polygon.properties.name || null;
+          code = intersect.object.userData.polygon.id || null; // often ISO3 / numeric id
         }
 
-        if (countryName) {
+        // Try match by code first
+        if (code) {
+          const match = this.countriesList.find(
+            c => c.code.toLowerCase() === code.toLowerCase()
+          );
+          if (match) {
+            foundCountry = match;
+            intersectPoint = intersect.point.clone();
+            break;
+          }
+        }
+
+        // Fallback: try match by name
+        if (!foundCountry && countryName) {
           const match = this.countriesList.find(
             c => c.country.trim().toLowerCase() === countryName.trim().toLowerCase()
           );
           if (match) {
             foundCountry = match;
-            intersectPoint = intersect.point.clone(); // 👈 the 3D point
+            intersectPoint = intersect.point.clone();
             break;
           }
         }
