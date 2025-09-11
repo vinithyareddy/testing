@@ -1,7 +1,25 @@
 <div class="legend-toggle" [class.collapsed]="legendCollapsed">
   <div class="legend-wrapper">
-    <!-- Existing legend code -->
+    <!-- existing search + country list -->
+    <div class="search-box">
+      <input type="text" placeholder="Search by country" [(ngModel)]="searchTerm" (input)="filterList()" />
+      <i class="fas fa-search"></i>
+    </div>
+    <div class="country-list">
+      <div *ngFor="let c of filteredList" class="country-card">
+        <img [src]="'https://flagcdn.com/24x18/' + c.code.toLowerCase() + '.png'" class="flag-icon" />
+        <div class="country-details">
+          <div class="country-name">{{ c.country }}</div>
+          <div class="metrics">
+            <span>Unique Skills: <b>{{ c.uniqueSkills }}</b></span>
+            <span>Skill Supply (FTE): <b>{{ c.skillSupply }}</b></span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
+
+  <!-- toggle button -->
   <button class="toggle-btn" (click)="legendCollapsed = !legendCollapsed">
     <i class="fas" [ngClass]="legendCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
   </button>
@@ -10,8 +28,13 @@
 
 .legend-toggle {
   position: relative;
-  transition: width 0.3s ease;
   display: flex;
+  transition: width 0.3s ease;
+
+  .legend-wrapper {
+    width: 260px;  // expanded width
+    transition: width 0.3s ease, opacity 0.3s ease;
+  }
 
   &.collapsed .legend-wrapper {
     width: 0;
@@ -27,27 +50,8 @@
     background: #fff;
     border: 1px solid #ddd;
     border-radius: 50%;
+    padding: 4px;
     cursor: pointer;
     z-index: 10;
   }
-}
-.globe-wrapper {
-  width: 100%;
-  height: 100%;   // instead of 80vh
-  margin: 0;      // remove auto margin
-  position: relative;
-  top: 0;
-}
-
-.ss-widget {
-  height: calc(100vh - 120px); // adjust based on header height
-}
-
-.zoom-container {
-  position: absolute;
-  bottom: 20px;
-  left: 20px; // move it closer to left
-  z-index: 20; // make sure it's on top of canvas
-  display: flex;
-  flex-direction: column;
 }
