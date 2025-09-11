@@ -10,62 +10,95 @@ import * as topojson from 'topojson-client';
 import worldData from 'world-atlas/countries-110m.json';
 import { FeatureCollection, Geometry } from 'geojson';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import * as d3 from 'd3';
 
-type CountrySkill = {
+type CountryCost = {
   country: string;
+  region: string;
+  cost: number;
   code: string;
-  region?: string;
-  uniqueSkills: number;
-  skillSupply: number;
-  lat: number;
-  lng: number;
+  lat?: number;
+  lng?: number;
   position?: THREE.Vector3;
 };
 
+const DEFAULT_GLOBE_COLOR = '#84c9f6';
+const REGION_COLORS: Record<string, string> = {
+  'North America': '#3c87d7',
+  'South America': '#c05757ff',
+  'Asia': '#144c88',
+  'Europe': '#d46f4d',
+  'Africa': '#2ca02c',
+  'Oceania': '#9467bd',
+  'Antarctic': '#8c564b',
+  'Other': '#adcdee'
+};
+const COUNTRY_COLOR_RANGE: [string, string] = ['#bcd3ebff', '#144c88'];
+const STROKE_COLOR_COUNTRY = '#7e8790';
+const STROKE_COLOR_REGION = '#84c9f6';
+const FALLBACK_COLOR = '#e0e0e0';
 const ROTATION_SPEED = 0.002;
+
 const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
-const RADIUS = 100; // globe radius
 
 @Component({
-  selector: 'app-ss-by-location',
-  templateUrl: './ss-by-location.component.html',
+  selector: 'app-avg-labor-cost-region',
+  templateUrl: './avg-labor-cost-region.component.html',
   standalone: true,
   imports: [CommonModule, FormsModule, HttpClientModule, HighchartsChartModule],
-  styleUrls: ['./ss-by-location.component.scss']
+  styleUrls: ['./avg-labor-cost-region.component.scss']
 })
-export class SsByLocationComponent implements AfterViewInit {
+export class AvgLaborCostRegionComponent implements AfterViewInit {
   @ViewChild('globeContainer', { static: true }) globeContainer!: ElementRef;
 
-  countriesList: CountrySkill[] = [];
-  filteredList: CountrySkill[] = [];
-  searchTerm = '';
-  legendCollapsed = false;
+  laborData: CountryCost[] = [];
+  regionGroups: { region: string; total: number; countries: CountryCost[]; expanded?: boolean }[] = [];
+  countryList: CountryCost[] = [];
+
   private controls!: OrbitControls;
   private globe: any;
-  private countries!: FeatureCollection<Geometry, any>;
+  private countries: FeatureCollection<Geometry, any> | undefined;
+
   currentZoom: number = ZOOM.initial;
+  selectedView: string = 'By Region';
+  showMenu: boolean = false;
+
+  private countryColorScale = d3.scaleLinear<string>()
+    .domain([0, 1])
+    .range(COUNTRY_COLOR_RANGE);
 
   constructor(private http: HttpClient) {}
 
-  private latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
-    const phi = (90 - lat) * (Math.PI / 180);
-    const theta = (lng + 180) * (Math.PI / 180);
-    return new THREE.Vector3(
-      -radius * Math.sin(phi) * Math.cos(theta),
-       radius * Math.cos(phi),
-       radius * Math.sin(phi) * Math.sin(theta)
-    );
-  }
-
   ngAfterViewInit() {
-    const host = this.globeContainer.nativeElement as HTMLDivElement;
-
+    const globeDiv = this.globeContainer.nativeElement;
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(host.offsetWidth, host.offsetHeight);
-    renderer.setClearColor(0x000000, 0);
-    host.appendChild(renderer.domElement);
+    renderer.setSize(globeDiv.offsetWidth, globeDiv.offsetHeight);
+    globeDiv.appendChild(renderer.domElement);
 
-    // Tooltip element
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, globeDiv.offsetWidth / globeDiv.offsetHeight, 0.1, 1000);
+    camera.position.z = this.currentZoom;
+
+    this.controls = new OrbitControls(camera, renderer.domElement);
+    this.controls.enableDamping = true;
+    this.controls.rotateSpeed = 0.5;
+    this.controls.zoomSpeed = 0.8;
+
+    this.globe = new Globe().showGlobe(true).showGraticules(false);
+    this.globe.globeMaterial(new THREE.MeshBasicMaterial({ color: new THREE.Color(DEFAULT_GLOBE_COLOR) }));
+
+    this.countries = topojson.feature(
+      worldData as any,
+      (worldData as any).objects.countries
+    ) as unknown as FeatureCollection<Geometry, any>;
+
+    scene.add(this.globe);
+    scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+    const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+    dir.position.set(5, 3, 5);
+    scene.add(dir);
+
+    // Tooltip div
     const tooltip = document.createElement('div');
     tooltip.style.position = 'absolute';
     tooltip.style.pointerEvents = 'none';
@@ -76,153 +109,144 @@ export class SsByLocationComponent implements AfterViewInit {
     tooltip.style.fontSize = '13px';
     tooltip.style.zIndex = '10';
     tooltip.style.display = 'none';
-    host.appendChild(tooltip);
+    globeDiv.appendChild(tooltip);
 
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(
-      75,
-      host.offsetWidth / host.offsetHeight,
-      0.1,
-      1000
-    );
-    camera.position.z = this.currentZoom;
-
-    this.controls = new OrbitControls(camera, renderer.domElement);
-    this.controls.enableDamping = true;
-    this.controls.rotateSpeed = 0.5;
-    this.controls.zoomSpeed = 0.8;
-
-    this.globe = new Globe().showGraticules(true).showAtmosphere(true);
-    this.globe.atmosphereColor('#9ec2ff').atmosphereAltitude(0.25);
-
-    const texLoader = new THREE.TextureLoader();
-    const earthTex = texLoader.load(
-      'https://unpkg.com/three-globe@2.30.0/example/img/earth-blue-marble.jpg'
-    );
-
-    const earth = new THREE.Mesh(
-      new THREE.SphereGeometry(RADIUS, 75, 75),
-      new THREE.MeshPhongMaterial({
-        map: earthTex,
-        specular: new THREE.Color(0x222222),
-        shininess: 3
-      })
-    );
-    scene.add(earth);
-    this.globe.add(earth);
-
-    this.countries = topojson.feature(
-      worldData as any,
-      (worldData as any).objects.countries
-    ) as unknown as FeatureCollection<Geometry, any>;
-
-    this.globe
-      .polygonsData(this.countries.features)
-      .polygonCapColor(() => 'rgba(0,0,0,0)')
-      .polygonSideColor(() => 'rgba(0,0,0,0)')
-      .polygonStrokeColor(() => 'rgba(0,0,0,0)')
-      .polygonAltitude(0);
-
-    scene.add(this.globe);
-    scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-    const dir = new THREE.DirectionalLight(0xffffff, 0.8);
-    dir.position.set(5, 3, 5);
-    scene.add(dir);
+    const R = 100; // globe radius (same as sphere size in other widget)
 
     this.http.get<any>('assets/data/world-globe-data.json').subscribe(data => {
-      this.countriesList = data.countries.map((c: any) => ({
+      this.laborData = data.countries.map((c: any) => ({
         country: c.name,
-        code: c.code,
         region: c.region,
-        uniqueSkills:
-          c.uniqueSkills > 0 ? c.uniqueSkills : Math.floor(Math.random() * 100),
-        skillSupply:
-          c.skillSupply > 0 ? c.skillSupply : Math.floor(Math.random() * 50),
+        cost: c.cost ?? Math.floor(Math.random() * 2),
+        code: c.code,
         lat: c.lat,
         lng: c.lng,
-        position: this.latLngToVector3(c.lat, c.lng, RADIUS)
+        position: this.latLngToVector3(c.lat, c.lng, R)
       }));
-      this.filteredList = [...this.countriesList];
 
-      // Tooltip logic based on lat/lon positions
-      const handleHover = (event: MouseEvent) => {
+      const minCost = d3.min(this.laborData, d => d.cost) || 0;
+      const maxCost = d3.max(this.laborData, d => d.cost) || 1;
+      this.countryColorScale = d3.scaleLinear<string>()
+        .domain([minCost, maxCost])
+        .range(COUNTRY_COLOR_RANGE);
+
+      this.showRegionData();
+      this.applyColors('region');
+
+      // Tooltip events
+      const showTooltip = (country: CountryCost, event: MouseEvent) => {
+        tooltip.innerHTML = `<b>${country.country}</b><br>Region: ${country.region}<br>Avg Cost: $${country.cost}`;
+        tooltip.style.left = event.offsetX + 15 + 'px';
+        tooltip.style.top = event.offsetY + 15 + 'px';
+        tooltip.style.display = 'block';
+      };
+      const hideTooltip = () => { tooltip.style.display = 'none'; };
+
+      renderer.domElement.addEventListener('mousemove', (event: MouseEvent) => {
         const mouse = new THREE.Vector2(
           (event.offsetX / renderer.domElement.clientWidth) * 2 - 1,
           -(event.offsetY / renderer.domElement.clientHeight) * 2 + 1
         );
-
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObject(this.globe, true);
 
-        const intersects = raycaster.intersectObject(earth);
+        let found: CountryCost | null = null;
         if (intersects.length > 0) {
-          const point = intersects[0].point;
-
-          // find closest country by 3D distance
-          let closest: CountrySkill | null = null;
+          const intersectPoint = intersects[0].point;
+          // find nearest country.position
           let minDist = Infinity;
-          for (const c of this.countriesList) {
+          for (const c of this.laborData) {
             if (!c.position) continue;
-            const dist = point.distanceTo(c.position);
+            const dist = intersectPoint.distanceTo(c.position);
             if (dist < minDist) {
               minDist = dist;
-              closest = c;
+              found = c;
             }
           }
-
-          if (closest) {
-            const vector = closest.position!.clone().project(camera);
-            const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
-            const y = (-vector.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
-
-            tooltip.innerHTML = `<b>${closest.country}</b><br>Unique Skills: ${closest.uniqueSkills}<br>Skill Supply: ${closest.skillSupply}`;
-            tooltip.style.left = `${x + 15}px`;
-            tooltip.style.top = `${y + 15}px`;
-            tooltip.style.display = 'block';
-            return;
-          }
         }
-        tooltip.style.display = 'none';
-      };
 
-      renderer.domElement.addEventListener('mousemove', handleHover);
-      renderer.domElement.addEventListener('click', handleHover);
-      renderer.domElement.addEventListener('mouseleave', () => {
-        tooltip.style.display = 'none';
+        if (found) {
+          showTooltip(found, event);
+        } else {
+          hideTooltip();
+        }
       });
+
+      renderer.domElement.addEventListener('mouseleave', hideTooltip);
     });
 
     const animate = () => {
       requestAnimationFrame(animate);
-      this.globe.rotation.y += ROTATION_SPEED;
+      if (this.globe) {
+        this.globe.rotation.y += ROTATION_SPEED;
+      }
       this.controls.update();
       renderer.render(scene, camera);
     };
     animate();
   }
 
-  filterList() {
-    const q = (this.searchTerm || '').toLowerCase().trim();
-    this.filteredList = !q
-      ? [...this.countriesList]
-      : this.countriesList.filter(
-          c =>
-            c.country.toLowerCase().includes(q) ||
-            c.code.toLowerCase().includes(q)
-        );
+  private latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
+    const phi = (90 - lat) * (Math.PI / 180);
+    const theta = (lng + 180) * (Math.PI / 180);
+    return new THREE.Vector3(
+      -radius * Math.sin(phi) * Math.cos(theta),
+      radius * Math.cos(phi),
+      radius * Math.sin(phi) * Math.sin(theta)
+    );
   }
 
-  zoomIn() {
-    this.currentZoom = Math.max(this.currentZoom - ZOOM.step, ZOOM.min);
-    this.updateCameraZoom();
+  expandRow(region: any) { region.expanded = !region.expanded; }
+
+  zoomIn() { this.currentZoom = Math.max(this.currentZoom - ZOOM.step, ZOOM.min); this.updateCameraZoom(); }
+  zoomOut() { this.currentZoom = Math.min(this.currentZoom + ZOOM.step, ZOOM.max); this.updateCameraZoom(); }
+  private updateCameraZoom() { if (this.controls.object) this.controls.object.position.z = this.currentZoom; }
+
+  setView(view: string) {
+    this.selectedView = view;
+    if (view === 'By Region') {
+      this.showRegionData();
+      this.applyColors('region');
+    } else {
+      this.showCountryData();
+      this.applyColors('country');
+    }
   }
 
-  zoomOut() {
-    this.currentZoom = Math.min(this.currentZoom + ZOOM.step, ZOOM.max);
-    this.updateCameraZoom();
+  private showRegionData() {
+    const grouped = this.laborData.reduce((acc, c) => {
+      (acc[c.region] ||= []).push(c);
+      return acc;
+    }, {} as Record<string, CountryCost[]>);
+
+    this.regionGroups = Object.entries(grouped).map(([region, arr]) => ({
+      region,
+      total: arr.reduce((s, x) => s + x.cost, 0),
+      countries: arr,
+      expanded: false
+    }));
+    this.countryList = [];
   }
 
-  private updateCameraZoom() {
-    if (this.controls.object) this.controls.object.position.z = this.currentZoom;
+  private showCountryData() {
+    this.countryList = [...this.laborData].sort((a, b) => a.country.localeCompare(b.country));
+    this.regionGroups = [];
+  }
+
+  private applyColors(mode: 'region' | 'country') {
+    if (!this.countries) return;
+    this.globe.polygonsData(this.countries.features)
+      .polygonCapColor((d: any) => {
+        const countryName = d.properties.name;
+        const entry = this.laborData.find(c => c.country === countryName);
+        if (mode === 'region') {
+          return entry ? REGION_COLORS[entry.region] || REGION_COLORS['Other'] : REGION_COLORS['Other'];
+        } else {
+          return entry ? this.countryColorScale(entry.cost) : FALLBACK_COLOR;
+        }
+      })
+      .polygonSideColor(() => DEFAULT_GLOBE_COLOR)
+      .polygonStrokeColor(() => mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION);
   }
 }
