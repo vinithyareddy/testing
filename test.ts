@@ -40,6 +40,7 @@ export class SsByLocationComponent implements AfterViewInit {
   private globe: any;
   private camera!: THREE.PerspectiveCamera;
   private renderer!: THREE.WebGLRenderer;
+  private tooltip!: HTMLDivElement;
   currentZoom: number = ZOOM.initial;
 
   constructor(private http: HttpClient) {}
@@ -64,17 +65,17 @@ export class SsByLocationComponent implements AfterViewInit {
     host.appendChild(this.renderer.domElement);
 
     // Tooltip element
-    const tooltip = document.createElement('div');
-    tooltip.style.position = 'absolute';
-    tooltip.style.pointerEvents = 'none';
-    tooltip.style.background = 'rgba(0,0,0,0.85)';
-    tooltip.style.color = '#fff';
-    tooltip.style.padding = '6px 12px';
-    tooltip.style.borderRadius = '6px';
-    tooltip.style.fontSize = '13px';
-    tooltip.style.zIndex = '10';
-    tooltip.style.display = 'none';
-    host.appendChild(tooltip);
+    this.tooltip = document.createElement('div');
+    this.tooltip.style.position = 'absolute';
+    this.tooltip.style.pointerEvents = 'none';
+    this.tooltip.style.background = 'rgba(0,0,0,0.85)';
+    this.tooltip.style.color = '#fff';
+    this.tooltip.style.padding = '6px 12px';
+    this.tooltip.style.borderRadius = '6px';
+    this.tooltip.style.fontSize = '13px';
+    this.tooltip.style.zIndex = '10';
+    this.tooltip.style.display = 'none';
+    host.appendChild(this.tooltip);
 
     const scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(
@@ -137,30 +138,27 @@ export class SsByLocationComponent implements AfterViewInit {
       this.filteredList = [...this.countriesList];
     });
 
-    // Tooltip logic: find nearest country to mouse
+    // Mouse move → project nearest country lat/lon to screen
     this.renderer.domElement.addEventListener('mousemove', (event: MouseEvent) => {
       if (!this.countriesList.length) return;
 
-      // Normalize mouse coords [-1, 1]
+      // Raycast against globe sphere
       const mouse = new THREE.Vector2(
         (event.offsetX / this.renderer.domElement.clientWidth) * 2 - 1,
         -(event.offsetY / this.renderer.domElement.clientHeight) * 2 + 1
       );
-
-      // Ray from camera
       const raycaster = new THREE.Raycaster();
       raycaster.setFromCamera(mouse, this.camera);
-
-      // Intersect with sphere surface
       const intersects = raycaster.intersectObject(this.globe, true);
+
       if (!intersects.length) {
-        tooltip.style.display = 'none';
+        this.tooltip.style.display = 'none';
         return;
       }
 
       const point = intersects[0].point;
 
-      // Find nearest country by lat/lon vector
+      // Find nearest country center
       let nearest: { country: CountrySkill; dist: number } | null = null;
       for (const c of this.countriesList) {
         if (c.lat == null || c.lng == null) continue;
@@ -171,22 +169,28 @@ export class SsByLocationComponent implements AfterViewInit {
         }
       }
 
-      if (nearest && nearest.dist < 10) {
-        tooltip.innerHTML = `
+      if (nearest && nearest.dist < 15) {
+        // Project country lat/lon point to screen
+        const vec = this.latLngToVector3(nearest.country.lat!, nearest.country.lng!, RADIUS);
+        const projected = vec.clone().project(this.camera);
+        const x = (projected.x * 0.5 + 0.5) * this.renderer.domElement.clientWidth;
+        const y = (-projected.y * 0.5 + 0.5) * this.renderer.domElement.clientHeight;
+
+        this.tooltip.innerHTML = `
           <b>${nearest.country.country}</b><br>
           Unique Skills: ${nearest.country.uniqueSkills}<br>
           Skill Supply: ${nearest.country.skillSupply}
         `;
-        tooltip.style.left = event.offsetX + 15 + 'px';
-        tooltip.style.top = event.offsetY + 15 + 'px';
-        tooltip.style.display = 'block';
+        this.tooltip.style.left = `${x + 10}px`;
+        this.tooltip.style.top = `${y + 10}px`;
+        this.tooltip.style.display = 'block';
       } else {
-        tooltip.style.display = 'none';
+        this.tooltip.style.display = 'none';
       }
     });
 
     this.renderer.domElement.addEventListener('mouseleave', () => {
-      tooltip.style.display = 'none';
+      this.tooltip.style.display = 'none';
     });
 
     // Animation
