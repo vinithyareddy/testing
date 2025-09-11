@@ -39,7 +39,6 @@ export class SsByLocationComponent implements AfterViewInit {
   private codeToRegion = new Map<string, string>();
   private codeToMetrics = new Map<string, { uniqueSkills: number; skillSupply: number }>();
 
-  // pleasant, readable region colors
   private regionColor = (r?: string) => ({
     'North America': '#98d6ff',
     'Latin America': '#9be7c4',
@@ -71,10 +70,10 @@ export class SsByLocationComponent implements AfterViewInit {
     this.controls.rotateSpeed = 0.5;
     this.controls.zoomSpeed = 0.8;
 
-    // 🌍 Figma-like globe
+    // Globe base
     this.globe = new Globe().showGlobe(true).showGraticules(true).showAtmosphere(true);
-    this.globe.atmosphereColor('#9ec2ff').atmosphereAltitude(0.25);      // soft halo
-    this.globe.globeMaterial(new THREE.MeshBasicMaterial({ color: 0x70c7d9 }));  // ocean
+    this.globe.atmosphereColor('#9ec2ff').atmosphereAltitude(0.25);
+    this.globe.globeMaterial(new THREE.MeshBasicMaterial({ color: 0x70c7d9 })); // ocean
 
     // Countries geometry
     this.countries = topojson.feature(
@@ -82,26 +81,12 @@ export class SsByLocationComponent implements AfterViewInit {
       (worldData as any).objects.countries
     ) as unknown as FeatureCollection<Geometry, any>;
 
-    // We’ll color polygons later (after we load your metrics/regions)
+    // Base polygon styling (we’ll recolor after JSON loads)
     this.globe
       .polygonsData(this.countries.features)
+      .polygonCapColor(() => '#a8d5a2')
       .polygonSideColor(() => 'rgba(0,0,0,0)')
-      .polygonStrokeColor(() => '#ffffff')
-      .onPolygonClick((feat: any) => {
-        const [lng, lat] = geoCentroid(feat) as [number, number];
-        this.globe.pointOfView({ lat, lng, altitude: 1.8 }, 1000);
-      })
-      .polygonLabel((feat: any) => {
-        const name = feat.properties.name as string;
-        const code = this.nameToCode.get(name) ?? '';
-        const m = code ? this.codeToMetrics.get(code) : undefined;
-        return `
-          <div style="font-size:12px;padding:6px 8px">
-            <b>${name}${code ? ` (${code})` : ''}</b><br/>
-            Unique Skills: ${m?.uniqueSkills ?? 0}<br/>
-            Skill Supply (FTE): ${m?.skillSupply ?? 0}
-          </div>`;
-      });
+      .polygonStrokeColor(() => '#ffffff');
 
     scene.add(this.globe);
     scene.add(new THREE.AmbientLight(0xffffff, 1.2));
@@ -109,9 +94,7 @@ export class SsByLocationComponent implements AfterViewInit {
     dir.position.set(5, 3, 5);
     scene.add(dir);
 
-    // Load your countries/regions/metrics JSON
-    // Expected shape:
-    // { countries: [{ name, code, region, uniqueSkills, skillSupply }, ...] }
+    // Load your metrics/regions data
     this.http.get<any>('assets/data/world-globe-data.json').subscribe(data => {
       this.countriesList = data.countries.map((c: any) => ({
         country: c.name,
@@ -122,21 +105,22 @@ export class SsByLocationComponent implements AfterViewInit {
       }));
       this.filteredList = [...this.countriesList];
 
-      // build helper maps
+      // helper maps
       for (const c of this.countriesList) {
         this.nameToCode.set(c.country, c.code);
         if (c.region) this.codeToRegion.set(c.code, c.region);
         this.codeToMetrics.set(c.code, { uniqueSkills: c.uniqueSkills, skillSupply: c.skillSupply });
       }
 
-      // Color countries by region
+      // Recolor polygons by region now that we know regions
       this.globe.polygonCapColor((feat: any) => {
-        const code = this.nameToCode.get(feat.properties.name as string);
+        const name = feat.properties.name as string;
+        const code = this.nameToCode.get(name);
         const region = code ? this.codeToRegion.get(code) : undefined;
         return this.regionColor(region);
       });
 
-      // 🏷️ Country-code labels at centroids
+      // Labels: ISO country codes at centroids
       const labelData = this.countries.features
         .map((f: any) => {
           const code = this.nameToCode.get(f.properties.name as string);
@@ -146,16 +130,18 @@ export class SsByLocationComponent implements AfterViewInit {
         })
         .filter(Boolean) as { code: string; lat: number; lng: number }[];
 
-      this.globe
-        .labelsData(labelData)
-        .labelText((d: any) => d.code)       // << show ISO code
-        .labelLat((d: any) => d.lat)
-        .labelLng((d: any) => d.lng)
-        .labelAltitude(0.01)
-        .labelSize(0.9)
-        .labelDotRadius(0.15)
-        .labelColor(() => 'rgba(0,0,0,0.85)')
-        .labelResolution(2);
+      if (typeof (this.globe as any).labelsData === 'function') {
+        this.globe
+          .labelsData(labelData)
+          .labelText((d: any) => d.code)
+          .labelLat((d: any) => d.lat)
+          .labelLng((d: any) => d.lng)
+          .labelAltitude(0.01)
+          .labelSize(0.9)
+          .labelDotRadius(0.15)
+          .labelColor(() => 'rgba(0,0,0,0.85)')
+          .labelResolution(2);
+      }
     });
 
     const animate = () => {
