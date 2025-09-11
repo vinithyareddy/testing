@@ -6,15 +6,11 @@ import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
 
 import Globe from 'three-globe';
 import * as THREE from 'three';
-import * as topojson from 'topojson-client';
-import worldData from 'world-atlas/countries-110m.json';
-import { FeatureCollection, Geometry } from 'geojson';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { geoCentroid } from 'd3-geo';
 
 type CountrySkill = {
   country: string;
-  code: string; // 2-letter ISO (your JSON)
+  code: string;
   region?: string;
   uniqueSkills: number;
   skillSupply: number;
@@ -24,27 +20,6 @@ type CountrySkill = {
 
 const ROTATION_SPEED = 0.002;
 const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
-
-// --- Mapping from 3-letter ISO (world-atlas) → 2-letter ISO (your JSON) ---
-const ISO3_TO_ISO2: Record<string, string> = {
-  USA: 'US',
-  IND: 'IN',
-  CHN: 'CN',
-  BRA: 'BR',
-  RUS: 'RU',
-  MEX: 'MX',
-  CAN: 'CA',
-  FRA: 'FR',
-  DEU: 'DE',
-  GBR: 'GB',
-  ITA: 'IT',
-  ESP: 'ES',
-  AUS: 'AU',
-  JPN: 'JP',
-  KOR: 'KR',
-  TCD: 'TD', // Chad
-  // 👉 Add more as needed (can be expanded later)
-};
 
 @Component({
   selector: 'app-ss-by-location',
@@ -62,10 +37,20 @@ export class SsByLocationComponent implements AfterViewInit {
   legendCollapsed = false;
   private controls!: OrbitControls;
   private globe: any;
-  private countries!: FeatureCollection<Geometry, any>;
   currentZoom: number = ZOOM.initial;
 
   constructor(private http: HttpClient) {}
+
+  // Convert lat/lon → 3D position
+  private latLngToVector3(lat: number, lng: number, radius: number) {
+    const phi = (90 - lat) * (Math.PI / 180);
+    const theta = (lng + 180) * (Math.PI / 180);
+    return {
+      x: -(radius * Math.sin(phi) * Math.cos(theta)),
+      y: radius * Math.cos(phi),
+      z: radius * Math.sin(phi) * Math.sin(theta)
+    };
+  }
 
   ngAfterViewInit() {
     const host = this.globeContainer.nativeElement as HTMLDivElement;
@@ -109,30 +94,24 @@ export class SsByLocationComponent implements AfterViewInit {
     const earthTex = texLoader.load(
       'https://unpkg.com/three-globe@2.30.0/example/img/earth-blue-marble.jpg'
     );
+    const bumpTex = texLoader.load(
+      'https://unpkg.com/three-globe@2.30.0/example/img/earth-topology.png'
+    );
 
     const R = 100;
     const earth = new THREE.Mesh(
       new THREE.SphereGeometry(R, 75, 75),
       new THREE.MeshPhongMaterial({
         map: earthTex,
+        bumpMap: bumpTex,
+        bumpScale: 0.4,
         specular: new THREE.Color(0x222222),
         shininess: 3
       })
     );
+
     earth.rotation.y = -Math.PI / 2;
     this.globe.add(earth);
-
-    this.countries = topojson.feature(
-      worldData as any,
-      (worldData as any).objects.countries
-    ) as unknown as FeatureCollection<Geometry, any>;
-
-    this.globe
-      .polygonsData(this.countries.features)
-      .polygonCapColor(() => 'rgba(0,0,0,0)')
-      .polygonSideColor(() => 'rgba(0,0,0,0)')
-      .polygonStrokeColor(() => 'rgba(0,0,0,0)')
-      .polygonAltitude(0);
 
     scene.add(this.globe);
     scene.add(new THREE.AmbientLight(0xffffff, 1.2));
@@ -140,10 +119,11 @@ export class SsByLocationComponent implements AfterViewInit {
     dir.position.set(5, 3, 5);
     scene.add(dir);
 
+    // Load your JSON with lat/lng
     this.http.get<any>('assets/data/world-globe-data.json').subscribe(data => {
       this.countriesList = data.countries.map((c: any) => ({
         country: c.name,
-        code: c.code, // 2-letter ISO
+        code: c.code,
         region: c.region,
         uniqueSkills:
           c.uniqueSkills > 0 ? c.uniqueSkills : Math.floor(Math.random() * 100),
@@ -154,104 +134,56 @@ export class SsByLocationComponent implements AfterViewInit {
       }));
       this.filteredList = [...this.countriesList];
 
-      const labelData = this.countries.features
-        .map((f: any) => {
-          const name = f.properties.name as string;
-          const iso3 = f.id; // world-atlas uses 3-letter ISO here
-          const iso2 = ISO3_TO_ISO2[iso3] || null;
+      // Place markers at lat/lon
+      this.countriesList.forEach(c => {
+        if (typeof c.lat === 'number' && typeof c.lng === 'number') {
+          const { x, y, z } = this.latLngToVector3(c.lat, c.lng, R);
+          const marker = new THREE.Mesh(
+            new THREE.SphereGeometry(1.2, 8, 8),
+            new THREE.MeshBasicMaterial({ color: 'red' })
+          );
+          marker.position.set(x, y, z);
+          marker.userData = { country: c }; // attach country info
+          this.globe.add(marker);
+        }
+      });
 
-          if (!iso2) return null;
+      // Tooltip logic
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
 
-          let lat: number, lng: number;
-          [lng, lat] = geoCentroid(f) as [number, number];
+      const showTooltip = (country: CountrySkill, event: MouseEvent) => {
+        tooltip.innerHTML = `
+          <b>${country.country}</b><br>
+          Unique Skills: ${country.uniqueSkills}<br>
+          Skill Supply: ${country.skillSupply}
+        `;
+        tooltip.style.left = event.offsetX + 15 + 'px';
+        tooltip.style.top = event.offsetY + 15 + 'px';
+        tooltip.style.display = 'block';
+      };
 
-          return { country: name, code: iso2, lat, lng };
-        })
-        .filter(Boolean);
+      const hideTooltip = () => {
+        tooltip.style.display = 'none';
+      };
 
-      if (typeof (this.globe as any).labelsData === 'function') {
-        this.globe
-          .labelsData(labelData)
-          .labelText((d: any) => d.code) // show 2-letter code on globe
-          .labelLat((d: any) => d.lat)
-          .labelLng((d: any) => d.lng)
-          .labelAltitude(0.012)
-          .labelSize(0.95)
-          .labelDotRadius(0.16)
-          .labelColor(() => 'rgba(0,0,0,0.9)')
-          .labelResolution(2);
-
-        this.globe.labelsData().forEach((label: any, i: number) => {
-          if (this.globe.children[i]) {
-            this.globe.children[i].userData = { label };
-          }
-        });
-      }
-
-      // --- Shared handler for hover + click ---
-      const handleHoverOrClick = (event: MouseEvent) => {
-        const mouse = new THREE.Vector2();
+      renderer.domElement.addEventListener('mousemove', (event: MouseEvent) => {
         mouse.x = (event.offsetX / renderer.domElement.clientWidth) * 2 - 1;
         mouse.y = -(event.offsetY / renderer.domElement.clientHeight) * 2 + 1;
-
-        const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(mouse, camera);
 
         const intersects = raycaster.intersectObjects(this.globe.children, true);
-        let foundCountry: CountrySkill | null = null;
-        let intersectPoint: THREE.Vector3 | null = null;
+        const intersect = intersects.find(obj => obj.object.userData.country);
 
-        if (intersects.length > 0) {
-          for (const intersect of intersects) {
-            if (intersect.object && intersect.object.userData) {
-              let code: string | null = null;
-
-              if (intersect.object.userData.label) {
-                code = intersect.object.userData.label.code || null;
-              } else if (intersect.object.userData.polygon?.id) {
-                const iso3 = intersect.object.userData.polygon.id;
-                code = ISO3_TO_ISO2[iso3] || null;
-              }
-
-              if (code) {
-                const match = this.countriesList.find(
-                  c => c.code.toLowerCase() === code!.toLowerCase()
-                );
-                if (match) {
-                  foundCountry = match;
-                  intersectPoint = intersect.point.clone();
-                  break;
-                }
-              }
-            }
-          }
-        }
-
-        if (foundCountry && intersectPoint) {
-          const vector = intersectPoint.project(camera);
-          const x =
-            (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
-          const y =
-            (-vector.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
-
-          tooltip.innerHTML = `
-            <b>${foundCountry.country}</b><br>
-            Unique Skills: ${foundCountry.uniqueSkills}<br>
-            Skill Supply: ${foundCountry.skillSupply}
-          `;
-          tooltip.style.left = `${x + 15}px`;
-          tooltip.style.top = `${y + 15}px`;
-          tooltip.style.display = 'block';
+        if (intersect) {
+          const country = intersect.object.userData.country as CountrySkill;
+          showTooltip(country, event);
         } else {
-          tooltip.style.display = 'none';
+          hideTooltip();
         }
-      };
-
-      renderer.domElement.addEventListener('mousemove', handleHoverOrClick);
-      renderer.domElement.addEventListener('click', handleHoverOrClick);
-      renderer.domElement.addEventListener('mouseleave', () => {
-        tooltip.style.display = 'none';
       });
+
+      renderer.domElement.addEventListener('mouseleave', hideTooltip);
     });
 
     const animate = () => {
@@ -285,6 +217,7 @@ export class SsByLocationComponent implements AfterViewInit {
   }
 
   private updateCameraZoom() {
-    if (this.controls.object) this.controls.object.position.z = this.currentZoom;
+    if (this.controls.object)
+      this.controls.object.position.z = this.currentZoom;
   }
 }
