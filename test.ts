@@ -14,7 +14,7 @@ import { geoCentroid } from 'd3-geo';
 
 type CountrySkill = {
   country: string;
-  code: string;
+  code: string; // 2-letter ISO (your JSON)
   region?: string;
   uniqueSkills: number;
   skillSupply: number;
@@ -25,6 +25,27 @@ type CountrySkill = {
 const ROTATION_SPEED = 0.002;
 const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
 
+// --- Mapping from 3-letter ISO (world-atlas) → 2-letter ISO (your JSON) ---
+const ISO3_TO_ISO2: Record<string, string> = {
+  USA: 'US',
+  IND: 'IN',
+  CHN: 'CN',
+  BRA: 'BR',
+  RUS: 'RU',
+  MEX: 'MX',
+  CAN: 'CA',
+  FRA: 'FR',
+  DEU: 'DE',
+  GBR: 'GB',
+  ITA: 'IT',
+  ESP: 'ES',
+  AUS: 'AU',
+  JPN: 'JP',
+  KOR: 'KR',
+  TCD: 'TD', // Chad
+  // 👉 Add more as needed (can be expanded later)
+};
+
 @Component({
   selector: 'app-ss-by-location',
   templateUrl: './ss-by-location.component.html',
@@ -33,10 +54,6 @@ const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
   styleUrls: ['./ss-by-location.component.scss']
 })
 export class SsByLocationComponent implements AfterViewInit {
-  tooltipVisible = false;
-  tooltipContent = '';
-  tooltipX = 0;
-  tooltipY = 0;
   @ViewChild('globeContainer', { static: true }) globeContainer!: ElementRef;
 
   countriesList: CountrySkill[] = [];
@@ -46,14 +63,9 @@ export class SsByLocationComponent implements AfterViewInit {
   private controls!: OrbitControls;
   private globe: any;
   private countries!: FeatureCollection<Geometry, any>;
-
   currentZoom: number = ZOOM.initial;
 
   constructor(private http: HttpClient) {}
-
-  private normalizeName(name: string): string {
-    return (name || '').replace(/[^a-z]/gi, '').toLowerCase();
-  }
 
   ngAfterViewInit() {
     const host = this.globeContainer.nativeElement as HTMLDivElement;
@@ -77,7 +89,12 @@ export class SsByLocationComponent implements AfterViewInit {
     host.appendChild(tooltip);
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, host.offsetWidth / host.offsetHeight, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(
+      75,
+      host.offsetWidth / host.offsetHeight,
+      0.1,
+      1000
+    );
     camera.position.z = this.currentZoom;
 
     this.controls = new OrbitControls(camera, renderer.domElement);
@@ -89,21 +106,19 @@ export class SsByLocationComponent implements AfterViewInit {
     this.globe.atmosphereColor('#9ec2ff').atmosphereAltitude(0.25);
 
     const texLoader = new THREE.TextureLoader();
-    const earthTex = texLoader.load('https://unpkg.com/three-globe@2.30.0/example/img/earth-blue-marble.jpg');
-    const bumpTex = texLoader.load('https://unpkg.com/three-globe@2.30.0/example/img/earth-topology.png');
+    const earthTex = texLoader.load(
+      'https://unpkg.com/three-globe@2.30.0/example/img/earth-blue-marble.jpg'
+    );
 
     const R = 100;
     const earth = new THREE.Mesh(
       new THREE.SphereGeometry(R, 75, 75),
       new THREE.MeshPhongMaterial({
         map: earthTex,
-        bumpMap: bumpTex,
-        bumpScale: 0.4,
         specular: new THREE.Color(0x222222),
         shininess: 3
       })
     );
-
     earth.rotation.y = -Math.PI / 2;
     this.globe.add(earth);
 
@@ -128,10 +143,12 @@ export class SsByLocationComponent implements AfterViewInit {
     this.http.get<any>('assets/data/world-globe-data.json').subscribe(data => {
       this.countriesList = data.countries.map((c: any) => ({
         country: c.name,
-        code: c.code,
+        code: c.code, // 2-letter ISO
         region: c.region,
-        uniqueSkills: c.uniqueSkills > 0 ? c.uniqueSkills : Math.floor(Math.random() * 100),
-        skillSupply: c.skillSupply > 0 ? c.skillSupply : Math.floor(Math.random() * 50),
+        uniqueSkills:
+          c.uniqueSkills > 0 ? c.uniqueSkills : Math.floor(Math.random() * 100),
+        skillSupply:
+          c.skillSupply > 0 ? c.skillSupply : Math.floor(Math.random() * 50),
         lat: c.lat,
         lng: c.lng
       }));
@@ -140,19 +157,22 @@ export class SsByLocationComponent implements AfterViewInit {
       const labelData = this.countries.features
         .map((f: any) => {
           const name = f.properties.name as string;
-          if (!name) return null;
+          const iso3 = f.id; // world-atlas uses 3-letter ISO here
+          const iso2 = ISO3_TO_ISO2[iso3] || null;
+
+          if (!iso2) return null;
 
           let lat: number, lng: number;
           [lng, lat] = geoCentroid(f) as [number, number];
 
-          return { country: name, lat, lng };
+          return { country: name, code: iso2, lat, lng };
         })
         .filter(Boolean);
 
       if (typeof (this.globe as any).labelsData === 'function') {
         this.globe
           .labelsData(labelData)
-          .labelText((d: any) => d.country)
+          .labelText((d: any) => d.code) // show 2-letter code on globe
           .labelLat((d: any) => d.lat)
           .labelLng((d: any) => d.lng)
           .labelAltitude(0.012)
@@ -168,14 +188,7 @@ export class SsByLocationComponent implements AfterViewInit {
         });
       }
 
-      // --- Tooltip logic ---
-      const matchCountry = (countryName: string | null): CountrySkill | null => {
-        if (!countryName) return null;
-        return this.countriesList.find(
-          c => this.normalizeName(c.country) === this.normalizeName(countryName)
-        ) || null;
-      };
-
+      // --- Shared handler for hover + click ---
       const handleHoverOrClick = (event: MouseEvent) => {
         const mouse = new THREE.Vector2();
         mouse.x = (event.offsetX / renderer.domElement.clientWidth) * 2 - 1;
@@ -191,19 +204,24 @@ export class SsByLocationComponent implements AfterViewInit {
         if (intersects.length > 0) {
           for (const intersect of intersects) {
             if (intersect.object && intersect.object.userData) {
-              let countryName: string | null = null;
+              let code: string | null = null;
 
               if (intersect.object.userData.label) {
-                countryName = intersect.object.userData.label.country || null;
-              } else if (intersect.object.userData.polygon?.properties) {
-                countryName = intersect.object.userData.polygon.properties.name || null;
+                code = intersect.object.userData.label.code || null;
+              } else if (intersect.object.userData.polygon?.id) {
+                const iso3 = intersect.object.userData.polygon.id;
+                code = ISO3_TO_ISO2[iso3] || null;
               }
 
-              const match = matchCountry(countryName);
-              if (match) {
-                foundCountry = match;
-                intersectPoint = intersect.point.clone();
-                break;
+              if (code) {
+                const match = this.countriesList.find(
+                  c => c.code.toLowerCase() === code!.toLowerCase()
+                );
+                if (match) {
+                  foundCountry = match;
+                  intersectPoint = intersect.point.clone();
+                  break;
+                }
               }
             }
           }
@@ -211,8 +229,10 @@ export class SsByLocationComponent implements AfterViewInit {
 
         if (foundCountry && intersectPoint) {
           const vector = intersectPoint.project(camera);
-          const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
-          const y = (-vector.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
+          const x =
+            (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
+          const y =
+            (-vector.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
 
           tooltip.innerHTML = `
             <b>${foundCountry.country}</b><br>
@@ -247,8 +267,10 @@ export class SsByLocationComponent implements AfterViewInit {
     const q = (this.searchTerm || '').toLowerCase().trim();
     this.filteredList = !q
       ? [...this.countriesList]
-      : this.countriesList.filter(c =>
-          c.country.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
+      : this.countriesList.filter(
+          c =>
+            c.country.toLowerCase().includes(q) ||
+            c.code.toLowerCase().includes(q)
         );
   }
 
