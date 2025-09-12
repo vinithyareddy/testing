@@ -70,9 +70,10 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
   constructor(private http: HttpClient) {}
 
+  // 🔑 Lat/lon → 3D vector
   private latLngToVector3(lat: number, lon: number, radius: number): THREE.Vector3 {
     const phi = (90 - lat) * (Math.PI / 180);
-    const theta = (lon + 180) * (Math.PI / 180);
+    const theta = (lon + 180) * (Math.PI / 180); // try flipping/removing +180 if misaligned
     return new THREE.Vector3(
       -radius * Math.sin(phi) * Math.cos(theta),
       radius * Math.cos(phi),
@@ -154,6 +155,20 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
       this.showRegionData();
       this.applyColors('region');
+
+      // --- 🔴 Debug dots for every country (to verify alignment) ---
+      const debugGroup = new THREE.Group();
+      for (const c of this.laborData) {
+        if (c.position) {
+          const dot = new THREE.Mesh(
+            new THREE.SphereGeometry(0.8, 8, 8),
+            new THREE.MeshBasicMaterial({ color: 0xff0000 })
+          );
+          dot.position.copy(c.position);
+          debugGroup.add(dot);
+        }
+      }
+      scene.add(debugGroup);
 
       // Tooltip logic: JSON lat/lon driven
       const handleHover = (event: MouseEvent) => {
