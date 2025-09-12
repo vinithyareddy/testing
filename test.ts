@@ -1,15 +1,12 @@
-const animate = () => {
-  requestAnimationFrame(animate);
+if (this.labelGroup) {
+  this.labelGroup.children.forEach(obj => {
+    obj.lookAt(this.camera.position);
 
-  this.globe.rotation.y += ROTATION_SPEED;
-  this.controls.update();
+    // ✅ Hide if on back side of globe
+    const camDir = this.camera.position.clone().normalize();
+    const labelDir = obj.position.clone().normalize();
+    const dot = camDir.dot(labelDir);
 
-  // ✅ Make labels always face the camera
-  if (this.labelGroup) {
-    this.labelGroup.children.forEach(obj => {
-      obj.lookAt(this.camera.position);
-    });
-  }
-
-  renderer.render(this.scene, this.camera);
-};
+    (obj as THREE.Sprite).visible = dot > 0; // only show if facing camera
+  });
+}
