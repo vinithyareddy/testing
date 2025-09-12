@@ -45,10 +45,6 @@ export class SsByLocationComponent implements AfterViewInit {
   private countries!: FeatureCollection<Geometry, any>;
   currentZoom: number = ZOOM.initial;
 
-  // maps for linking JSON data with topojson features
-  private nameToCode = new Map<string, string>();
-  private coordsByCode = new Map<string, { lat: number; lng: number }>();
-
   constructor(private http: HttpClient) {}
 
   private latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
@@ -146,30 +142,16 @@ export class SsByLocationComponent implements AfterViewInit {
       }));
       this.filteredList = [...this.countriesList];
 
-      // fill maps for hybrid label alignment
-      for (const c of this.countriesList) {
-        this.nameToCode.set(c.country, c.code);
-        if (typeof c.lat === 'number' && typeof c.lng === 'number') {
-          this.coordsByCode.set(c.code, { lat: c.lat, lng: c.lng });
-        }
-      }
-
+      // ✅ Labels always from polygon centroid (guaranteed aligned)
       const labelData = this.countries.features
         .map((f: any) => {
-          const name = f.properties.name as string;
-          const code = this.nameToCode.get(name);
-          if (!code) return null;
-
-          const fixed = this.coordsByCode.get(code);
-          let lat: number, lng: number;
-
-          if (fixed) {
-            ({ lat, lng } = fixed);
-          } else {
-            [lng, lat] = geoCentroid(f) as [number, number];
-          }
-
-          return { code, lat, lng, country: name };
+          const [lng, lat] = geoCentroid(f);
+          const name = f.properties.name;
+          const match = this.countriesList.find(
+            c => c.country.trim().toLowerCase() === name.trim().toLowerCase()
+          );
+          if (!match) return null;
+          return { code: match.code, lat, lng, country: name };
         })
         .filter(Boolean);
 
@@ -186,7 +168,7 @@ export class SsByLocationComponent implements AfterViewInit {
           .labelResolution(2);
       }
 
-      // tooltip logic
+      // ✅ Tooltip logic
       const handleHover = (event: MouseEvent) => {
         const mouse = new THREE.Vector2(
           (event.offsetX / renderer.domElement.clientWidth) * 2 - 1,
