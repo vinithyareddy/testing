@@ -11,6 +11,7 @@ import worldData from 'world-atlas/countries-110m.json';
 import { FeatureCollection, Geometry } from 'geojson';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import * as d3 from 'd3';
+import { geoCentroid } from 'd3-geo';
 
 type CountryCost = {
   country: string;
@@ -70,14 +71,16 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
   constructor(private http: HttpClient) {}
 
-  // 🔑 Lat/lon → 3D vector
-  private latLngToVector3(lat: number, lon: number, radius: number): THREE.Vector3 {
+  // 🔑 Use geoCentroid to get aligned positions
+  private getCountryPosition(feature: any, radius: number): THREE.Vector3 {
+    const [lon, lat] = geoCentroid(feature); // [lon, lat]
     const phi = (90 - lat) * (Math.PI / 180);
-    const theta = (lon + 180) * (Math.PI / 180); // try flipping/removing +180 if misaligned
+    const theta = (lon + 180) * (Math.PI / 180);
+
     return new THREE.Vector3(
       -radius * Math.sin(phi) * Math.cos(theta),
-      radius * Math.cos(phi),
-      radius * Math.sin(phi) * Math.sin(theta)
+       radius * Math.cos(phi),
+       radius * Math.sin(phi) * Math.sin(theta)
     );
   }
 
@@ -125,10 +128,10 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     tooltip.style.display = 'none';
     globeDiv.appendChild(tooltip);
 
-    // --- Get consistent globe radius ---
+    // Use globe radius
     const globeRadius = (this.globe as any).getGlobeRadius?.() || 100;
 
-    // Invisible Earth sphere for raycasting
+    // Transparent sphere for raycasting
     this.earth = new THREE.Mesh(
       new THREE.SphereGeometry(globeRadius, 75, 75),
       new THREE.MeshPhongMaterial({ transparent: true, opacity: 0 })
@@ -137,15 +140,20 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     this.globe.add(this.earth);
 
     this.http.get<any>('assets/data/world-globe-data.json').subscribe(data => {
-      this.laborData = data.countries.map((c: any) => ({
-        country: c.name,
-        region: c.region,
-        cost: c.cost ?? Math.floor(Math.random() * 2),
-        code: c.code,
-        lat: c.lat,
-        lng: c.lng,
-        position: this.latLngToVector3(c.lat, c.lng, globeRadius)
-      }));
+      this.laborData = data.countries.map((c: any) => {
+        const feature = this.countries.features.find(f => f.properties.name === c.name);
+        const pos = feature ? this.getCountryPosition(feature, globeRadius) : undefined;
+
+        return {
+          country: c.name,
+          region: c.region,
+          cost: c.cost ?? Math.floor(Math.random() * 2),
+          code: c.code,
+          lat: c.lat,
+          lng: c.lng,
+          position: pos
+        };
+      });
 
       const minCost = d3.min(this.laborData, d => d.cost) || 0;
       const maxCost = d3.max(this.laborData, d => d.cost) || 1;
@@ -156,7 +164,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       this.showRegionData();
       this.applyColors('region');
 
-      // --- 🔴 Debug dots for every country (to verify alignment) ---
+      // 🔴 Debug dots
       const debugGroup = new THREE.Group();
       for (const c of this.laborData) {
         if (c.position) {
@@ -170,7 +178,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       }
       scene.add(debugGroup);
 
-      // Tooltip logic: JSON lat/lon driven
+      // Tooltip logic: find closest country by distance
       const handleHover = (event: MouseEvent) => {
         const mouse = new THREE.Vector2(
           (event.offsetX / renderer.domElement.clientWidth) * 2 - 1,
