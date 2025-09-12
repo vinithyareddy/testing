@@ -11,15 +11,13 @@ import worldData from 'world-atlas/countries-110m.json';
 import { FeatureCollection, Geometry } from 'geojson';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import * as d3 from 'd3';
+import { geoCentroid } from 'd3-geo';
 
 type CountryCost = {
   country: string;
   region: string;
   cost: number;
   code: string; // ISO2 from your JSON
-  lat: number;
-  lng: number;
-  position?: THREE.Vector3;
 };
 
 const DEFAULT_GLOBE_COLOR = '#84c9f6';
@@ -39,14 +37,6 @@ const STROKE_COLOR_REGION = '#84c9f6';
 const FALLBACK_COLOR = '#e0e0e0';
 const ROTATION_SPEED = 0.002;
 const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
-const RADIUS = 100;
-
-// 🔑 ISO3 → ISO2 (extend as needed)
-const ISO3_TO_ISO2: Record<string, string> = {
-  USA: 'US', IND: 'IN', CHN: 'CN', BRA: 'BR', RUS: 'RU', MEX: 'MX',
-  CAN: 'CA', FRA: 'FR', DEU: 'DE', GBR: 'GB', ITA: 'IT', ESP: 'ES',
-  AUS: 'AU', JPN: 'JP', KOR: 'KR', TCD: 'TD'
-};
 
 @Component({
   selector: 'app-avg-labor-cost-region',
@@ -75,16 +65,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     .range(COUNTRY_COLOR_RANGE);
 
   constructor(private http: HttpClient) {}
-
-  private latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
-    const phi = (90 - lat) * (Math.PI / 180);
-    const theta = (lng + 180) * (Math.PI / 180);
-    return new THREE.Vector3(
-      -radius * Math.sin(phi) * Math.cos(theta),
-       radius * Math.cos(phi),
-       radius * Math.sin(phi) * Math.sin(theta)
-    );
-  }
 
   ngAfterViewInit() {
     const globeDiv = this.globeContainer.nativeElement;
@@ -135,10 +115,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         country: c.name,
         region: c.region,
         cost: c.cost ?? Math.floor(Math.random() * 2),
-        code: c.code,
-        lat: c.lat,
-        lng: c.lng,
-        position: this.latLngToVector3(c.lat, c.lng, RADIUS)
+        code: c.code
       }));
 
       const minCost = d3.min(this.laborData, d => d.cost) || 0;
@@ -150,44 +127,45 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       this.showRegionData();
       this.applyColors('region');
 
-      // Tooltip logic
+      // Tooltip logic → use polygon centroid
       const handleHover = (event: MouseEvent) => {
-        const mouse = new THREE.Vector2(
-          (event.offsetX / renderer.domElement.clientWidth) * 2 - 1,
-          -(event.offsetY / renderer.domElement.clientHeight) * 2 + 1
-        );
+        if (!this.countries) return;
 
-        const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera(mouse, camera);
+        let found: CountryCost | null = null;
+        let screenX = 0, screenY = 0;
 
-        const intersects = raycaster.intersectObject(this.globe, true);
-        if (intersects.length > 0) {
-          const point = intersects[0].point;
+        for (const feature of this.countries.features) {
+          const [lon, lat] = geoCentroid(feature);
+          const entry = this.laborData.find(c => c.country === feature.properties.name);
+          if (!entry) continue;
 
-          let closest: CountryCost | null = null;
-          let minDist = Infinity;
-          for (const c of this.laborData) {
-            if (!c.position) continue;
-            const dist = point.distanceTo(c.position);
-            if (dist < minDist) {
-              minDist = dist;
-              closest = c;
-            }
-          }
+          const phi = (90 - lat) * (Math.PI / 180);
+          const theta = (lon + 180) * (Math.PI / 180);
+          const pos = new THREE.Vector3(
+            -100 * Math.sin(phi) * Math.cos(theta),
+             100 * Math.cos(phi),
+             100 * Math.sin(phi) * Math.sin(theta)
+          ).project(camera);
 
-          if (closest && closest.position) {
-            const vector = closest.position.clone().project(camera);
-            const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
-            const y = (-vector.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
+          const x = (pos.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
+          const y = (-pos.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
 
-            tooltip.innerHTML = `<b>${closest.country}</b><br>Region: ${closest.region}<br>Avg Cost: $${closest.cost}`;
-            tooltip.style.left = `${x + 15}px`;
-            tooltip.style.top = `${y + 15}px`;
-            tooltip.style.display = 'block';
-            return;
+          if (Math.abs(event.offsetX - x) < 8 && Math.abs(event.offsetY - y) < 8) {
+            found = entry;
+            screenX = x;
+            screenY = y;
+            break;
           }
         }
-        tooltip.style.display = 'none';
+
+        if (found) {
+          tooltip.innerHTML = `<b>${found.country}</b><br>Region: ${found.region}<br>Avg Cost: $${found.cost}`;
+          tooltip.style.left = `${screenX + 15}px`;
+          tooltip.style.top = `${screenY + 15}px`;
+          tooltip.style.display = 'block';
+        } else {
+          tooltip.style.display = 'none';
+        }
       };
 
       renderer.domElement.addEventListener('mousemove', handleHover);
@@ -248,9 +226,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
     this.globe.polygonsData(this.countries.features)
       .polygonCapColor((d: any) => {
-        const iso3 = d.id;
-        const iso2 = ISO3_TO_ISO2[iso3];
-        const entry = iso2 ? this.laborData.find(c => c.code === iso2) : null;
+        const entry = this.laborData.find(c => c.country === d.properties.name);
 
         if (mode === 'region') {
           return entry ? REGION_COLORS[entry.region] || REGION_COLORS['Other'] : REGION_COLORS['Other'];
