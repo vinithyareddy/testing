@@ -21,8 +21,9 @@ type CountrySkill = {
 
 const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
 const RADIUS = 100;
-const LABEL_COLOR = '#ffffff';
-const BASE_FONT_SIZE = 20;
+const LABEL_COLOR = '#ffffff'; // global label color
+const LABEL_FONT_SIZE = 26;    // global label font size
+const MIN_LABEL_DISTANCE = 3;  // minimum spacing between labels
 
 @Component({
   selector: 'app-ss-by-location',
@@ -43,7 +44,7 @@ export class SsByLocationComponent implements AfterViewInit {
   private labelGroup!: THREE.Group;
   currentZoom: number = ZOOM.initial;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   private latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
     const phi = (90 - lat) * (Math.PI / 180);
@@ -55,6 +56,7 @@ export class SsByLocationComponent implements AfterViewInit {
     );
   }
 
+  // Clean, modern text sprite (no shadows, crisp text)
   private createTextSprite(text: string, color: string, fontSize: number): THREE.Sprite {
     const measureCanvas = document.createElement('canvas');
     const measureCtx = measureCanvas.getContext('2d')!;
@@ -76,12 +78,10 @@ export class SsByLocationComponent implements AfterViewInit {
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.minFilter = THREE.LinearFilter;
-
     const material = new THREE.SpriteMaterial({
       map: texture,
       transparent: true,
-      depthTest: true,
-      depthWrite: false
+      depthTest: false
     });
 
     const sprite = new THREE.Sprite(material);
@@ -91,31 +91,23 @@ export class SsByLocationComponent implements AfterViewInit {
     return sprite;
   }
 
-  private getFontSizeForZoom(): number {
-    if (this.currentZoom > 250) return BASE_FONT_SIZE * 0.6;
-    if (this.currentZoom > 180) return BASE_FONT_SIZE * 0.8;
-    if (this.currentZoom > 120) return BASE_FONT_SIZE * 1.0;
-    return BASE_FONT_SIZE * 1.3;
-  }
-
+  // Add labels, skip overlaps
   private addCountryLabels() {
-    if (this.labelGroup) {
-      this.scene.remove(this.labelGroup);
-    }
-
     this.labelGroup = new THREE.Group();
     this.scene.add(this.labelGroup);
-
-    const fontSize = this.getFontSizeForZoom();
 
     this.countriesList.forEach(country => {
       if (!country.position) return;
 
-      const label = this.createTextSprite(country.code, LABEL_COLOR, fontSize);
+      // skip labels too close to existing ones
+      const tooClose = this.labelGroup.children.some(label =>
+        label.position.distanceTo(country.position!) < MIN_LABEL_DISTANCE
+      );
+      if (tooClose) return;
 
-      // sit on globe surface (no offset)
-      label.position.copy(country.position);
-
+      const label = this.createTextSprite(country.code, LABEL_COLOR, LABEL_FONT_SIZE);
+      const labelPos = country.position.clone().normalize().multiplyScalar(RADIUS + 1.5);
+      label.position.copy(labelPos);
       (label as any).userData = { country };
       this.labelGroup.add(label);
     });
@@ -142,19 +134,6 @@ export class SsByLocationComponent implements AfterViewInit {
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(host.offsetWidth, host.offsetHeight);
     host.appendChild(renderer.domElement);
-
-    // tooltip element
-    const tooltip = document.createElement('div');
-    tooltip.style.position = 'absolute';
-    tooltip.style.pointerEvents = 'none';
-    tooltip.style.background = 'rgba(0,0,0,0.85)';
-    tooltip.style.color = '#fff';
-    tooltip.style.padding = '6px 12px';
-    tooltip.style.borderRadius = '6px';
-    tooltip.style.fontSize = '13px';
-    tooltip.style.zIndex = '10';
-    tooltip.style.display = 'none';
-    host.appendChild(tooltip);
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(75, host.offsetWidth / host.offsetHeight, 0.1, 1000);
@@ -196,53 +175,6 @@ export class SsByLocationComponent implements AfterViewInit {
       }));
       this.filteredList = [...this.countriesList];
       this.addCountryLabels();
-    });
-
-    const handleHover = (event: MouseEvent) => {
-      const mouse = new THREE.Vector2(
-        (event.offsetX / renderer.domElement.clientWidth) * 2 - 1,
-        -(event.offsetY / renderer.domElement.clientHeight) * 2 + 1
-      );
-
-      const raycaster = new THREE.Raycaster();
-      raycaster.setFromCamera(mouse, this.camera);
-
-      const intersects = raycaster.intersectObject(earth);
-      if (intersects.length > 0) {
-        const point = intersects[0].point;
-
-        let closest: CountrySkill | null = null;
-        let minDist = Infinity;
-        for (const c of this.countriesList) {
-          if (!c.position) continue;
-          const dist = point.distanceTo(c.position);
-          if (dist < minDist) {
-            minDist = dist;
-            closest = c;
-          }
-        }
-
-        if (closest) {
-          const vector = closest.position!.clone().project(this.camera);
-          const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
-          const y = (-vector.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
-
-          tooltip.innerHTML = `<b>${closest.country}</b><br>
-            Code: ${closest.code}<br>
-            Unique Skills: ${closest.uniqueSkills}<br>
-            Skill Supply: ${closest.skillSupply}`;
-          tooltip.style.left = `${x + 15}px`;
-          tooltip.style.top = `${y + 15}px`;
-          tooltip.style.display = 'block';
-          return;
-        }
-      }
-      tooltip.style.display = 'none';
-    };
-
-    renderer.domElement.addEventListener('mousemove', handleHover);
-    renderer.domElement.addEventListener('mouseleave', () => {
-      tooltip.style.display = 'none';
     });
 
     const animate = () => {
