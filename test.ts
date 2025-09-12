@@ -116,18 +116,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       this.showRegionData();
       this.applyColors('region');
 
-      // Attach polygons after they are created
-      setTimeout(() => {
-        const polys = this.globe.polygonsData();
-        let meshIndex = 0;
-        this.globe.scene().traverse((child: any) => {
-          if (child.type === 'Mesh' && meshIndex < polys.length) {
-            child.userData = { polygon: polys[meshIndex] };
-            meshIndex++;
-          }
-        });
-      }, 1000);
-
       // Raycasting for tooltips
       renderer.domElement.addEventListener('mousemove', (event: MouseEvent) => {
         const rect = renderer.domElement.getBoundingClientRect();
@@ -142,15 +130,19 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
         if (intersects.length > 0) {
           const obj = intersects[0].object;
-          if (obj.userData && obj.userData.polygon) {
-            const d: any = obj.userData.polygon;
-            const countryName = d.properties.name;
+          if (obj.userData && obj.userData.properties) {
+            const countryName = obj.userData.properties.name;
             const entry = this.laborData.find(c => c.country === countryName);
 
             if (entry) {
+              // Project intersection point to screen coords
+              const vector = intersects[0].point.clone().project(camera);
+              const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
+              const y = (-vector.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
+
               tooltip.innerHTML = `<b>${entry.country}</b><br>Region: ${entry.region}<br>Avg Cost: $${entry.cost}`;
-              tooltip.style.left = event.clientX + 15 + 'px';
-              tooltip.style.top = event.clientY + 15 + 'px';
+              tooltip.style.left = `${x + 15}px`;
+              tooltip.style.top = `${y + 15}px`;
               tooltip.style.display = 'block';
               return;
             }
