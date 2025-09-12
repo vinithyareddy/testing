@@ -100,10 +100,6 @@ export class SsByLocationComponent implements AfterViewInit {
       'https://unpkg.com/three-globe@2.30.0/example/img/earth-blue-marble.jpg'
     );
 
-    // ✅ Fix: rotate texture instead of rotating mesh
-    earthTex.center = new THREE.Vector2(0.5, 0.5);
-    earthTex.rotation = Math.PI / 2;
-
     const earth = new THREE.Mesh(
       new THREE.SphereGeometry(RADIUS, 75, 75),
       new THREE.MeshPhongMaterial({
@@ -112,6 +108,10 @@ export class SsByLocationComponent implements AfterViewInit {
         shininess: 3
       })
     );
+
+    // ✅ keep rotation on mesh
+    earth.rotation.y = -Math.PI / 2;
+
     scene.add(earth);
     this.globe.add(earth);
 
@@ -146,15 +146,20 @@ export class SsByLocationComponent implements AfterViewInit {
       }));
       this.filteredList = [...this.countriesList];
 
-      // ✅ Labels from polygon centroids (always aligned)
+      // ✅ Labels: adjust longitude by -90° to match mesh rotation
       const labelData = this.countries.features
         .map((f: any) => {
-          const [lng, lat] = geoCentroid(f);
+          let [lng, lat] = geoCentroid(f);
           const name = f.properties.name;
           const match = this.countriesList.find(
             c => c.country.trim().toLowerCase() === name.trim().toLowerCase()
           );
           if (!match) return null;
+
+          // apply -90° offset
+          lng = lng - 90;
+          if (lng < -180) lng += 360;
+
           return { code: match.code, lat, lng, country: name };
         })
         .filter(Boolean);
