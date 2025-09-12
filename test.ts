@@ -50,6 +50,21 @@ function latLngToVector3(lat: number, lon: number, radius: number) {
   );
 }
 
+// Helper: project lat/lon → screen X,Y
+function projectToScreen(
+  lat: number,
+  lon: number,
+  radius: number,
+  camera: THREE.Camera,
+  renderer: THREE.WebGLRenderer
+) {
+  const pos = latLngToVector3(lat, lon, radius).clone().project(camera);
+  return {
+    x: (pos.x * 0.5 + 0.5) * renderer.domElement.clientWidth,
+    y: (-pos.y * 0.5 + 0.5) * renderer.domElement.clientHeight
+  };
+}
+
 @Component({
   selector: 'app-avg-labor-cost-region',
   templateUrl: './avg-labor-cost-region.component.html',
@@ -101,13 +116,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       (worldData as any).objects.countries
     ) as unknown as FeatureCollection<Geometry, any>;
 
-    // Attach polygon GeoJSON into userData for raycasting
     this.globe.polygonsData(this.countries.features);
-    this.globe.polygonsData().forEach((poly: any, i: number) => {
-      if (this.globe.children[i]) {
-        this.globe.children[i].userData = { polygon: poly };
-      }
-    });
 
     scene.add(this.globe);
     scene.add(new THREE.AmbientLight(0xffffff, 1.2));
@@ -146,42 +155,38 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       this.applyColors('region');
     });
 
-    // --- Tooltip logic ---
+    // --- Tooltip logic (lat/lon centroids) ---
     renderer.domElement.addEventListener('mousemove', (event: MouseEvent) => {
-      const rect = renderer.domElement.getBoundingClientRect();
-      const mouse = new THREE.Vector2(
-        ((event.clientX - rect.left) / rect.width) * 2 - 1,
-        -((event.clientY - rect.top) / rect.height) * 2 + 1
-      );
+      if (!this.countries) return;
 
-      const raycaster = new THREE.Raycaster();
-      raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObjects(this.globe.children, true);
+      const radius = 100; // same as globe R
+      let found: CountryCost | null = null;
+      let screenX = 0, screenY = 0;
 
-      if (intersects.length > 0) {
-        const intersect = intersects[0];
-        if (intersect.object && intersect.object.userData && intersect.object.userData.polygon) {
-          const d: any = intersect.object.userData.polygon;
-          const countryName = d.properties.name;
-          const entry = this.laborData.find(c => c.country === countryName);
+      for (const feature of this.countries.features) {
+        const [lon, lat] = geoCentroid(feature);
+        const entry = this.laborData.find(c => c.country === feature.properties.name);
+        if (!entry) continue;
 
-          if (entry) {
-            const [lon, lat] = geoCentroid(d);
-            const pos = latLngToVector3(lat, lon, 100);
-            const screenPos = pos.clone().project(camera);
+        const { x, y } = projectToScreen(lat, lon, radius, camera, renderer);
 
-            const x = (screenPos.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
-            const y = (-screenPos.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
-
-            tooltip.innerHTML = `<b>${entry.country}</b><br>Region: ${entry.region}<br>Avg Cost: $${entry.cost}`;
-            tooltip.style.left = `${x + 15}px`;
-            tooltip.style.top = `${y + 15}px`;
-            tooltip.style.display = 'block';
-            return;
-          }
+        // simple "mouse near point" check (10px radius)
+        if (Math.abs(event.offsetX - x) < 10 && Math.abs(event.offsetY - y) < 10) {
+          found = entry;
+          screenX = x;
+          screenY = y;
+          break;
         }
       }
-      tooltip.style.display = 'none';
+
+      if (found) {
+        tooltip.innerHTML = `<b>${found.country}</b><br>Region: ${found.region}<br>Avg Cost: $${found.cost}`;
+        tooltip.style.left = `${screenX + 15}px`;
+        tooltip.style.top = `${screenY + 15}px`;
+        tooltip.style.display = 'block';
+      } else {
+        tooltip.style.display = 'none';
+      }
     });
 
     const animate = () => {
