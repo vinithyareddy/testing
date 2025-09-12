@@ -12,12 +12,7 @@ import { FeatureCollection, Geometry } from 'geojson';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import * as d3 from 'd3';
 
-type CountryCost = {
-  country: string;
-  region: string;
-  cost: number;
-  code: string;
-};
+type CountryCost = { country: string; region: string; cost: number; code: string };
 
 const DEFAULT_GLOBE_COLOR = '#84c9f6';
 const REGION_COLORS: Record<string, string> = {
@@ -37,6 +32,26 @@ const FALLBACK_COLOR = '#e0e0e0';
 const ROTATION_SPEED = 0.002;
 
 const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
+
+// Atlas ISO3 → ISO2 mapping
+const ISO3_TO_ISO2: Record<string, string> = {
+  USA: 'US',
+  CHN: 'CN',
+  IND: 'IN',
+  BRA: 'BR',
+  RUS: 'RU',
+  JPN: 'JP',
+  FRA: 'FR',
+  DEU: 'DE',
+  GBR: 'GB',
+  ITA: 'IT',
+  ESP: 'ES',
+  MEX: 'MX',
+  CAN: 'CA',
+  AUS: 'AU',
+  KOR: 'KR',
+  // Add more as needed...
+};
 
 @Component({
   selector: 'app-avg-labor-cost-region',
@@ -60,9 +75,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   selectedView: string = 'By Region';
   showMenu: boolean = false;
 
-  private countryColorScale = d3.scaleLinear<string>()
-    .domain([0, 1])
-    .range(COUNTRY_COLOR_RANGE);
+  private countryColorScale = d3.scaleLinear<string>().domain([0, 1]).range(COUNTRY_COLOR_RANGE);
 
   constructor(private http: HttpClient) {}
 
@@ -120,22 +133,24 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
       const minCost = d3.min(this.laborData, d => d.cost) || 0;
       const maxCost = d3.max(this.laborData, d => d.cost) || 1;
-      this.countryColorScale = d3.scaleLinear<string>()
-        .domain([minCost, maxCost])
-        .range(COUNTRY_COLOR_RANGE);
+      this.countryColorScale = d3.scaleLinear<string>().domain([minCost, maxCost]).range(COUNTRY_COLOR_RANGE);
 
       this.showRegionData();
       this.applyColors('region');
 
-      // Attach laborData to polygons via userData
+      // Attach userData for polygons with JSON entries
       this.globe.polygonsData().forEach((poly: any) => {
-        const entry = this.laborData.find(c => c.country === poly.properties.name);
-        if (entry) {
-          (poly as any).userData = { entry };
+        const iso3 = poly.id;
+        const iso2 = ISO3_TO_ISO2[iso3];
+        if (iso2) {
+          const entry = this.laborData.find(c => c.code.toUpperCase() === iso2);
+          if (entry) {
+            (poly as any).entry = entry;
+          }
         }
       });
 
-      // Tooltip logic with raycasting
+      // Tooltip via raycasting
       const handleHover = (event: MouseEvent) => {
         const rect = renderer.domElement.getBoundingClientRect();
         const mouse = new THREE.Vector2(
@@ -148,19 +163,18 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
         const intersects = raycaster.intersectObjects(this.globe.children, true);
         if (intersects.length > 0) {
-          for (const intersect of intersects) {
-            const entry = intersect.object.userData?.entry;
-            if (entry) {
-              const vector = intersect.point.clone().project(camera);
-              const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
-              const y = (-vector.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
+          const feature = (intersects[0].object as any).__data;
+          const entry = (feature as any)?.entry;
+          if (entry) {
+            const vector = intersects[0].point.clone().project(camera);
+            const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
+            const y = (-vector.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
 
-              tooltip.innerHTML = `<b>${entry.country}</b><br>Region: ${entry.region}<br>Avg Cost: $${entry.cost}`;
-              tooltip.style.left = `${x + 15}px`;
-              tooltip.style.top = `${y + 15}px`;
-              tooltip.style.display = 'block';
-              return;
-            }
+            tooltip.innerHTML = `<b>${entry.country}</b><br>Region: ${entry.region}<br>Avg Cost: $${entry.cost}`;
+            tooltip.style.left = `${x + 15}px`;
+            tooltip.style.top = `${y + 15}px`;
+            tooltip.style.display = 'block';
+            return;
           }
         }
         tooltip.style.display = 'none';
@@ -235,10 +249,12 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   private applyColors(mode: 'region' | 'country') {
     if (!this.countries) return;
 
-    this.globe.polygonsData(this.countries.features)
+    this.globe
+      .polygonsData(this.countries.features)
       .polygonCapColor((d: any) => {
-        const countryName = d.properties.name;
-        const entry = this.laborData.find(c => c.country === countryName);
+        const iso3 = d.id;
+        const iso2 = ISO3_TO_ISO2[iso3];
+        const entry = iso2 ? this.laborData.find(c => c.code.toUpperCase() === iso2) : undefined;
 
         if (mode === 'region') {
           return entry ? REGION_COLORS[entry.region] || REGION_COLORS['Other'] : REGION_COLORS['Other'];
@@ -247,6 +263,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         }
       })
       .polygonSideColor(() => DEFAULT_GLOBE_COLOR)
-      .polygonStrokeColor(() => mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION);
+      .polygonStrokeColor(() => (mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION));
   }
 }
