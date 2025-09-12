@@ -11,13 +11,12 @@ import worldData from 'world-atlas/countries-110m.json';
 import { FeatureCollection, Geometry } from 'geojson';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import * as d3 from 'd3';
-import { geoCentroid } from 'd3-geo';
 
 type CountryCost = {
   country: string;
   region: string;
   cost: number;
-  code: string; // ISO2 from your JSON
+  code: string;
 };
 
 const DEFAULT_GLOBE_COLOR = '#84c9f6';
@@ -36,6 +35,7 @@ const STROKE_COLOR_COUNTRY = '#7e8790';
 const STROKE_COLOR_REGION = '#84c9f6';
 const FALLBACK_COLOR = '#e0e0e0';
 const ROTATION_SPEED = 0.002;
+
 const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
 
 @Component({
@@ -127,48 +127,47 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       this.showRegionData();
       this.applyColors('region');
 
-      // Tooltip logic → use polygon centroid
+      // Attach laborData to polygons via userData
+      this.globe.polygonsData().forEach((poly: any) => {
+        const entry = this.laborData.find(c => c.country === poly.properties.name);
+        if (entry) {
+          (poly as any).userData = { entry };
+        }
+      });
+
+      // Tooltip logic with raycasting
       const handleHover = (event: MouseEvent) => {
-        if (!this.countries) return;
+        const rect = renderer.domElement.getBoundingClientRect();
+        const mouse = new THREE.Vector2(
+          ((event.clientX - rect.left) / rect.width) * 2 - 1,
+          -((event.clientY - rect.top) / rect.height) * 2 + 1
+        );
 
-        let found: CountryCost | null = null;
-        let screenX = 0, screenY = 0;
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, camera);
 
-        for (const feature of this.countries.features) {
-          const [lon, lat] = geoCentroid(feature);
-          const entry = this.laborData.find(c => c.country === feature.properties.name);
-          if (!entry) continue;
+        const intersects = raycaster.intersectObjects(this.globe.children, true);
+        if (intersects.length > 0) {
+          for (const intersect of intersects) {
+            const entry = intersect.object.userData?.entry;
+            if (entry) {
+              const vector = intersect.point.clone().project(camera);
+              const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
+              const y = (-vector.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
 
-          const phi = (90 - lat) * (Math.PI / 180);
-          const theta = (lon + 180) * (Math.PI / 180);
-          const pos = new THREE.Vector3(
-            -100 * Math.sin(phi) * Math.cos(theta),
-             100 * Math.cos(phi),
-             100 * Math.sin(phi) * Math.sin(theta)
-          ).project(camera);
-
-          const x = (pos.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
-          const y = (-pos.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
-
-          if (Math.abs(event.offsetX - x) < 8 && Math.abs(event.offsetY - y) < 8) {
-            found = entry;
-            screenX = x;
-            screenY = y;
-            break;
+              tooltip.innerHTML = `<b>${entry.country}</b><br>Region: ${entry.region}<br>Avg Cost: $${entry.cost}`;
+              tooltip.style.left = `${x + 15}px`;
+              tooltip.style.top = `${y + 15}px`;
+              tooltip.style.display = 'block';
+              return;
+            }
           }
         }
-
-        if (found) {
-          tooltip.innerHTML = `<b>${found.country}</b><br>Region: ${found.region}<br>Avg Cost: $${found.cost}`;
-          tooltip.style.left = `${screenX + 15}px`;
-          tooltip.style.top = `${screenY + 15}px`;
-          tooltip.style.display = 'block';
-        } else {
-          tooltip.style.display = 'none';
-        }
+        tooltip.style.display = 'none';
       };
 
       renderer.domElement.addEventListener('mousemove', handleHover);
+      renderer.domElement.addEventListener('click', handleHover);
       renderer.domElement.addEventListener('mouseleave', () => {
         tooltip.style.display = 'none';
       });
@@ -186,9 +185,20 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   expandRow(region: any) {
     region.expanded = !region.expanded;
   }
-  zoomIn() { this.currentZoom = Math.max(this.currentZoom - ZOOM.step, ZOOM.min); this.updateCameraZoom(); }
-  zoomOut() { this.currentZoom = Math.min(this.currentZoom + ZOOM.step, ZOOM.max); this.updateCameraZoom(); }
-  private updateCameraZoom() { if (this.controls.object) this.controls.object.position.z = this.currentZoom; }
+
+  zoomIn() {
+    this.currentZoom = Math.max(this.currentZoom - ZOOM.step, ZOOM.min);
+    this.updateCameraZoom();
+  }
+
+  zoomOut() {
+    this.currentZoom = Math.min(this.currentZoom + ZOOM.step, ZOOM.max);
+    this.updateCameraZoom();
+  }
+
+  private updateCameraZoom() {
+    if (this.controls.object) this.controls.object.position.z = this.currentZoom;
+  }
 
   setView(view: string) {
     this.selectedView = view;
@@ -216,6 +226,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
     this.countryList = [];
   }
+
   private showCountryData() {
     this.countryList = [...this.laborData].sort((a, b) => a.country.localeCompare(b.country));
     this.regionGroups = [];
@@ -226,7 +237,8 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
     this.globe.polygonsData(this.countries.features)
       .polygonCapColor((d: any) => {
-        const entry = this.laborData.find(c => c.country === d.properties.name);
+        const countryName = d.properties.name;
+        const entry = this.laborData.find(c => c.country === countryName);
 
         if (mode === 'region') {
           return entry ? REGION_COLORS[entry.region] || REGION_COLORS['Other'] : REGION_COLORS['Other'];
