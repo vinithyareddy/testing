@@ -38,7 +38,6 @@ const STROKE_COLOR_COUNTRY = '#7e8790';
 const STROKE_COLOR_REGION = '#84c9f6';
 const FALLBACK_COLOR = '#e0e0e0';
 const ROTATION_SPEED = 0.002;
-const RADIUS = 100; // 👈 same as in first widget
 
 const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
 
@@ -99,14 +98,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     this.globe = new Globe().showGlobe(true).showGraticules(false);
     this.globe.globeMaterial(new THREE.MeshBasicMaterial({ color: new THREE.Color(DEFAULT_GLOBE_COLOR) }));
 
-    // Invisible Earth sphere for raycasting
-    this.earth = new THREE.Mesh(
-      new THREE.SphereGeometry(RADIUS, 75, 75),
-      new THREE.MeshPhongMaterial({ color: DEFAULT_GLOBE_COLOR, transparent: true, opacity: 0 })
-    );
-    scene.add(this.earth);
-    this.globe.add(this.earth);
-
     this.countries = topojson.feature(
       worldData as any,
       (worldData as any).objects.countries
@@ -133,6 +124,17 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     tooltip.style.display = 'none';
     globeDiv.appendChild(tooltip);
 
+    // --- Get consistent globe radius ---
+    const globeRadius = (this.globe as any).getGlobeRadius?.() || 100;
+
+    // Invisible Earth sphere for raycasting
+    this.earth = new THREE.Mesh(
+      new THREE.SphereGeometry(globeRadius, 75, 75),
+      new THREE.MeshPhongMaterial({ transparent: true, opacity: 0 })
+    );
+    scene.add(this.earth);
+    this.globe.add(this.earth);
+
     this.http.get<any>('assets/data/world-globe-data.json').subscribe(data => {
       this.laborData = data.countries.map((c: any) => ({
         country: c.name,
@@ -141,7 +143,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         code: c.code,
         lat: c.lat,
         lng: c.lng,
-        position: this.latLngToVector3(c.lat, c.lng, RADIUS)
+        position: this.latLngToVector3(c.lat, c.lng, globeRadius)
       }));
 
       const minCost = d3.min(this.laborData, d => d.cost) || 0;
