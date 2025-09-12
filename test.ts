@@ -1,34 +1,18 @@
-private nameToCode = new Map<string, string>();
-private coordsByCode = new Map<string, { lat: number; lng: number }>();
-
-
-
-for (const c of this.countriesList) {
-  this.nameToCode.set(c.country, c.code);
-  if (typeof c.lat === 'number' && typeof c.lng === 'number') {
-    this.coordsByCode.set(c.code, { lat: c.lat, lng: c.lng });
-  }
-}
-
-
-import { geoCentroid } from 'd3-geo';
-
-
-
-
 const labelData = this.countries.features
   .map((f: any) => {
     const name = f.properties.name as string;
     const code = this.nameToCode.get(name);
     if (!code) return null;
 
-    const fixed = this.coordsByCode.get(code);
     let lat: number, lng: number;
 
+    const fixed = this.coordsByCode.get(code);
     if (fixed) {
-      ({ lat, lng } = fixed); // use JSON coords if available
+      // ✅ use JSON lat/lng directly
+      ({ lat, lng } = fixed);
     } else {
-      [lng, lat] = geoCentroid(f) as [number, number]; // fallback to centroid
+      // fallback to centroid
+      [lng, lat] = geoCentroid(f) as [number, number];
     }
 
     return { code, lat, lng, country: name };
