@@ -11,7 +11,6 @@ import worldData from 'world-atlas/countries-110m.json';
 import { FeatureCollection, Geometry } from 'geojson';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import * as d3 from 'd3';
-import { geoCentroid } from 'd3-geo';
 
 type CountryCost = { country: string; region: string; cost: number; code: string };
 
@@ -32,38 +31,7 @@ const STROKE_COLOR_REGION = '#84c9f6';
 const FALLBACK_COLOR = '#e0e0e0';
 const ROTATION_SPEED = 0.002;
 
-const ZOOM = {
-  initial: 170,
-  step: 20,
-  min: 50,
-  max: 400
-};
-
-// Helper: convert lat/lon → 3D vector
-function latLngToVector3(lat: number, lon: number, radius: number) {
-  const phi = (90 - lat) * (Math.PI / 180);
-  const theta = (lon + 180) * (Math.PI / 180);
-  return new THREE.Vector3(
-    -(radius * Math.sin(phi) * Math.cos(theta)),
-    radius * Math.cos(phi),
-    radius * Math.sin(phi) * Math.sin(theta)
-  );
-}
-
-// Helper: project lat/lon → screen X,Y
-function projectToScreen(
-  lat: number,
-  lon: number,
-  radius: number,
-  camera: THREE.Camera,
-  renderer: THREE.WebGLRenderer
-) {
-  const pos = latLngToVector3(lat, lon, radius).clone().project(camera);
-  return {
-    x: (pos.x * 0.5 + 0.5) * renderer.domElement.clientWidth,
-    y: (-pos.y * 0.5 + 0.5) * renderer.domElement.clientHeight
-  };
-}
+const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
 
 @Component({
   selector: 'app-avg-labor-cost-region',
@@ -95,9 +63,23 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
   ngAfterViewInit() {
     const globeDiv = this.globeContainer.nativeElement;
+
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(globeDiv.offsetWidth, globeDiv.offsetHeight);
     globeDiv.appendChild(renderer.domElement);
+
+    // Tooltip div
+    const tooltip = document.createElement('div');
+    tooltip.style.position = 'absolute';
+    tooltip.style.pointerEvents = 'none';
+    tooltip.style.background = 'rgba(0,0,0,0.85)';
+    tooltip.style.color = '#fff';
+    tooltip.style.padding = '6px 12px';
+    tooltip.style.borderRadius = '6px';
+    tooltip.style.fontSize = '13px';
+    tooltip.style.zIndex = '10';
+    tooltip.style.display = 'none';
+    globeDiv.appendChild(tooltip);
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, globeDiv.offsetWidth / globeDiv.offsetHeight, 0.1, 1000);
@@ -116,26 +98,19 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       (worldData as any).objects.countries
     ) as unknown as FeatureCollection<Geometry, any>;
 
+    // Attach polygons & link them to userData for raycasting
     this.globe.polygonsData(this.countries.features);
+    this.globe.polygonsData().forEach((poly: any, i: number) => {
+      if (this.globe.children[i]) {
+        this.globe.children[i].userData = { polygon: poly };
+      }
+    });
 
     scene.add(this.globe);
     scene.add(new THREE.AmbientLight(0xffffff, 1.2));
     const dir = new THREE.DirectionalLight(0xffffff, 0.8);
     dir.position.set(5, 3, 5);
     scene.add(dir);
-
-    // Tooltip element
-    const tooltip = document.createElement('div');
-    tooltip.style.position = 'absolute';
-    tooltip.style.pointerEvents = 'none';
-    tooltip.style.background = 'rgba(0,0,0,0.85)';
-    tooltip.style.color = '#fff';
-    tooltip.style.padding = '6px 12px';
-    tooltip.style.borderRadius = '6px';
-    tooltip.style.fontSize = '13px';
-    tooltip.style.zIndex = '10';
-    tooltip.style.display = 'none';
-    globeDiv.appendChild(tooltip);
 
     this.http.get<any>('assets/data/world-globe-data.json').subscribe(data => {
       this.laborData = data.countries.map((c: any) => ({
@@ -155,45 +130,44 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       this.applyColors('region');
     });
 
-    // --- Tooltip logic (lat/lon centroids) ---
+    // ✅ Tooltip with raycasting
     renderer.domElement.addEventListener('mousemove', (event: MouseEvent) => {
-      if (!this.countries) return;
+      const rect = renderer.domElement.getBoundingClientRect();
+      const mouse = new THREE.Vector2(
+        ((event.clientX - rect.left) / rect.width) * 2 - 1,
+        -((event.clientY - rect.top) / rect.height) * 2 + 1
+      );
 
-      const radius = 100; // same as globe R
-      let found: CountryCost | null = null;
-      let screenX = 0, screenY = 0;
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(this.globe.children, true);
 
-      for (const feature of this.countries.features) {
-        const [lon, lat] = geoCentroid(feature);
-        const entry = this.laborData.find(c => c.country === feature.properties.name);
-        if (!entry) continue;
+      if (intersects.length > 0) {
+        const obj = intersects[0].object;
+        if (obj.userData && obj.userData.polygon) {
+          const d: any = obj.userData.polygon;
+          const countryName = d.properties.name;
+          const entry = this.laborData.find(c => c.country === countryName);
 
-        const { x, y } = projectToScreen(lat, lon, radius, camera, renderer);
-
-        // simple "mouse near point" check (10px radius)
-        if (Math.abs(event.offsetX - x) < 10 && Math.abs(event.offsetY - y) < 10) {
-          found = entry;
-          screenX = x;
-          screenY = y;
-          break;
+          if (entry) {
+            tooltip.innerHTML = `<b>${entry.country}</b><br>Region: ${entry.region}<br>Avg Cost: $${entry.cost}`;
+            tooltip.style.left = event.clientX + 15 + 'px';
+            tooltip.style.top = event.clientY + 15 + 'px';
+            tooltip.style.display = 'block';
+            return;
+          }
         }
       }
+      tooltip.style.display = 'none';
+    });
 
-      if (found) {
-        tooltip.innerHTML = `<b>${found.country}</b><br>Region: ${found.region}<br>Avg Cost: $${found.cost}`;
-        tooltip.style.left = `${screenX + 15}px`;
-        tooltip.style.top = `${screenY + 15}px`;
-        tooltip.style.display = 'block';
-      } else {
-        tooltip.style.display = 'none';
-      }
+    renderer.domElement.addEventListener('mouseleave', () => {
+      tooltip.style.display = 'none';
     });
 
     const animate = () => {
       requestAnimationFrame(animate);
-      if (this.globe) {
-        this.globe.rotation.y += ROTATION_SPEED;
-      }
+      if (this.globe) this.globe.rotation.y += ROTATION_SPEED;
       this.controls.update();
       renderer.render(scene, camera);
     };
