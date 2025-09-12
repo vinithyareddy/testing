@@ -161,6 +161,18 @@ export class SsByLocationComponent implements AfterViewInit {
     this.scene.add(earth);
     this.globe.add(earth);
 
+    // ✅ Add polygons for raycasting tooltips
+    const countries = topojson.feature(
+      worldData as any,
+      (worldData as any).objects.countries
+    ) as unknown as FeatureCollection<Geometry, any>;
+    this.globe
+      .polygonsData(countries.features)
+      .polygonCapColor(() => 'rgba(0,0,0,0)')
+      .polygonSideColor(() => 'rgba(0,0,0,0)')
+      .polygonStrokeColor(() => 'rgba(0,0,0,0)')
+      .polygonAltitude(0);
+
     this.scene.add(this.globe);
     this.scene.add(new THREE.AmbientLight(0xffffff, 1.2));
     const dir = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -182,7 +194,7 @@ export class SsByLocationComponent implements AfterViewInit {
       this.addCountryLabels();
     });
 
-    // ✅ Hover + tooltip logic
+    // ✅ Old tooltip logic (labels + polygons)
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
@@ -191,10 +203,24 @@ export class SsByLocationComponent implements AfterViewInit {
       mouse.y = -(event.offsetY / renderer.domElement.clientHeight) * 2 + 1;
       raycaster.setFromCamera(mouse, this.camera);
 
-      const intersects = raycaster.intersectObjects(this.labelGroup.children, true);
+      const intersects = raycaster.intersectObjects(
+        [...this.labelGroup.children, ...this.globe.children],
+        true
+      );
+
       if (intersects.length > 0) {
         const obj: any = intersects[0].object;
-        const country: CountrySkill = obj.userData.country;
+        let country: CountrySkill | null = null;
+
+        if (obj.userData && obj.userData.country) {
+          country = obj.userData.country;
+        } else if (obj.userData && obj.userData.properties) {
+          const name = obj.userData.properties.name;
+          country = this.countriesList.find(
+            c => c.country.toLowerCase() === name?.toLowerCase()
+          ) || null;
+        }
+
         if (country) {
           this.tooltip.innerHTML = `<b>${country.country}</b><br>Code: ${country.code}<br>Unique Skills: ${country.uniqueSkills}<br>Skill Supply: ${country.skillSupply}`;
           this.tooltip.style.left = event.offsetX + 15 + 'px';
@@ -203,6 +229,7 @@ export class SsByLocationComponent implements AfterViewInit {
           return;
         }
       }
+
       this.tooltip.style.display = 'none';
     };
 
