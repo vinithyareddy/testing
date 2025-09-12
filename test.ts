@@ -55,31 +55,15 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   selectedView: string = 'By Region';
   showMenu: boolean = false;
 
-  private countryColorScale = d3.scaleLinear<string>()
-    .domain([0, 1])
-    .range(COUNTRY_COLOR_RANGE);
+  private countryColorScale = d3.scaleLinear<string>().domain([0, 1]).range(COUNTRY_COLOR_RANGE);
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient) {}
 
   ngAfterViewInit() {
     const globeDiv = this.globeContainer.nativeElement;
-
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(globeDiv.offsetWidth, globeDiv.offsetHeight);
     globeDiv.appendChild(renderer.domElement);
-
-    // Tooltip div
-    const tooltip = document.createElement('div');
-    tooltip.style.position = 'absolute';
-    tooltip.style.pointerEvents = 'none';
-    tooltip.style.background = 'rgba(0,0,0,0.85)';
-    tooltip.style.color = '#fff';
-    tooltip.style.padding = '6px 12px';
-    tooltip.style.borderRadius = '6px';
-    tooltip.style.fontSize = '13px';
-    tooltip.style.zIndex = '10';
-    tooltip.style.display = 'none';
-    globeDiv.appendChild(tooltip);
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, globeDiv.offsetWidth / globeDiv.offsetHeight, 0.1, 1000);
@@ -98,19 +82,24 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       (worldData as any).objects.countries
     ) as unknown as FeatureCollection<Geometry, any>;
 
-    // Attach polygons & link them to userData for raycasting
-    this.globe.polygonsData(this.countries.features);
-    this.globe.polygonsData().forEach((poly: any, i: number) => {
-      if (this.globe.children[i]) {
-        this.globe.children[i].userData = { polygon: poly };
-      }
-    });
-
     scene.add(this.globe);
     scene.add(new THREE.AmbientLight(0xffffff, 1.2));
     const dir = new THREE.DirectionalLight(0xffffff, 0.8);
     dir.position.set(5, 3, 5);
     scene.add(dir);
+
+    // Tooltip element
+    const tooltip = document.createElement('div');
+    tooltip.style.position = 'absolute';
+    tooltip.style.pointerEvents = 'none';
+    tooltip.style.background = 'rgba(0,0,0,0.85)';
+    tooltip.style.color = '#fff';
+    tooltip.style.padding = '6px 12px';
+    tooltip.style.borderRadius = '6px';
+    tooltip.style.fontSize = '13px';
+    tooltip.style.zIndex = '10';
+    tooltip.style.display = 'none';
+    globeDiv.appendChild(tooltip);
 
     this.http.get<any>('assets/data/world-globe-data.json').subscribe(data => {
       this.laborData = data.countries.map((c: any) => ({
@@ -122,52 +111,64 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
       const minCost = d3.min(this.laborData, d => d.cost) || 0;
       const maxCost = d3.max(this.laborData, d => d.cost) || 1;
-      this.countryColorScale = d3.scaleLinear<string>()
-        .domain([minCost, maxCost])
-        .range(COUNTRY_COLOR_RANGE);
+      this.countryColorScale = d3.scaleLinear<string>().domain([minCost, maxCost]).range(COUNTRY_COLOR_RANGE);
 
       this.showRegionData();
       this.applyColors('region');
-    });
 
-    // ✅ Tooltip with raycasting
-    renderer.domElement.addEventListener('mousemove', (event: MouseEvent) => {
-      const rect = renderer.domElement.getBoundingClientRect();
-      const mouse = new THREE.Vector2(
-        ((event.clientX - rect.left) / rect.width) * 2 - 1,
-        -((event.clientY - rect.top) / rect.height) * 2 + 1
-      );
+      // Attach polygons after they are created
+      setTimeout(() => {
+        const polys = this.globe.polygonsData();
+        let meshIndex = 0;
+        this.globe.scene().traverse((child: any) => {
+          if (child.type === 'Mesh' && meshIndex < polys.length) {
+            child.userData = { polygon: polys[meshIndex] };
+            meshIndex++;
+          }
+        });
+      }, 1000);
 
-      const raycaster = new THREE.Raycaster();
-      raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObjects(this.globe.children, true);
+      // Raycasting for tooltips
+      renderer.domElement.addEventListener('mousemove', (event: MouseEvent) => {
+        const rect = renderer.domElement.getBoundingClientRect();
+        const mouse = new THREE.Vector2(
+          ((event.clientX - rect.left) / rect.width) * 2 - 1,
+          -((event.clientY - rect.top) / rect.height) * 2 + 1
+        );
 
-      if (intersects.length > 0) {
-        const obj = intersects[0].object;
-        if (obj.userData && obj.userData.polygon) {
-          const d: any = obj.userData.polygon;
-          const countryName = d.properties.name;
-          const entry = this.laborData.find(c => c.country === countryName);
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(this.globe.scene().children, true);
 
-          if (entry) {
-            tooltip.innerHTML = `<b>${entry.country}</b><br>Region: ${entry.region}<br>Avg Cost: $${entry.cost}`;
-            tooltip.style.left = event.clientX + 15 + 'px';
-            tooltip.style.top = event.clientY + 15 + 'px';
-            tooltip.style.display = 'block';
-            return;
+        if (intersects.length > 0) {
+          const obj = intersects[0].object;
+          if (obj.userData && obj.userData.polygon) {
+            const d: any = obj.userData.polygon;
+            const countryName = d.properties.name;
+            const entry = this.laborData.find(c => c.country === countryName);
+
+            if (entry) {
+              tooltip.innerHTML = `<b>${entry.country}</b><br>Region: ${entry.region}<br>Avg Cost: $${entry.cost}`;
+              tooltip.style.left = event.clientX + 15 + 'px';
+              tooltip.style.top = event.clientY + 15 + 'px';
+              tooltip.style.display = 'block';
+              return;
+            }
           }
         }
-      }
-      tooltip.style.display = 'none';
-    });
+        tooltip.style.display = 'none';
+      });
 
-    renderer.domElement.addEventListener('mouseleave', () => {
-      tooltip.style.display = 'none';
+      renderer.domElement.addEventListener('mouseleave', () => {
+        tooltip.style.display = 'none';
+      });
     });
 
     const animate = () => {
       requestAnimationFrame(animate);
-      if (this.globe) this.globe.rotation.y += ROTATION_SPEED;
+      if (this.globe) {
+        this.globe.rotation.y += ROTATION_SPEED;
+      }
       this.controls.update();
       renderer.render(scene, camera);
     };
@@ -229,7 +230,8 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   private applyColors(mode: 'region' | 'country') {
     if (!this.countries) return;
 
-    this.globe.polygonsData(this.countries.features)
+    this.globe
+      .polygonsData(this.countries.features)
       .polygonCapColor((d: any) => {
         const countryName = d.properties.name;
         const entry = this.laborData.find(c => c.country === countryName);
@@ -241,6 +243,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         }
       })
       .polygonSideColor(() => DEFAULT_GLOBE_COLOR)
-      .polygonStrokeColor(() => mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION);
+      .polygonStrokeColor(() => (mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION));
   }
 }
