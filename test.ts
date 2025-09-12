@@ -24,7 +24,7 @@ type CountrySkill = {
 
 const ROTATION_SPEED = 0.002;
 const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
-const RADIUS = 100; // globe radius
+const RADIUS = 100;
 
 @Component({
   selector: 'app-ss-by-location',
@@ -45,122 +45,131 @@ export class SsByLocationComponent implements AfterViewInit {
   private countries!: FeatureCollection<Geometry, any>;
   private scene!: THREE.Scene;
   private camera!: THREE.PerspectiveCamera;
-  private labelGroup!: THREE.Group; // Group to hold all labels
+  private labelGroup!: THREE.Group;
   currentZoom: number = ZOOM.initial;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   private latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
     const phi = (90 - lat) * (Math.PI / 180);
     const theta = (lng + 180) * (Math.PI / 180);
     return new THREE.Vector3(
       -radius * Math.sin(phi) * Math.cos(theta),
-       radius * Math.cos(phi),
-       radius * Math.sin(phi) * Math.sin(theta)
+      radius * Math.cos(phi),
+      radius * Math.sin(phi) * Math.sin(theta)
     );
   }
 
-  private createTextSprite(text: string, color: string = '#ffffff', fontSize: number = 24): THREE.Sprite {
+  // ✅ Step 1: Improved label sprite
+  private createTextSprite(
+    text: string,
+    color: string = '#1f2937',
+    fontSize: number = 18
+  ): THREE.Sprite {
+    const fontFamily = 'Inter, Arial, sans-serif';
+    const padding = 8;
+    const radius = 6;
+    const bgColor = 'rgba(255,255,255,0.92)';
+    const dpr = window.devicePixelRatio || 1;
+
+    // Measure
+    const m = document.createElement('canvas').getContext('2d')!;
+    m.font = `600 ${fontSize}px ${fontFamily}`;
+    const textWidth = m.measureText(text).width;
+    const textHeight = fontSize * 1.2;
+
+    // HiDPI canvas
     const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d')!;
-    
-    // Set font first to measure text
-    context.font = `bold ${fontSize}px Arial, sans-serif`;
-    const textMetrics = context.measureText(text);
-    const textWidth = textMetrics.width;
-    const textHeight = fontSize;
-    
-    // Set canvas size based on text dimensions with padding
-    const padding = 4;
-    canvas.width = textWidth + (padding * 2);
-    canvas.height = textHeight + (padding * 2);
-    
-    // Clear canvas
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Configure text style again (cleared when canvas resized)
-    context.font = `bold ${fontSize}px Arial, sans-serif`;
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-    
-    // Add text shadow for better visibility
-    context.shadowColor = 'rgba(0, 0, 0, 0.9)';
-    context.shadowBlur = 3;
-    context.shadowOffsetX = 1;
-    context.shadowOffsetY = 1;
-    
-    // Draw text
-    context.fillStyle = color;
-    context.fillText(text, canvas.width / 2, canvas.height / 2);
-    
-    // Create texture and sprite
+    canvas.width = (textWidth + padding * 2) * dpr;
+    canvas.height = (textHeight + padding * 2) * dpr;
+    const ctx = canvas.getContext('2d')!;
+    ctx.scale(dpr, dpr);
+
+    // Rounded rect background
+    const w = textWidth + padding * 2, h = textHeight + padding * 2;
+    ctx.fillStyle = bgColor;
+    ctx.beginPath();
+    const r = radius;
+    ctx.moveTo(r, 0);
+    ctx.lineTo(w - r, 0);
+    ctx.quadraticCurveTo(w, 0, w, r);
+    ctx.lineTo(w, h - r);
+    ctx.quadraticCurveTo(w, h, w - r, h);
+    ctx.lineTo(r, h);
+    ctx.quadraticCurveTo(0, h, 0, h - r);
+    ctx.lineTo(0, r);
+    ctx.quadraticCurveTo(0, 0, r, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    // Subtle shadow
+    ctx.shadowColor = 'rgba(0,0,0,0.18)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetY = 2;
+
+    // Text
+    ctx.font = `600 ${fontSize}px ${fontFamily}`;
+    ctx.fillStyle = color;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, padding, h / 2);
+
     const texture = new THREE.CanvasTexture(canvas);
-    const spriteMaterial = new THREE.SpriteMaterial({ 
+    texture.anisotropy = 8;
+
+    const mat = new THREE.SpriteMaterial({
       map: texture,
       transparent: true,
-      alphaTest: 0.1,
-      depthTest: false, // This helps labels appear on surface
-      depthWrite: false // Prevents depth conflicts
+      depthTest: true,
+      depthWrite: false,
+      alphaTest: 0.02
     });
-    
-    const sprite = new THREE.Sprite(spriteMaterial);
-    
-    // Smaller scale for surface labels
-    const baseScale = 4;
-    const scaleX = Math.max(baseScale, textWidth * 0.015);
-    const scaleY = baseScale * 0.8;
-    sprite.scale.set(scaleX, scaleY, 1);
-    
+
+    const sprite = new THREE.Sprite(mat);
+    sprite.scale.set(w * 0.05, h * 0.05, 1);
     return sprite;
   }
 
+  // ✅ Step 2: Float labels a bit farther
   private addCountryLabels() {
-    // Create a group to hold all labels
     this.labelGroup = new THREE.Group();
     this.scene.add(this.labelGroup);
 
     this.countriesList.forEach(country => {
       if (country.position) {
-        // Create text sprite for country code with clean styling
-        const label = this.createTextSprite(country.code, '#ffffff', 28);
-        
-        // Position the label directly on the globe surface
+        const label = this.createTextSprite(country.code, '#1f2937', 22);
+
         const labelPosition = country.position.clone();
         labelPosition.normalize();
-        labelPosition.multiplyScalar(RADIUS + 0.5); // Very close to surface
-        
+        labelPosition.multiplyScalar(RADIUS + 1.5); // moved farther
+
         label.position.copy(labelPosition);
-        
-        // Store reference to country data for potential interactions
         (label as any).userData = { country: country };
-        
+
         this.labelGroup.add(label);
       }
     });
   }
 
+  // ✅ Step 3: Visibility & fade logic
   private updateLabelVisibility() {
     if (!this.labelGroup || !this.camera) return;
 
-    // Get camera position
-    const cameraPosition = this.camera.position.clone().normalize();
+    const camDir = this.camera.position.clone().normalize();
 
-    this.labelGroup.children.forEach(label => {
-      const sprite = label as THREE.Sprite;
-      
-      // Calculate if label is on the visible side of the globe
-      const labelDirection = label.position.clone().normalize();
-      const dot = labelDirection.dot(cameraPosition);
-      
-      // Show labels that are facing the camera (more lenient threshold)
-      sprite.visible = dot > -0.2; // Show more labels
-      
-      // Apply smooth opacity transition based on viewing angle
-      if (sprite.visible) {
-        // Full opacity when facing camera, fade towards edges
-        const opacity = Math.max(0.4, Math.min(1.0, (dot + 0.2) / 1.2));
-        sprite.material.opacity = opacity;
-      }
+    this.labelGroup.children.forEach(obj => {
+      const sprite = obj as THREE.Sprite;
+      const dir = sprite.position.clone().normalize();
+      const dot = dir.dot(camDir);
+
+      // Show only front-facing labels
+      const visible = dot > 0.05;
+      sprite.visible = visible;
+      if (!visible) return;
+
+      // Smooth fade
+      const opacity = Math.min(1, Math.max(0, (dot - 0.05) / 0.35));
+      (sprite.material as THREE.SpriteMaterial).opacity = opacity;
     });
   }
 
@@ -172,7 +181,7 @@ export class SsByLocationComponent implements AfterViewInit {
     renderer.setClearColor(0x000000, 0);
     host.appendChild(renderer.domElement);
 
-    // Tooltip element
+    // Tooltip div
     const tooltip = document.createElement('div');
     tooltip.style.position = 'absolute';
     tooltip.style.pointerEvents = 'none';
@@ -201,6 +210,7 @@ export class SsByLocationComponent implements AfterViewInit {
 
     this.globe = new Globe().showGraticules(true).showAtmosphere(true);
     this.globe.atmosphereColor('#9ec2ff').atmosphereAltitude(0.25);
+
     if (typeof (this.globe as any).showGlobe === 'function') {
       this.globe.showGlobe(false);
     } else if (typeof (this.globe as any).globeMaterial === 'function') {
@@ -256,10 +266,9 @@ export class SsByLocationComponent implements AfterViewInit {
       }));
       this.filteredList = [...this.countriesList];
 
-      // Add country labels after data is loaded
       this.addCountryLabels();
 
-      // Tooltip logic based on lat/lon positions
+      // Tooltip hover logic
       const handleHover = (event: MouseEvent) => {
         const mouse = new THREE.Vector2(
           (event.offsetX / renderer.domElement.clientWidth) * 2 - 1,
@@ -273,7 +282,6 @@ export class SsByLocationComponent implements AfterViewInit {
         if (intersects.length > 0) {
           const point = intersects[0].point;
 
-          // find closest country by 3D distance
           let closest: CountrySkill | null = null;
           let minDist = Infinity;
           for (const c of this.countriesList) {
@@ -293,7 +301,7 @@ export class SsByLocationComponent implements AfterViewInit {
             tooltip.innerHTML = `<b>${closest.country}</b><br>Code: ${closest.code}<br>Unique Skills: ${closest.uniqueSkills}<br>Skill Supply: ${closest.skillSupply}`;
             tooltip.style.left = `${x + 15}px`;
             tooltip.style.top = `${y + 15}px`;
-            tooltip.style.display = 'block';
+            tooltip.style.display = 'block`;
             return;
           }
         }
@@ -309,12 +317,8 @@ export class SsByLocationComponent implements AfterViewInit {
 
     const animate = () => {
       requestAnimationFrame(animate);
-      // this.globe.rotation.y += ROTATION_SPEED;
       this.controls.update();
-      
-      // Update label visibility based on camera position
       this.updateLabelVisibility();
-      
       renderer.render(this.scene, this.camera);
     };
     animate();
