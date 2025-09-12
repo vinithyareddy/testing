@@ -43,7 +43,6 @@ export class SsByLocationComponent implements AfterViewInit {
   private controls!: OrbitControls;
   private globe: any;
   private countries!: FeatureCollection<Geometry, any>;
-
   currentZoom: number = ZOOM.initial;
 
   constructor(private http: HttpClient) {}
@@ -53,8 +52,8 @@ export class SsByLocationComponent implements AfterViewInit {
     const theta = (lng + 180) * (Math.PI / 180);
     return new THREE.Vector3(
       -radius * Math.sin(phi) * Math.cos(theta),
-       radius * Math.cos(phi),
-       radius * Math.sin(phi) * Math.sin(theta)
+      radius * Math.cos(phi),
+      radius * Math.sin(phi) * Math.sin(theta)
     );
   }
 
@@ -95,6 +94,7 @@ export class SsByLocationComponent implements AfterViewInit {
 
     this.globe = new Globe().showGraticules(true).showAtmosphere(true);
     this.globe.atmosphereColor('#9ec2ff').atmosphereAltitude(0.25);
+
     if (typeof (this.globe as any).showGlobe === 'function') {
       this.globe.showGlobe(false);
     } else if (typeof (this.globe as any).globeMaterial === 'function') {
@@ -140,22 +140,29 @@ export class SsByLocationComponent implements AfterViewInit {
         country: c.name,
         code: c.code,
         region: c.region,
-        uniqueSkills:
-          c.uniqueSkills > 0 ? c.uniqueSkills : Math.floor(Math.random() * 100),
-        skillSupply:
-          c.skillSupply > 0 ? c.skillSupply : Math.floor(Math.random() * 50),
+        uniqueSkills: c.uniqueSkills > 0 ? c.uniqueSkills : Math.floor(Math.random() * 100),
+        skillSupply: c.skillSupply > 0 ? c.skillSupply : Math.floor(Math.random() * 50),
         lat: c.lat,
         lng: c.lng,
         position: this.latLngToVector3(c.lat, c.lng, RADIUS)
       }));
       this.filteredList = [...this.countriesList];
 
-      // ✅ Add labels for codes
+      // ✅ Add code labels aligned with tooltip positions
       this.globe
         .labelsData(this.countriesList)
         .labelText((d: any) => d.code)
-        .labelLat((d: any) => d.lat)
-        .labelLng((d: any) => d.lng)
+        .labelLat((d: any) => {
+          const pos = d.position!;
+          const r = Math.sqrt(pos.x * pos.x + pos.y * pos.y + pos.z * pos.z);
+          const lat = 90 - (Math.acos(pos.y / r) * 180) / Math.PI;
+          return lat;
+        })
+        .labelLng((d: any) => {
+          const pos = d.position!;
+          const lng = (Math.atan2(pos.z, pos.x) * 180) / Math.PI - 180;
+          return lng;
+        })
         .labelAltitude(0.01)
         .labelSize(1.0)
         .labelDotRadius(0.2)
@@ -168,6 +175,7 @@ export class SsByLocationComponent implements AfterViewInit {
           (event.offsetX / renderer.domElement.clientWidth) * 2 - 1,
           -(event.offsetY / renderer.domElement.clientHeight) * 2 + 1
         );
+
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(mouse, camera);
 
@@ -175,7 +183,6 @@ export class SsByLocationComponent implements AfterViewInit {
         if (intersects.length > 0) {
           const point = intersects[0].point;
 
-          // find closest country by 3D distance
           let closest: CountrySkill | null = null;
           let minDist = Infinity;
           for (const c of this.countriesList) {
@@ -211,7 +218,7 @@ export class SsByLocationComponent implements AfterViewInit {
 
     const animate = () => {
       requestAnimationFrame(animate);
-      // this.globe.rotation.y += ROTATION_SPEED; // optional rotation
+      this.globe.rotation.y += ROTATION_SPEED;
       this.controls.update();
       renderer.render(scene, camera);
     };
@@ -233,10 +240,12 @@ export class SsByLocationComponent implements AfterViewInit {
     this.currentZoom = Math.max(this.currentZoom - ZOOM.step, ZOOM.min);
     this.updateCameraZoom();
   }
+
   zoomOut() {
     this.currentZoom = Math.min(this.currentZoom + ZOOM.step, ZOOM.max);
     this.updateCameraZoom();
   }
+
   private updateCameraZoom() {
     if (this.controls.object) this.controls.object.position.z = this.currentZoom;
   }
