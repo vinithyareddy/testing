@@ -7,7 +7,7 @@ import * as topojson from 'topojson-client';
 import worldData from 'world-atlas/countries-110m.json';
 import { FeatureCollection, Geometry } from 'geojson';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { Text } from 'troika-three-text';   // ✅ import troika text
+import { Text } from 'troika-three-text';
 
 type CountrySkill = {
   country: string;
@@ -23,7 +23,7 @@ type CountrySkill = {
 const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
 const RADIUS = 100;
 const LABEL_COLOR = '#ffffff';
-const BASE_FONT_SIZE = 6;        // baseline font size for troika text
+const BASE_FONT_SIZE = 6;
 const MIN_LABEL_DISTANCE = 3;
 
 @Component({
@@ -43,6 +43,7 @@ export class SsByLocationComponent implements AfterViewInit {
   private scene!: THREE.Scene;
   private camera!: THREE.PerspectiveCamera;
   private labelGroup!: THREE.Group;
+  private tooltip!: HTMLDivElement;
   currentZoom: number = ZOOM.initial;
 
   constructor(private http: HttpClient) {}
@@ -86,13 +87,11 @@ export class SsByLocationComponent implements AfterViewInit {
       if (!country.position) return;
       if (country.uniqueSkills < threshold) return;
 
-      // skip overlapping
       const tooClose = this.labelGroup.children.some(label =>
         label.position.distanceTo(country.position!) < MIN_LABEL_DISTANCE
       );
       if (tooClose) return;
 
-      // ✅ Create troika text label
       const text = new Text();
       text.text = country.code;
       text.fontSize = fontSize;
@@ -100,12 +99,12 @@ export class SsByLocationComponent implements AfterViewInit {
       text.anchorX = 'center';
       text.anchorY = 'middle';
 
-      // position slightly above globe surface
       const labelPos = country.position.clone().normalize().multiplyScalar(RADIUS + 0.1);
       text.position.copy(labelPos);
 
-      // rotate to follow sphere
       text.lookAt(new THREE.Vector3(0, 0, 0));
+
+      (text as any).userData = { country };
 
       this.labelGroup.add(text);
     });
@@ -119,10 +118,6 @@ export class SsByLocationComponent implements AfterViewInit {
       const dir = label.position.clone().normalize();
       const dot = dir.dot(camDir);
       label.visible = dot > 0.05;
-      if (label.visible && (label as any).material) {
-        const opacity = Math.min(1, Math.max(0, (dot - 0.05) / 0.35));
-        ((label as any).material as THREE.Material).opacity = opacity;
-      }
     });
   }
 
@@ -131,6 +126,19 @@ export class SsByLocationComponent implements AfterViewInit {
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(host.offsetWidth, host.offsetHeight);
     host.appendChild(renderer.domElement);
+
+    // ✅ Tooltip div
+    this.tooltip = document.createElement('div');
+    this.tooltip.style.position = 'absolute';
+    this.tooltip.style.pointerEvents = 'none';
+    this.tooltip.style.background = 'rgba(0,0,0,0.85)';
+    this.tooltip.style.color = '#fff';
+    this.tooltip.style.padding = '6px 12px';
+    this.tooltip.style.borderRadius = '6px';
+    this.tooltip.style.fontSize = '13px';
+    this.tooltip.style.zIndex = '10';
+    this.tooltip.style.display = 'none';
+    host.appendChild(this.tooltip);
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(75, host.offsetWidth / host.offsetHeight, 0.1, 1000);
@@ -174,11 +182,40 @@ export class SsByLocationComponent implements AfterViewInit {
       this.addCountryLabels();
     });
 
+    // ✅ Hover + tooltip logic
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    const handleHover = (event: MouseEvent) => {
+      mouse.x = (event.offsetX / renderer.domElement.clientWidth) * 2 - 1;
+      mouse.y = -(event.offsetY / renderer.domElement.clientHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, this.camera);
+
+      const intersects = raycaster.intersectObjects(this.labelGroup.children, true);
+      if (intersects.length > 0) {
+        const obj: any = intersects[0].object;
+        const country: CountrySkill = obj.userData.country;
+        if (country) {
+          this.tooltip.innerHTML = `<b>${country.country}</b><br>Code: ${country.code}<br>Unique Skills: ${country.uniqueSkills}<br>Skill Supply: ${country.skillSupply}`;
+          this.tooltip.style.left = event.offsetX + 15 + 'px';
+          this.tooltip.style.top = event.offsetY + 15 + 'px';
+          this.tooltip.style.display = 'block';
+          return;
+        }
+      }
+      this.tooltip.style.display = 'none';
+    };
+
+    renderer.domElement.addEventListener('mousemove', handleHover);
+    renderer.domElement.addEventListener('click', handleHover);
+    renderer.domElement.addEventListener('mouseleave', () => {
+      this.tooltip.style.display = 'none';
+    });
+
     const animate = () => {
       requestAnimationFrame(animate);
       this.controls.update();
 
-      // Refresh labels if zoom changes
       const zoomNow = this.camera.position.z;
       if (Math.abs(zoomNow - this.currentZoom) > 2) {
         this.currentZoom = zoomNow;
