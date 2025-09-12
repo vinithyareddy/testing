@@ -4,29 +4,27 @@ private addCountryLabels() {
   this.labelGroup = new THREE.Group();
   this.earth.add(this.labelGroup);
 
+  // Sort so that bigger/important countries are kept first
+  const sortedCountries = [...this.filteredList].sort((a, b) => b.uniqueSkills - a.uniqueSkills);
+
   const placed: THREE.Vector3[] = [];
 
-  this.filteredList.forEach(country => {
+  sortedCountries.forEach(country => {
     if (!country.position) return;
 
     const label = this.createTextSprite(country.code, '#ffffff', 22);
 
-    let labelPosition = country.position.clone().normalize();
-    labelPosition.multiplyScalar(RADIUS + 0.5);
+    // ✅ Put label directly on globe surface
+    const labelPosition = country.position.clone().normalize().multiplyScalar(RADIUS + 0.01);
 
-    // ✅ Spread labels apart if too close
-    placed.forEach(p => {
-      if (p.distanceTo(labelPosition) < 6) {
-        // push outward slightly
-        const dir = labelPosition.clone().sub(p).normalize();
-        labelPosition.add(dir.multiplyScalar(5));
-      }
-    });
+    // ✅ Check overlap: if too close to another label, skip it
+    const tooClose = placed.some(p => p.distanceTo(labelPosition) < 5);
+    if (tooClose) return;
 
     label.position.copy(labelPosition);
 
-    // ✅ Scale with zoom
-    const scaleFactor = THREE.MathUtils.clamp(220 / this.currentZoom, 0.5, 2.5);
+    // ✅ Scale with zoom (smaller when zoomed out)
+    const scaleFactor = THREE.MathUtils.clamp(220 / this.currentZoom, 0.5, 2.0);
     label.scale.multiplyScalar(scaleFactor);
 
     (label as any).userData = { country };
