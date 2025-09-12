@@ -11,6 +11,7 @@ import worldData from 'world-atlas/countries-110m.json';
 import { FeatureCollection, Geometry } from 'geojson';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import * as d3 from 'd3';
+import { geoCentroid } from 'd3-geo';
 
 type CountryCost = {
   country: string;
@@ -39,7 +40,7 @@ const STROKE_COLOR_REGION = '#84c9f6';
 const FALLBACK_COLOR = '#e0e0e0';
 const ROTATION_SPEED = 0.002;
 const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
-const RADIUS = 100; // globe radius
+const RADIUS = 100;
 
 @Component({
   selector: 'app-avg-labor-cost-region',
@@ -69,25 +70,31 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
   constructor(private http: HttpClient) {}
 
-  // Convert lat/lon → 3D position
+  // 🔑 Convert lat/lon to Vector3 with globe orientation fix
   private latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
     const phi = (90 - lat) * (Math.PI / 180);
     const theta = (lng + 180) * (Math.PI / 180);
-    return new THREE.Vector3(
-      -radius * Math.sin(phi) * Math.cos(theta),
-       radius * Math.cos(phi),
-       radius * Math.sin(phi) * Math.sin(theta)
-    );
+
+    const x = -radius * Math.sin(phi) * Math.cos(theta);
+    const y =  radius * Math.cos(phi);
+    const z =  radius * Math.sin(phi) * Math.sin(theta);
+
+    const v = new THREE.Vector3(x, y, z);
+
+    // 🔑 apply same rotation offset globe texture uses
+    v.applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
+
+    return v;
   }
 
   ngAfterViewInit() {
-    const host = this.globeContainer.nativeElement;
+    const globeDiv = this.globeContainer.nativeElement;
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(host.offsetWidth, host.offsetHeight);
-    host.appendChild(renderer.domElement);
+    renderer.setSize(globeDiv.offsetWidth, globeDiv.offsetHeight);
+    globeDiv.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, host.offsetWidth / host.offsetHeight, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(75, globeDiv.offsetWidth / globeDiv.offsetHeight, 0.1, 1000);
     camera.position.z = this.currentZoom;
 
     this.controls = new OrbitControls(camera, renderer.domElement);
@@ -102,6 +109,8 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       worldData as any,
       (worldData as any).objects.countries
     ) as unknown as FeatureCollection<Geometry, any>;
+
+    this.globe.polygonsData(this.countries.features);
 
     scene.add(this.globe);
     scene.add(new THREE.AmbientLight(0xffffff, 1.2));
@@ -120,7 +129,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     tooltip.style.fontSize = '13px';
     tooltip.style.zIndex = '10';
     tooltip.style.display = 'none';
-    host.appendChild(tooltip);
+    globeDiv.appendChild(tooltip);
 
     this.http.get<any>('assets/data/world-globe-data.json').subscribe(data => {
       this.laborData = data.countries.map((c: any) => ({
@@ -142,7 +151,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       this.showRegionData();
       this.applyColors('region');
 
-      // Tooltip logic (use JSON lat/lon)
+      // Tooltip logic
       const handleHover = (event: MouseEvent) => {
         const mouse = new THREE.Vector2(
           (event.offsetX / renderer.domElement.clientWidth) * 2 - 1,
@@ -152,11 +161,10 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(mouse, camera);
 
-        const intersects = raycaster.intersectObject(this.globe, true);
+        const intersects = raycaster.intersectObject(this.globe);
         if (intersects.length > 0) {
           const point = intersects[0].point;
 
-          // Find closest JSON entry by 3D distance
           let closest: CountryCost | null = null;
           let minDist = Infinity;
           for (const c of this.laborData) {
@@ -255,7 +263,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     this.globe.polygonsData(this.countries.features)
       .polygonCapColor((d: any) => {
         const countryName = d.properties.name;
-        const entry = this.laborData.find(c => c.country.toLowerCase() === countryName.toLowerCase());
+        const entry = this.laborData.find(c => c.country === countryName);
 
         if (mode === 'region') {
           return entry ? REGION_COLORS[entry.region] || REGION_COLORS['Other'] : REGION_COLORS['Other'];
