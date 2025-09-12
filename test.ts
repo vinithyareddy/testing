@@ -1,44 +1,32 @@
-private addCountryLabels() {
-  if (this.labelGroup) this.scene.remove(this.labelGroup);
-  this.labelGroup = new THREE.Group();
-  this.scene.add(this.labelGroup);
+private updateLabelVisibility() {
+  if (!this.labelGroup || !this.camera) return;
 
-  // adjust labels dynamically based on zoom
-  let sourceList: CountrySkill[] = [];
+  const cameraPosition = this.camera.position.clone().normalize();
+  const minDistance = 8; // prevent overlap
 
-  if (this.searchTerm) {
-    // search mode → show all matches
-    sourceList = this.filteredList;
-  } else {
-    if (this.currentZoom < 100) {
-      // very close zoom → show all countries
-      sourceList = this.countriesList;
-    } else if (this.currentZoom < 150) {
-      // medium zoom → top 50
-      sourceList = this.countriesList
-        .sort((a, b) => b.uniqueSkills - a.uniqueSkills)
-        .slice(0, 50);
-    } else if (this.currentZoom < 200) {
-      // further zoom → top 30
-      sourceList = this.countriesList
-        .sort((a, b) => b.uniqueSkills - a.uniqueSkills)
-        .slice(0, 30);
-    } else {
-      // zoomed out → top 15
-      sourceList = this.countriesList
-        .sort((a, b) => b.uniqueSkills - a.uniqueSkills)
-        .slice(0, 15);
-    }
-  }
+  this.labelGroup.children.forEach((label, i) => {
+    const sprite = label as THREE.Sprite;
+    const labelDirection = label.position.clone().normalize();
 
-  sourceList.forEach(country => {
-    if (country.position) {
-      const label = this.createTextSprite(country.code, '#ffffff', 28);
-      const labelPosition = country.position.clone().normalize();
-      labelPosition.multiplyScalar(RADIUS + 0.5);
-      label.position.copy(labelPosition);
-      (label as any).userData = { country };
-      this.labelGroup.add(label);
+    // dot between camera and label (1 = directly facing, -1 = opposite side)
+    const dot = labelDirection.dot(cameraPosition);
+
+    // only hide if on the complete back of globe
+    sprite.visible = dot > 0;
+
+    if (sprite.visible) {
+      // fade labels smoothly based on angle
+      const opacity = Math.max(0.3, Math.min(1.0, dot));
+      (sprite.material as THREE.SpriteMaterial).opacity = opacity;
+
+      // hide if overlapping too close
+      for (let j = 0; j < i; j++) {
+        const other = this.labelGroup.children[j] as THREE.Sprite;
+        if (other.visible && label.position.distanceTo(other.position) < minDistance) {
+          sprite.visible = false;
+          break;
+        }
+      }
     }
   });
 }
