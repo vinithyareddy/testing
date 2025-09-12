@@ -16,11 +16,10 @@ type CountryCost = {
   country: string;
   region: string;
   cost: number;
-  code: string;
+  code: string; // ISO2 from your JSON
   lat: number;
   lng: number;
   position?: THREE.Vector3;
-  dot?: THREE.Mesh;
 };
 
 const DEFAULT_GLOBE_COLOR = '#84c9f6';
@@ -42,6 +41,13 @@ const ROTATION_SPEED = 0.002;
 const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
 const RADIUS = 100;
 
+// 🔑 ISO3 → ISO2 (extend as needed)
+const ISO3_TO_ISO2: Record<string, string> = {
+  USA: 'US', IND: 'IN', CHN: 'CN', BRA: 'BR', RUS: 'RU', MEX: 'MX',
+  CAN: 'CA', FRA: 'FR', DEU: 'DE', GBR: 'GB', ITA: 'IT', ESP: 'ES',
+  AUS: 'AU', JPN: 'JP', KOR: 'KR', TCD: 'TD'
+};
+
 @Component({
   selector: 'app-avg-labor-cost-region',
   templateUrl: './avg-labor-cost-region.component.html',
@@ -59,7 +65,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   private controls!: OrbitControls;
   private globe: any;
   private countries!: FeatureCollection<Geometry, any>;
-  private earth!: THREE.Mesh;
 
   currentZoom: number = ZOOM.initial;
   selectedView: string = 'By Region';
@@ -71,10 +76,9 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
   constructor(private http: HttpClient) {}
 
-  // 🔑 Convert lat/lon from JSON → 3D position
-  private latLngToVector3(lat: number, lon: number, radius: number): THREE.Vector3 {
+  private latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
     const phi = (90 - lat) * (Math.PI / 180);
-    const theta = (lon + 180) * (Math.PI / 180);
+    const theta = (lng + 180) * (Math.PI / 180);
     return new THREE.Vector3(
       -radius * Math.sin(phi) * Math.cos(theta),
        radius * Math.cos(phi),
@@ -126,42 +130,16 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     tooltip.style.display = 'none';
     globeDiv.appendChild(tooltip);
 
-    // Transparent sphere for raycasting
-    this.earth = new THREE.Mesh(
-      new THREE.SphereGeometry(RADIUS, 75, 75),
-      new THREE.MeshPhongMaterial({ transparent: true, opacity: 0 })
-    );
-    this.globe.add(this.earth);
-
     this.http.get<any>('assets/data/world-globe-data.json').subscribe(data => {
-      const debugGroup = new THREE.Group();
-
-      this.laborData = data.countries.map((c: any) => {
-        const pos = this.latLngToVector3(c.lat, c.lng, RADIUS);
-
-        let dot: THREE.Mesh | undefined;
-        if (pos) {
-          dot = new THREE.Mesh(
-            new THREE.SphereGeometry(0.8, 8, 8),
-            new THREE.MeshBasicMaterial({ color: 0xff0000 })
-          );
-          dot.position.copy(pos);
-          debugGroup.add(dot);
-        }
-
-        return {
-          country: c.name,
-          region: c.region,
-          cost: c.cost ?? Math.floor(Math.random() * 2),
-          code: c.code,
-          lat: c.lat,
-          lng: c.lng,
-          position: pos,
-          dot
-        };
-      });
-
-      this.globe.add(debugGroup);
+      this.laborData = data.countries.map((c: any) => ({
+        country: c.name,
+        region: c.region,
+        cost: c.cost ?? Math.floor(Math.random() * 2),
+        code: c.code,
+        lat: c.lat,
+        lng: c.lng,
+        position: this.latLngToVector3(c.lat, c.lng, RADIUS)
+      }));
 
       const minCost = d3.min(this.laborData, d => d.cost) || 0;
       const maxCost = d3.max(this.laborData, d => d.cost) || 1;
@@ -172,7 +150,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       this.showRegionData();
       this.applyColors('region');
 
-      // Tooltip logic using JSON lat/lon positions
+      // Tooltip logic
       const handleHover = (event: MouseEvent) => {
         const mouse = new THREE.Vector2(
           (event.offsetX / renderer.domElement.clientWidth) * 2 - 1,
@@ -182,7 +160,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(mouse, camera);
 
-        const intersects = raycaster.intersectObject(this.earth);
+        const intersects = raycaster.intersectObject(this.globe, true);
         if (intersects.length > 0) {
           const point = intersects[0].point;
 
@@ -213,7 +191,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       };
 
       renderer.domElement.addEventListener('mousemove', handleHover);
-      renderer.domElement.addEventListener('click', handleHover);
       renderer.domElement.addEventListener('mouseleave', () => {
         tooltip.style.display = 'none';
       });
@@ -231,20 +208,9 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   expandRow(region: any) {
     region.expanded = !region.expanded;
   }
-
-  zoomIn() {
-    this.currentZoom = Math.max(this.currentZoom - ZOOM.step, ZOOM.min);
-    this.updateCameraZoom();
-  }
-
-  zoomOut() {
-    this.currentZoom = Math.min(this.currentZoom + ZOOM.step, ZOOM.max);
-    this.updateCameraZoom();
-  }
-
-  private updateCameraZoom() {
-    if (this.controls.object) this.controls.object.position.z = this.currentZoom;
-  }
+  zoomIn() { this.currentZoom = Math.max(this.currentZoom - ZOOM.step, ZOOM.min); this.updateCameraZoom(); }
+  zoomOut() { this.currentZoom = Math.min(this.currentZoom + ZOOM.step, ZOOM.max); this.updateCameraZoom(); }
+  private updateCameraZoom() { if (this.controls.object) this.controls.object.position.z = this.currentZoom; }
 
   setView(view: string) {
     this.selectedView = view;
@@ -272,7 +238,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
     this.countryList = [];
   }
-
   private showCountryData() {
     this.countryList = [...this.laborData].sort((a, b) => a.country.localeCompare(b.country));
     this.regionGroups = [];
@@ -283,8 +248,9 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
     this.globe.polygonsData(this.countries.features)
       .polygonCapColor((d: any) => {
-        const countryName = d.properties.name;
-        const entry = this.laborData.find(c => c.country === countryName);
+        const iso3 = d.id;
+        const iso2 = ISO3_TO_ISO2[iso3];
+        const entry = iso2 ? this.laborData.find(c => c.code === iso2) : null;
 
         if (mode === 'region') {
           return entry ? REGION_COLORS[entry.region] || REGION_COLORS['Other'] : REGION_COLORS['Other'];
