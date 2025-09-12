@@ -23,9 +23,8 @@ type CountrySkill = {
   position?: THREE.Vector3;
 };
 
-const ROTATION_SPEED = 0.002;
 const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
-const RADIUS = 100; // globe radius
+const RADIUS = 100;
 
 @Component({
   selector: 'app-ss-by-location',
@@ -46,7 +45,7 @@ export class SsByLocationComponent implements AfterViewInit {
   private countries!: FeatureCollection<Geometry, any>;
   currentZoom: number = ZOOM.initial;
 
-  // ✅ maps for country → code and code → coords
+  // maps for linking JSON data with topojson features
   private nameToCode = new Map<string, string>();
   private coordsByCode = new Map<string, { lat: number; lng: number }>();
 
@@ -84,12 +83,7 @@ export class SsByLocationComponent implements AfterViewInit {
     host.appendChild(tooltip);
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(
-      75,
-      host.offsetWidth / host.offsetHeight,
-      0.1,
-      1000
-    );
+    const camera = new THREE.PerspectiveCamera(75, host.offsetWidth / host.offsetHeight, 0.1, 1000);
     camera.position.z = this.currentZoom;
 
     this.controls = new OrbitControls(camera, renderer.domElement);
@@ -152,7 +146,7 @@ export class SsByLocationComponent implements AfterViewInit {
       }));
       this.filteredList = [...this.countriesList];
 
-      // ✅ fill maps for label alignment
+      // fill maps for hybrid label alignment
       for (const c of this.countriesList) {
         this.nameToCode.set(c.country, c.code);
         if (typeof c.lat === 'number' && typeof c.lng === 'number') {
@@ -160,7 +154,6 @@ export class SsByLocationComponent implements AfterViewInit {
         }
       }
 
-      // ✅ hybrid label data: JSON lat/lng if present, else centroid
       const labelData = this.countries.features
         .map((f: any) => {
           const name = f.properties.name as string;
@@ -193,7 +186,7 @@ export class SsByLocationComponent implements AfterViewInit {
           .labelResolution(2);
       }
 
-      // ✅ Tooltip logic
+      // tooltip logic
       const handleHover = (event: MouseEvent) => {
         const mouse = new THREE.Vector2(
           (event.offsetX / renderer.domElement.clientWidth) * 2 - 1,
