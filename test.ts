@@ -24,6 +24,7 @@ type CountrySkill = {
 
 const ROTATION_SPEED = 0.002;
 const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
+const RADIUS = 100;
 
 @Component({
   selector: 'app-ss-by-location',
@@ -42,6 +43,7 @@ export class SsByLocationComponent implements AfterViewInit {
   private controls!: OrbitControls;
   private globe: any;
   private countries!: FeatureCollection<Geometry, any>;
+
   currentZoom: number = ZOOM.initial;
 
   constructor(private http: HttpClient) {}
@@ -84,34 +86,18 @@ export class SsByLocationComponent implements AfterViewInit {
     this.globe = new Globe().showGraticules(true).showAtmosphere(true);
     this.globe.atmosphereColor('#9ec2ff').atmosphereAltitude(0.25);
 
-    if (typeof (this.globe as any).showGlobe === 'function') {
-      this.globe.showGlobe(false);
-    } else if (typeof (this.globe as any).globeMaterial === 'function') {
-      this.globe.globeMaterial(
-        new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 })
-      );
-    }
-
     const texLoader = new THREE.TextureLoader();
     const earthTex = texLoader.load(
       'https://unpkg.com/three-globe@2.30.0/example/img/earth-blue-marble.jpg'
     );
-    const bumpTex = texLoader.load(
-      'https://unpkg.com/three-globe@2.30.0/example/img/earth-topology.png'
-    );
-
-    const R = 100;
     const earth = new THREE.Mesh(
-      new THREE.SphereGeometry(R, 75, 75),
+      new THREE.SphereGeometry(RADIUS, 75, 75),
       new THREE.MeshPhongMaterial({
         map: earthTex,
-        bumpMap: bumpTex,
-        bumpScale: 0.4,
         specular: new THREE.Color(0x222222),
         shininess: 3
       })
     );
-    earth.rotation.y = -Math.PI / 2;
     this.globe.add(earth);
 
     this.countries = topojson.feature(
@@ -146,7 +132,7 @@ export class SsByLocationComponent implements AfterViewInit {
       }));
       this.filteredList = [...this.countriesList];
 
-      // 🔑 Unified labelData: same source for codes + tooltips
+      // --- Unified labelData ---
       const labelData = this.countries.features
         .map((f: any) => {
           const name = f.properties.name as string;
@@ -172,7 +158,7 @@ export class SsByLocationComponent implements AfterViewInit {
         data: CountrySkill;
       }[];
 
-      // Show codes on globe
+      // Labels
       this.globe
         .labelsData(labelData)
         .labelText((d: any) => d.code)
@@ -184,7 +170,7 @@ export class SsByLocationComponent implements AfterViewInit {
         .labelColor(() => 'rgba(0,0,0,0.9)')
         .labelResolution(2);
 
-      // Tooltip logic: raycast against earth, then nearest labelData
+      // Tooltip logic
       const handleHover = (event: MouseEvent) => {
         const mouse = new THREE.Vector2(
           (event.offsetX / renderer.domElement.clientWidth) * 2 - 1,
@@ -195,11 +181,12 @@ export class SsByLocationComponent implements AfterViewInit {
         const intersects = raycaster.intersectObject(earth);
         if (intersects.length > 0) {
           const point = intersects[0].point;
+
           let closest: any = null;
           let minDist = Infinity;
           for (const d of labelData) {
             const pos = new THREE.Vector3().setFromSphericalCoords(
-              R,
+              RADIUS,
               (90 - d.lat) * (Math.PI / 180),
               (d.lng + 180) * (Math.PI / 180)
             );
@@ -209,13 +196,14 @@ export class SsByLocationComponent implements AfterViewInit {
               closest = d;
             }
           }
+
           if (closest) {
-            const vector = new THREE.Vector3().setFromSphericalCoords(
-              R,
+            const pos = new THREE.Vector3().setFromSphericalCoords(
+              RADIUS,
               (90 - closest.lat) * (Math.PI / 180),
               (closest.lng + 180) * (Math.PI / 180)
             );
-            const screen = vector.clone().project(camera);
+            const screen = pos.clone().project(camera);
             const x =
               (screen.x * 0.5 + 0.5) * renderer.domElement.clientWidth + 15;
             const y =
