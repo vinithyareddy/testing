@@ -1,21 +1,19 @@
-// Build labels aligned with tooltip positions
+// Build labels from JSON data (same source as tooltips)
 const labelData = this.countriesList
-  .filter(c => c.lat && c.lng)
+  .filter(c => typeof c.lat === 'number' && typeof c.lng === 'number')
   .map(c => ({
     lat: c.lat,
     lng: c.lng,
-    text: c.code,
-    position: this.latLngToVector3(c.lat, c.lng, RADIUS)
+    text: c.code   // 2-letter code
   }));
 
-// Add permanent codes on globe
 this.globe
   .labelsData(labelData)
   .labelText((d: any) => d.text)
   .labelLat((d: any) => d.lat)
   .labelLng((d: any) => d.lng)
-  .labelAltitude(0.02)   // lift above surface
+  .labelAltitude(0.015)    // slightly above surface
   .labelSize(1.2)
-  .labelDotRadius(0.3)
+  .labelDotRadius(0.2)
   .labelColor(() => 'black')
   .labelResolution(2);
