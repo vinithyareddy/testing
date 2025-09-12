@@ -10,7 +10,6 @@ import * as topojson from 'topojson-client';
 import worldData from 'world-atlas/countries-110m.json';
 import { FeatureCollection, Geometry } from 'geojson';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { geoCentroid } from 'd3-geo';
 
 type CountrySkill = {
   country: string;
@@ -23,8 +22,9 @@ type CountrySkill = {
   position?: THREE.Vector3;
 };
 
+const ROTATION_SPEED = 0.002;
 const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
-const RADIUS = 100;
+const RADIUS = 100; // globe radius
 
 @Component({
   selector: 'app-ss-by-location',
@@ -43,6 +43,9 @@ export class SsByLocationComponent implements AfterViewInit {
   private controls!: OrbitControls;
   private globe: any;
   private countries!: FeatureCollection<Geometry, any>;
+  private scene!: THREE.Scene;
+  private camera!: THREE.PerspectiveCamera;
+  private labelGroup!: THREE.Group; // Group to hold all labels
   currentZoom: number = ZOOM.initial;
 
   constructor(private http: HttpClient) {}
@@ -55,6 +58,92 @@ export class SsByLocationComponent implements AfterViewInit {
        radius * Math.cos(phi),
        radius * Math.sin(phi) * Math.sin(theta)
     );
+  }
+
+  private createTextSprite(text: string, color: string = '#ffffff', fontSize: number = 64): THREE.Sprite {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d')!;
+    
+    // Set canvas size
+    canvas.width = 256;
+    canvas.height = 128;
+    
+    // Configure text style
+    context.fillStyle = color;
+    context.font = `bold ${fontSize}px Arial`;
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    
+    // Add text background for better visibility
+    context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw text
+    context.fillStyle = color;
+    context.fillText(text, canvas.width / 2, canvas.height / 2);
+    
+    // Create texture and sprite
+    const texture = new THREE.CanvasTexture(canvas);
+    const spriteMaterial = new THREE.SpriteMaterial({ 
+      map: texture,
+      transparent: true,
+      alphaTest: 0.1
+    });
+    
+    const sprite = new THREE.Sprite(spriteMaterial);
+    sprite.scale.set(10, 5, 1); // Adjust scale as needed
+    
+    return sprite;
+  }
+
+  private addCountryLabels() {
+    // Create a group to hold all labels
+    this.labelGroup = new THREE.Group();
+    this.scene.add(this.labelGroup);
+
+    this.countriesList.forEach(country => {
+      if (country.position) {
+        // Create text sprite for country code
+        const label = this.createTextSprite(country.code, '#ffffff', 48);
+        
+        // Position the label slightly above the globe surface
+        const labelPosition = country.position.clone();
+        labelPosition.normalize();
+        labelPosition.multiplyScalar(RADIUS + 8); // Slightly above surface
+        
+        label.position.copy(labelPosition);
+        
+        // Store reference to country data for potential interactions
+        (label as any).userData = { country: country };
+        
+        this.labelGroup.add(label);
+      }
+    });
+  }
+
+  private updateLabelVisibility() {
+    if (!this.labelGroup || !this.camera) return;
+
+    // Get camera direction
+    const cameraDirection = new THREE.Vector3();
+    this.camera.getWorldDirection(cameraDirection);
+
+    this.labelGroup.children.forEach(label => {
+      const sprite = label as THREE.Sprite;
+      
+      // Calculate if label is facing the camera
+      const labelDirection = label.position.clone().normalize();
+      const dot = labelDirection.dot(cameraDirection.clone().negate());
+      
+      // Only show labels on the visible side of the globe
+      sprite.visible = dot > 0;
+      
+      // Fade labels based on distance from camera center
+      if (sprite.visible) {
+        const distanceFromCenter = Math.abs(dot - 1);
+        sprite.material.opacity = Math.max(0.3, 1 - distanceFromCenter * 2);
+      }
+    });
   }
 
   ngAfterViewInit() {
@@ -78,11 +167,16 @@ export class SsByLocationComponent implements AfterViewInit {
     tooltip.style.display = 'none';
     host.appendChild(tooltip);
 
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, host.offsetWidth / host.offsetHeight, 0.1, 1000);
-    camera.position.z = this.currentZoom;
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(
+      75,
+      host.offsetWidth / host.offsetHeight,
+      0.1,
+      1000
+    );
+    this.camera.position.z = this.currentZoom;
 
-    this.controls = new OrbitControls(camera, renderer.domElement);
+    this.controls = new OrbitControls(this.camera, renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.rotateSpeed = 0.5;
     this.controls.zoomSpeed = 0.8;
@@ -108,11 +202,7 @@ export class SsByLocationComponent implements AfterViewInit {
         shininess: 3
       })
     );
-
-    // ✅ keep rotation on mesh
-    earth.rotation.y = -Math.PI / 2;
-
-    scene.add(earth);
+    this.scene.add(earth);
     this.globe.add(earth);
 
     this.countries = topojson.feature(
@@ -127,69 +217,45 @@ export class SsByLocationComponent implements AfterViewInit {
       .polygonStrokeColor(() => 'rgba(0,0,0,0)')
       .polygonAltitude(0);
 
-    scene.add(this.globe);
-    scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+    this.scene.add(this.globe);
+    this.scene.add(new THREE.AmbientLight(0xffffff, 1.2));
     const dir = new THREE.DirectionalLight(0xffffff, 0.8);
     dir.position.set(5, 3, 5);
-    scene.add(dir);
+    this.scene.add(dir);
 
     this.http.get<any>('assets/data/world-globe-data.json').subscribe(data => {
       this.countriesList = data.countries.map((c: any) => ({
         country: c.name,
         code: c.code,
         region: c.region,
-        uniqueSkills: c.uniqueSkills > 0 ? c.uniqueSkills : Math.floor(Math.random() * 100),
-        skillSupply: c.skillSupply > 0 ? c.skillSupply : Math.floor(Math.random() * 50),
+        uniqueSkills:
+          c.uniqueSkills > 0 ? c.uniqueSkills : Math.floor(Math.random() * 100),
+        skillSupply:
+          c.skillSupply > 0 ? c.skillSupply : Math.floor(Math.random() * 50),
         lat: c.lat,
         lng: c.lng,
         position: this.latLngToVector3(c.lat, c.lng, RADIUS)
       }));
       this.filteredList = [...this.countriesList];
 
-      // ✅ Labels: adjust longitude by -90° to match mesh rotation
-      const labelData = this.countries.features
-        .map((f: any) => {
-          let [lng, lat] = geoCentroid(f);
-          const name = f.properties.name;
-          const match = this.countriesList.find(
-            c => c.country.trim().toLowerCase() === name.trim().toLowerCase()
-          );
-          if (!match) return null;
+      // Add country labels after data is loaded
+      this.addCountryLabels();
 
-          // apply -90° offset
-          lng = lng - 90;
-          if (lng < -180) lng += 360;
-
-          return { code: match.code, lat, lng, country: name };
-        })
-        .filter(Boolean);
-
-      if (typeof (this.globe as any).labelsData === 'function') {
-        this.globe
-          .labelsData(labelData)
-          .labelText((d: any) => d.code)
-          .labelLat((d: any) => d.lat)
-          .labelLng((d: any) => d.lng)
-          .labelAltitude(0.012)
-          .labelSize(0.95)
-          .labelDotRadius(0.16)
-          .labelColor(() => 'rgba(0,0,0,0.9)')
-          .labelResolution(2);
-      }
-
-      // ✅ Tooltip logic
+      // Tooltip logic based on lat/lon positions
       const handleHover = (event: MouseEvent) => {
         const mouse = new THREE.Vector2(
           (event.offsetX / renderer.domElement.clientWidth) * 2 - 1,
           -(event.offsetY / renderer.domElement.clientHeight) * 2 + 1
         );
+
         const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera(mouse, camera);
+        raycaster.setFromCamera(mouse, this.camera);
 
         const intersects = raycaster.intersectObject(earth);
         if (intersects.length > 0) {
           const point = intersects[0].point;
 
+          // find closest country by 3D distance
           let closest: CountrySkill | null = null;
           let minDist = Infinity;
           for (const c of this.countriesList) {
@@ -202,11 +268,11 @@ export class SsByLocationComponent implements AfterViewInit {
           }
 
           if (closest) {
-            const vector = closest.position!.clone().project(camera);
+            const vector = closest.position!.clone().project(this.camera);
             const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
             const y = (-vector.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
 
-            tooltip.innerHTML = `<b>${closest.country}</b><br>Unique Skills: ${closest.uniqueSkills}<br>Skill Supply: ${closest.skillSupply}`;
+            tooltip.innerHTML = `<b>${closest.country}</b><br>Code: ${closest.code}<br>Unique Skills: ${closest.uniqueSkills}<br>Skill Supply: ${closest.skillSupply}`;
             tooltip.style.left = `${x + 15}px`;
             tooltip.style.top = `${y + 15}px`;
             tooltip.style.display = 'block';
@@ -225,8 +291,13 @@ export class SsByLocationComponent implements AfterViewInit {
 
     const animate = () => {
       requestAnimationFrame(animate);
+      // this.globe.rotation.y += ROTATION_SPEED;
       this.controls.update();
-      renderer.render(scene, camera);
+      
+      // Update label visibility based on camera position
+      this.updateLabelVisibility();
+      
+      renderer.render(this.scene, this.camera);
     };
     animate();
   }
