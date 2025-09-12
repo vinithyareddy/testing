@@ -7,6 +7,7 @@ import * as topojson from 'topojson-client';
 import worldData from 'world-atlas/countries-110m.json';
 import { FeatureCollection, Geometry } from 'geojson';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { Text } from 'troika-three-text';   // ✅ import troika text
 
 type CountrySkill = {
   country: string;
@@ -22,8 +23,8 @@ type CountrySkill = {
 const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
 const RADIUS = 100;
 const LABEL_COLOR = '#ffffff';
-const BASE_FONT_SIZE = 24;      // baseline font size
-const MIN_LABEL_DISTANCE = 3;   // prevent overlaps
+const BASE_FONT_SIZE = 6;        // baseline font size for troika text
+const MIN_LABEL_DISTANCE = 3;
 
 @Component({
   selector: 'app-ss-by-location',
@@ -56,55 +57,18 @@ export class SsByLocationComponent implements AfterViewInit {
     );
   }
 
-  private createTextSprite(text: string, color: string, fontSize: number): THREE.Sprite {
-    const measureCanvas = document.createElement('canvas');
-    const measureCtx = measureCanvas.getContext('2d')!;
-    measureCtx.font = `${fontSize}px Arial, Helvetica, sans-serif`;
-    const textWidth = measureCtx.measureText(text).width;
-    const textHeight = fontSize;
-
-    const padding = 6;
-    const canvas = document.createElement('canvas');
-    canvas.width = textWidth + padding * 2;
-    canvas.height = textHeight + padding * 2;
-
-    const ctx = canvas.getContext('2d')!;
-    ctx.font = `${fontSize}px Arial, Helvetica, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = color;
-    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.minFilter = THREE.LinearFilter;
-
-    const material = new THREE.SpriteMaterial({
-      map: texture,
-      transparent: true,
-      depthTest: false
-    });
-
-    const sprite = new THREE.Sprite(material);
-    const scale = fontSize * 0.1;
-    sprite.scale.set(scale, scale * 0.5, 1);
-
-    return sprite;
-  }
-
   private getFontSizeForZoom(): number {
-    // Adaptive scaling based on zoom
-    if (this.currentZoom > 250) return BASE_FONT_SIZE * 0.6;  // far zoom → small text
-    if (this.currentZoom > 180) return BASE_FONT_SIZE * 0.8;  // medium
-    if (this.currentZoom > 120) return BASE_FONT_SIZE * 1.0;  // closer
-    return BASE_FONT_SIZE * 1.3;                              // zoomed in → large text
+    if (this.currentZoom > 250) return BASE_FONT_SIZE * 0.6;
+    if (this.currentZoom > 180) return BASE_FONT_SIZE * 0.8;
+    if (this.currentZoom > 120) return BASE_FONT_SIZE * 1.0;
+    return BASE_FONT_SIZE * 1.4;
   }
 
   private getVisibilityThreshold(): number {
-    // Dynamic filtering for clutter reduction
-    if (this.currentZoom > 250) return 90;  // far zoom → only big countries
-    if (this.currentZoom > 180) return 70;  // medium
-    if (this.currentZoom > 120) return 40;  // closer
-    return 0;                               // zoomed in → show all
+    if (this.currentZoom > 250) return 90;
+    if (this.currentZoom > 180) return 70;
+    if (this.currentZoom > 120) return 40;
+    return 0;
   }
 
   private addCountryLabels() {
@@ -122,16 +86,28 @@ export class SsByLocationComponent implements AfterViewInit {
       if (!country.position) return;
       if (country.uniqueSkills < threshold) return;
 
+      // skip overlapping
       const tooClose = this.labelGroup.children.some(label =>
         label.position.distanceTo(country.position!) < MIN_LABEL_DISTANCE
       );
       if (tooClose) return;
 
-      const label = this.createTextSprite(country.code, LABEL_COLOR, fontSize);
-      const labelPos = country.position.clone().normalize().multiplyScalar(RADIUS + 1.5);
-      label.position.copy(labelPos);
-      (label as any).userData = { country };
-      this.labelGroup.add(label);
+      // ✅ Create troika text label
+      const text = new Text();
+      text.text = country.code;
+      text.fontSize = fontSize;
+      text.color = LABEL_COLOR;
+      text.anchorX = 'center';
+      text.anchorY = 'middle';
+
+      // position slightly above globe surface
+      const labelPos = country.position.clone().normalize().multiplyScalar(RADIUS + 0.1);
+      text.position.copy(labelPos);
+
+      // rotate to follow sphere
+      text.lookAt(new THREE.Vector3(0, 0, 0));
+
+      this.labelGroup.add(text);
     });
   }
 
@@ -140,13 +116,12 @@ export class SsByLocationComponent implements AfterViewInit {
 
     const camDir = this.camera.position.clone().normalize();
     this.labelGroup.children.forEach(label => {
-      const sprite = label as THREE.Sprite;
-      const dir = sprite.position.clone().normalize();
+      const dir = label.position.clone().normalize();
       const dot = dir.dot(camDir);
-      sprite.visible = dot > 0.05;
-      if (sprite.visible) {
+      label.visible = dot > 0.05;
+      if (label.visible && (label as any).material) {
         const opacity = Math.min(1, Math.max(0, (dot - 0.05) / 0.35));
-        (sprite.material as THREE.SpriteMaterial).opacity = opacity;
+        ((label as any).material as THREE.Material).opacity = opacity;
       }
     });
   }
@@ -203,7 +178,7 @@ export class SsByLocationComponent implements AfterViewInit {
       requestAnimationFrame(animate);
       this.controls.update();
 
-      // refresh labels if zoom changes
+      // Refresh labels if zoom changes
       const zoomNow = this.camera.position.z;
       if (Math.abs(zoomNow - this.currentZoom) > 2) {
         this.currentZoom = zoomNow;
