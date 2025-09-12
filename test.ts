@@ -1,45 +1,46 @@
-private createTextSprite(text: string, color: string = '#000000', fontSize: number = 28): THREE.Sprite {
+private createTextSprite(text: string, fontSize: number = 28): THREE.Sprite {
+  // Step 1: prepare canvas
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d')!;
 
-  // Set font
-  context.font = `${fontSize}px "Arial", "Helvetica", sans-serif`;
+  context.font = `bold ${fontSize}px Arial, sans-serif`;
   const textMetrics = context.measureText(text);
   const textWidth = textMetrics.width;
   const textHeight = fontSize;
 
-  // Add padding
-  const padding = 6;
+  const padding = 8;
   canvas.width = textWidth + padding * 2;
   canvas.height = textHeight + padding * 2;
 
-  // Reset scale after resizing
   const ctx = canvas.getContext('2d')!;
-  ctx.font = `${fontSize}px "Arial", "Helvetica", sans-serif`;
+  ctx.font = `bold ${fontSize}px Arial, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = color;
 
-  // Draw clean text (no shadow, no background)
+  // Step 2: white outline / stroke
+  ctx.lineWidth = 6; // thickness of white stroke
+  ctx.strokeStyle = '#ffffff';
+  ctx.strokeText(text, canvas.width / 2, canvas.height / 2);
+
+  // Step 3: black fill text
+  ctx.fillStyle = '#000000';
   ctx.fillText(text, canvas.width / 2, canvas.height / 2);
 
-  // Convert to texture
+  // Step 4: turn into texture
   const texture = new THREE.CanvasTexture(canvas);
-  texture.minFilter = THREE.LinearFilter; // keep crisp edges
+  texture.minFilter = THREE.LinearFilter;
   const material = new THREE.SpriteMaterial({
     map: texture,
     transparent: true,
-    depthTest: false
+    depthTest: true,
+    depthWrite: false
   });
 
   const sprite = new THREE.Sprite(material);
 
-  // Scale uniformly
-  const scaleFactor = 0.25; // adjust size of labels
-  sprite.scale.set(canvas.width * scaleFactor / 100, canvas.height * scaleFactor / 100, 1);
+  // Step 5: scale (linked to fontSize)
+  const scaleFactor = fontSize * 0.12;
+  sprite.scale.set(scaleFactor, scaleFactor * 0.5, 1);
 
   return sprite;
 }
-
-
-const label = this.createTextSprite(country.code, '#000000', 26);
