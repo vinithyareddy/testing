@@ -20,7 +20,7 @@ type CountryCost = {
   code: string;
   lat: number;
   lng: number;
-  position?: THREE.Vector3;
+  dot?: THREE.Mesh; // 🔑 reference to debug dot mesh
 };
 
 const DEFAULT_GLOBE_COLOR = '#84c9f6';
@@ -71,7 +71,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
   constructor(private http: HttpClient) {}
 
-  // 🔑 Use geoCentroid to get aligned positions
+  // 🔑 Get 3D vector from centroid
   private getCountryPosition(feature: any, radius: number): THREE.Vector3 {
     const [lon, lat] = geoCentroid(feature); // [lon, lat]
     const phi = (90 - lat) * (Math.PI / 180);
@@ -136,13 +136,24 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       new THREE.SphereGeometry(globeRadius, 75, 75),
       new THREE.MeshPhongMaterial({ transparent: true, opacity: 0 })
     );
-    scene.add(this.earth);
     this.globe.add(this.earth);
 
     this.http.get<any>('assets/data/world-globe-data.json').subscribe(data => {
+      const debugGroup = new THREE.Group();
+
       this.laborData = data.countries.map((c: any) => {
         const feature = this.countries.features.find(f => f.properties.name === c.name);
         const pos = feature ? this.getCountryPosition(feature, globeRadius) : undefined;
+
+        let dot: THREE.Mesh | undefined;
+        if (pos) {
+          dot = new THREE.Mesh(
+            new THREE.SphereGeometry(0.8, 8, 8),
+            new THREE.MeshBasicMaterial({ color: 0xff0000 })
+          );
+          dot.position.copy(pos);
+          debugGroup.add(dot);
+        }
 
         return {
           country: c.name,
@@ -151,9 +162,11 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
           code: c.code,
           lat: c.lat,
           lng: c.lng,
-          position: pos
+          dot
         };
       });
+
+      this.globe.add(debugGroup);
 
       const minCost = d3.min(this.laborData, d => d.cost) || 0;
       const maxCost = d3.max(this.laborData, d => d.cost) || 1;
@@ -164,21 +177,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       this.showRegionData();
       this.applyColors('region');
 
-      // 🔴 Debug dots
-      const debugGroup = new THREE.Group();
-      for (const c of this.laborData) {
-        if (c.position) {
-          const dot = new THREE.Mesh(
-            new THREE.SphereGeometry(0.8, 8, 8),
-            new THREE.MeshBasicMaterial({ color: 0xff0000 })
-          );
-          dot.position.copy(c.position);
-          debugGroup.add(dot);
-        }
-      }
-      scene.add(debugGroup);
-
-      // Tooltip logic: find closest country by distance
+      // Tooltip logic using getWorldPosition
       const handleHover = (event: MouseEvent) => {
         const mouse = new THREE.Vector2(
           (event.offsetX / renderer.domElement.clientWidth) * 2 - 1,
@@ -195,16 +194,23 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
           let closest: CountryCost | null = null;
           let minDist = Infinity;
           for (const c of this.laborData) {
-            if (!c.position) continue;
-            const dist = point.distanceTo(c.position);
+            if (!c.dot) continue;
+
+            const worldPos = new THREE.Vector3();
+            c.dot.getWorldPosition(worldPos); // 🔑 get rotated world position
+            const dist = point.distanceTo(worldPos);
+
             if (dist < minDist) {
               minDist = dist;
               closest = c;
             }
           }
 
-          if (closest) {
-            const vector = closest.position!.clone().project(camera);
+          if (closest && closest.dot) {
+            const worldPos = new THREE.Vector3();
+            closest.dot.getWorldPosition(worldPos);
+
+            const vector = worldPos.clone().project(camera);
             const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
             const y = (-vector.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
 
