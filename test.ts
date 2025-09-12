@@ -11,7 +11,6 @@ import worldData from 'world-atlas/countries-110m.json';
 import { FeatureCollection, Geometry } from 'geojson';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import * as d3 from 'd3';
-import { geoCentroid } from 'd3-geo';
 
 type CountryCost = {
   country: string;
@@ -20,7 +19,8 @@ type CountryCost = {
   code: string;
   lat: number;
   lng: number;
-  dot?: THREE.Mesh; // 🔑 debug dot mesh for positioning
+  position?: THREE.Vector3;
+  dot?: THREE.Mesh;
 };
 
 const DEFAULT_GLOBE_COLOR = '#84c9f6';
@@ -39,8 +39,8 @@ const STROKE_COLOR_COUNTRY = '#7e8790';
 const STROKE_COLOR_REGION = '#84c9f6';
 const FALLBACK_COLOR = '#e0e0e0';
 const ROTATION_SPEED = 0.002;
-
 const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
+const RADIUS = 100;
 
 @Component({
   selector: 'app-avg-labor-cost-region',
@@ -71,12 +71,10 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
   constructor(private http: HttpClient) {}
 
-  // 🔑 Get 3D vector from centroid
-  private getCountryPosition(feature: any, radius: number): THREE.Vector3 {
-    const [lon, lat] = geoCentroid(feature); // [lon, lat]
+  // 🔑 Convert lat/lon from JSON → 3D position
+  private latLngToVector3(lat: number, lon: number, radius: number): THREE.Vector3 {
     const phi = (90 - lat) * (Math.PI / 180);
     const theta = (lon + 180) * (Math.PI / 180);
-
     return new THREE.Vector3(
       -radius * Math.sin(phi) * Math.cos(theta),
        radius * Math.cos(phi),
@@ -128,12 +126,9 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     tooltip.style.display = 'none';
     globeDiv.appendChild(tooltip);
 
-    // Globe radius
-    const globeRadius = (this.globe as any).getGlobeRadius?.() || 100;
-
     // Transparent sphere for raycasting
     this.earth = new THREE.Mesh(
-      new THREE.SphereGeometry(globeRadius, 75, 75),
+      new THREE.SphereGeometry(RADIUS, 75, 75),
       new THREE.MeshPhongMaterial({ transparent: true, opacity: 0 })
     );
     this.globe.add(this.earth);
@@ -142,8 +137,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       const debugGroup = new THREE.Group();
 
       this.laborData = data.countries.map((c: any) => {
-        const feature = this.countries.features.find(f => f.properties.name === c.name);
-        const pos = feature ? this.getCountryPosition(feature, globeRadius) : undefined;
+        const pos = this.latLngToVector3(c.lat, c.lng, RADIUS);
 
         let dot: THREE.Mesh | undefined;
         if (pos) {
@@ -162,6 +156,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
           code: c.code,
           lat: c.lat,
           lng: c.lng,
+          position: pos,
           dot
         };
       });
@@ -177,7 +172,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       this.showRegionData();
       this.applyColors('region');
 
-      // --- Tooltip logic ---
+      // Tooltip logic using JSON lat/lon positions
       const handleHover = (event: MouseEvent) => {
         const mouse = new THREE.Vector2(
           (event.offsetX / renderer.domElement.clientWidth) * 2 - 1,
@@ -194,24 +189,16 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
           let closest: CountryCost | null = null;
           let minDist = Infinity;
           for (const c of this.laborData) {
-            if (!c.dot) continue;
-
-            const worldPos = new THREE.Vector3();
-            c.dot.getWorldPosition(worldPos);
-            const dist = point.distanceTo(worldPos);
-
+            if (!c.position) continue;
+            const dist = point.distanceTo(c.position);
             if (dist < minDist) {
               minDist = dist;
               closest = c;
             }
           }
 
-          // 🔑 Only accept if within threshold
-          if (closest && minDist < 5) {
-            const worldPos = new THREE.Vector3();
-            closest.dot!.getWorldPosition(worldPos);
-
-            const vector = worldPos.clone().project(camera);
+          if (closest && closest.position) {
+            const vector = closest.position.clone().project(camera);
             const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
             const y = (-vector.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
 
