@@ -50,6 +50,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   private controls!: OrbitControls;
   private globe: any;
   private countries!: FeatureCollection<Geometry, any>;
+  private polygonMeshes: THREE.Object3D[] = [];
 
   currentZoom: number = ZOOM.initial;
   selectedView: string = 'By Region';
@@ -84,6 +85,12 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       (worldData as any).objects.countries
     ) as unknown as FeatureCollection<Geometry, any>;
 
+    scene.add(this.globe);
+    scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+    const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+    dir.position.set(5, 3, 5);
+    scene.add(dir);
+
     // Tooltip element
     const tooltip = document.createElement('div');
     tooltip.style.position = 'absolute';
@@ -96,12 +103,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     tooltip.style.zIndex = '10';
     tooltip.style.display = 'none';
     globeDiv.appendChild(tooltip);
-
-    scene.add(this.globe);
-    scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-    const dir = new THREE.DirectionalLight(0xffffff, 0.8);
-    dir.position.set(5, 3, 5);
-    scene.add(dir);
 
     this.http.get<any>('assets/data/world-globe-data.json').subscribe(data => {
       this.laborData = data.countries.map((c: any) => ({
@@ -131,11 +132,10 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(mouse, camera);
 
-        const intersects = raycaster.intersectObjects(this.globe.children, true);
+        const intersects = raycaster.intersectObjects(this.polygonMeshes, true);
 
         if (intersects.length > 0) {
-          const obj = intersects[0].object;
-          const feature = obj.userData?.feature;
+          const feature = intersects[0].object.userData?.feature;
           if (feature) {
             const entry = this.laborData.find(c => c.country === feature.properties.name);
             if (entry) {
@@ -218,22 +218,33 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   private applyColors(mode: 'region' | 'country') {
     if (!this.countries) return;
 
-    this.globe.polygonsData(this.countries.features.map((f: any) => {
-      f.userData = { feature: f }; // 🔑 attach feature for tooltip lookup
+    // Assign features and ensure they can be raycasted
+    const featuresWithUserData = this.countries.features.map((f: any) => {
+      f.userData = { feature: f };
       return f;
-    }))
-    .polygonAltitude(0.003)  // 🔑 small lift so polygons are raycastable
-    .polygonCapColor((d: any) => {
-      const countryName = d.properties.name;
-      const entry = this.laborData.find(c => c.country === countryName);
+    });
 
-      if (mode === 'region') {
-        return entry ? REGION_COLORS[entry.region] || REGION_COLORS['Other'] : REGION_COLORS['Other'];
-      } else {
-        return entry ? this.countryColorScale(entry.cost) : FALLBACK_COLOR;
+    this.globe.polygonsData(featuresWithUserData)
+      .polygonAltitude(0.01) // lift polygons so raycaster can see them
+      .polygonCapColor((d: any) => {
+        const entry = this.laborData.find(c => c.country === d.properties.name);
+        if (mode === 'region') {
+          return entry ? REGION_COLORS[entry.region] || REGION_COLORS['Other'] : REGION_COLORS['Other'];
+        } else {
+          return entry ? this.countryColorScale(entry.cost) : FALLBACK_COLOR;
+        }
+      })
+      .polygonSideColor(() => '#333') // not fully transparent
+      .polygonStrokeColor(() => mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION);
+
+    // Collect meshes for raycasting
+    this.polygonMeshes = [];
+    (this.globe as any).polygonsData().forEach((f: any) => {
+      const mesh = (this.globe as any).polygonCapMesh(f);
+      if (mesh) {
+        mesh.userData = { feature: f };
+        this.polygonMeshes.push(mesh);
       }
-    })
-    .polygonSideColor(() => 'rgba(0,0,0,0.15)') // semi-visible sides for raycast hit
-    .polygonStrokeColor(() => mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION);
+    });
   }
 }
