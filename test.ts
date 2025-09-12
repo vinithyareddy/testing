@@ -38,7 +38,7 @@ const STROKE_COLOR_COUNTRY = '#7e8790';
 const STROKE_COLOR_REGION = '#84c9f6';
 const FALLBACK_COLOR = '#e0e0e0';
 const ROTATION_SPEED = 0.002;
-const RADIUS = 100;
+const RADIUS = 100; // 👈 same as in first widget
 
 const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
 
@@ -99,14 +99,10 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     this.globe = new Globe().showGlobe(true).showGraticules(false);
     this.globe.globeMaterial(new THREE.MeshBasicMaterial({ color: new THREE.Color(DEFAULT_GLOBE_COLOR) }));
 
-    // Earth sphere for raycasting
+    // Invisible Earth sphere for raycasting
     this.earth = new THREE.Mesh(
       new THREE.SphereGeometry(RADIUS, 75, 75),
-      new THREE.MeshPhongMaterial({
-        color: DEFAULT_GLOBE_COLOR,
-        transparent: true,
-        opacity: 0 // invisible but still raycastable
-      })
+      new THREE.MeshPhongMaterial({ color: DEFAULT_GLOBE_COLOR, transparent: true, opacity: 0 })
     );
     scene.add(this.earth);
     this.globe.add(this.earth);
@@ -157,7 +153,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       this.showRegionData();
       this.applyColors('region');
 
-      // Tooltip logic: same as first widget
+      // Tooltip logic: JSON lat/lon driven
       const handleHover = (event: MouseEvent) => {
         const mouse = new THREE.Vector2(
           (event.offsetX / renderer.domElement.clientWidth) * 2 - 1,
@@ -171,7 +167,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         if (intersects.length > 0) {
           const point = intersects[0].point;
 
-          // find closest country by 3D distance
           let closest: CountryCost | null = null;
           let minDist = Infinity;
           for (const c of this.laborData) {
