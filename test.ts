@@ -90,15 +90,21 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
   private updateRendererSize() {
     const globeDiv = this.globeContainer.nativeElement;
-    const width = globeDiv.offsetWidth;
-    const height = globeDiv.offsetHeight;
+    const containerWidth = globeDiv.offsetWidth;
+    const containerHeight = Math.min(containerWidth, 800); // Keep it square
     
-    // Update renderer size
-    this.renderer.setSize(width, height);
+    // Force container height to match the calculated height
+    globeDiv.style.height = containerHeight + 'px';
+    
+    // Update renderer size with square dimensions
+    this.renderer.setSize(containerWidth, containerHeight);
     
     // Update camera aspect ratio
-    this.camera.aspect = width / height;
+    this.camera.aspect = containerWidth / containerHeight;
     this.camera.updateProjectionMatrix();
+    
+    // Log to check if aspect ratio is being applied correctly
+    console.log('Updated aspect ratio:', this.camera.aspect, 'from dimensions:', containerWidth, 'x', containerHeight);
   }
 
   private debugRenderSetup() {
