@@ -268,6 +268,9 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     const texture = new THREE.CanvasTexture(textureCanvas);
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.generateMipmaps = false; // Disable mipmaps for sharper texture
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
     
     if (this.globe.material.map) {
       this.globe.material.map.dispose();
