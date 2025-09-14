@@ -90,14 +90,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     globeDiv.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-
-    // ✅ Adjusted FOV for less distortion
-    const camera = new THREE.PerspectiveCamera(
-      60, // was 75
-      globeDiv.offsetWidth / globeDiv.offsetHeight,
-      0.1,
-      1000
-    );
+    const camera = new THREE.PerspectiveCamera(75, globeDiv.offsetWidth / globeDiv.offsetHeight, 0.1, 1000);
     camera.position.z = this.currentZoom;
 
     this.controls = new OrbitControls(camera, renderer.domElement);
@@ -105,6 +98,15 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     this.controls.rotateSpeed = 0.5;
     this.controls.zoomSpeed = 0.8;
 
+    // ✅ Added base sphere to fix uneven silhouette
+    const sphereGeometry = new THREE.SphereGeometry(RADIUS, 128, 128);
+    const sphereMaterial = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(DEFAULT_GLOBE_COLOR),
+    });
+    const baseSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    scene.add(baseSphere);
+
+    // Globe polygons (keep Version B logic)
     this.globe = new Globe().showGlobe(true).showGraticules(false);
     this.globe.globeMaterial(new THREE.MeshBasicMaterial({ color: new THREE.Color(DEFAULT_GLOBE_COLOR) }));
 
@@ -169,7 +171,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
           let closest: CountryCost | null = null;
           let minDist = Infinity;
-
           for (const c of this.laborData) {
             if (!c.position) continue;
 
@@ -193,6 +194,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
             return;
           }
         }
+
         tooltip.style.display = 'none';
       };
 
@@ -201,13 +203,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       renderer.domElement.addEventListener('mouseleave', () => {
         tooltip.style.display = 'none';
       });
-    });
-
-    // ✅ Fix sphere distortion on window resize
-    window.addEventListener('resize', () => {
-      camera.aspect = globeDiv.offsetWidth / globeDiv.offsetHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(globeDiv.offsetWidth, globeDiv.offsetHeight);
     });
 
     const animate = () => {
