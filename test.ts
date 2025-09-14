@@ -261,12 +261,8 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   private applyColors(mode: 'region' | 'country') {
     if (!this.countries) return;
 
-    // Use hex polygons instead of regular polygons for better surface conformity
-    this.globe
-      .hexPolygonsData(this.countries.features)
-      .hexPolygonResolution(3)
-      .hexPolygonMargin(0.1)
-      .hexPolygonColor((d: any) => {
+    this.globe.polygonsData(this.countries.features)
+      .polygonCapColor((d: any) => {
         const countryName = d.properties.name;
         const entry = this.laborData.find(c => c.country === countryName);
 
@@ -275,9 +271,10 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         } else {
           return entry ? this.countryColorScale(entry.cost) : FALLBACK_COLOR;
         }
-      });
-      
-    // Clear regular polygons to avoid conflicts
-    this.globe.polygonsData([]);
+      })
+      .polygonSideColor(() => DEFAULT_GLOBE_COLOR)
+      .polygonStrokeColor(() => mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION)
+      .polygonAltitude(0.0001) // Extremely minimal altitude to keep flat against surface
+      .polygonsTransitionDuration(1000);
   }
 }
