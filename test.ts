@@ -272,6 +272,16 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         }
       })
       .polygonSideColor(() => DEFAULT_GLOBE_COLOR)
-      .polygonStrokeColor(() => mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION);
+      .polygonStrokeColor(() => mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION)
+      .polygonCapMaterial(() => new THREE.MeshBasicMaterial({ 
+        transparent: false, 
+        side: THREE.DoubleSide,
+        depthWrite: true 
+      }))
+      .polygonSideMaterial(() => new THREE.MeshBasicMaterial({ 
+        transparent: true, 
+        opacity: 0,
+        side: THREE.DoubleSide 
+      }));
   }
 }
