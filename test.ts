@@ -100,7 +100,11 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     this.controls.rotateSpeed = 0.5;
     this.controls.zoomSpeed = 0.8;
 
-    this.globe = new Globe().showGlobe(true).showGraticules(false);
+    this.globe = new Globe()
+      .showGlobe(true)
+      .showGraticules(false)
+      .polygonAltitude(() => 0.0001); // Set minimal altitude globally
+
     this.globe.globeMaterial(new THREE.MeshBasicMaterial({ color: new THREE.Color(DEFAULT_GLOBE_COLOR) }));
 
     this.countries = topojson.feature(
@@ -108,8 +112,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       (worldData as any).objects.countries
     ) as unknown as FeatureCollection<Geometry, any>;
 
-    // Use hex polygons instead of regular polygons for better surface conformity
-    this.globe.hexPolygonsData(this.countries.features);
+    this.globe.polygonsData(this.countries.features);
 
     scene.add(this.globe);
     scene.add(new THREE.AmbientLight(0xffffff, 1.2));
@@ -273,7 +276,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         }
       })
       .polygonSideColor(() => DEFAULT_GLOBE_COLOR)
-      .polygonStrokeColor(() => mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION)
-      .polygonsTransitionDuration(1000);
+      .polygonStrokeColor(() => mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION);
   }
 }
