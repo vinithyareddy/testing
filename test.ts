@@ -106,7 +106,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     this.globe = new Globe()
       .showGlobe(true)
       .showGraticules(false)
-      .globeRadius(RADIUS)  // Set proper radius for sphere
       .showAtmosphere(false); // Disable atmosphere for cleaner look
 
     // Configure globe material for better spherical appearance
