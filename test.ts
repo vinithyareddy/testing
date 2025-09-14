@@ -224,7 +224,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       this.showRegionData();
       this.applyColors('region');
 
-      // Setup hover interactions
+      // Setup hover interactions - using the same approach as original working code
       const handleHover = (event: MouseEvent) => {
         const mouse = new THREE.Vector2(
           (event.offsetX / this.renderer.domElement.clientWidth) * 2 - 1,
@@ -236,34 +236,33 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
         const intersects = raycaster.intersectObject(this.globe);
         if (intersects.length > 0) {
-          // Get UV coordinates from the intersection
-          const uv = intersects[0].uv;
-          if (uv && this.countryCanvas) {
-            // Convert UV to canvas pixel coordinates
-            const x = Math.floor(uv.x * this.countryCanvas.width);
-            const y = Math.floor((1 - uv.y) * this.countryCanvas.height); // Flip Y coordinate
-            
-            // Get pixel color at this position
-            const imageData = this.countryContext.getImageData(x, y, 1, 1);
-            const r = imageData.data[0];
-            const g = imageData.data[1];
-            const b = imageData.data[2];
-            
-            // Convert RGB to hex color
-            const hexColor = '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-            
-            // Find country by color
-            const countryName = this.countryColorMap.get(hexColor);
-            if (countryName) {
-              const country = this.laborData.find(c => c.country === countryName);
-              if (country) {
-                tooltip.innerHTML = `<b>${country.country}</b><br>Region: ${country.region}<br>Avg Cost: $${country.cost}`;
-                tooltip.style.left = `${event.offsetX + 15}px`;
-                tooltip.style.top = `${event.offsetY + 15}px`;
-                tooltip.style.display = 'block';
-                return;
-              }
+          const point = intersects[0].point;
+
+          let closest: CountryCost | null = null;
+          let minDist = Infinity;
+          for (const c of this.laborData) {
+            if (!c.position) continue;
+
+            // clone original position and apply globe rotation transform
+            const rotatedPos = c.position.clone().applyMatrix4(this.globe.matrixWorld);
+
+            const dist = point.distanceTo(rotatedPos);
+            if (dist < minDist) {
+              minDist = dist;
+              closest = { ...c, position: rotatedPos }; // use rotated position
             }
+          }
+
+          if (closest && closest.position) {
+            const vector = closest.position.clone().project(this.camera);
+            const x = (vector.x * 0.5 + 0.5) * this.renderer.domElement.clientWidth;
+            const y = (-vector.y * 0.5 + 0.5) * this.renderer.domElement.clientHeight;
+
+            tooltip.innerHTML = `<b>${closest.country}</b><br>Region: ${closest.region}<br>Avg Cost: ${closest.cost}`;
+            tooltip.style.left = `${x + 15}px`;
+            tooltip.style.top = `${y + 15}px`;
+            tooltip.style.display = 'block';
+            return;
           }
         }
         tooltip.style.display = 'none';
