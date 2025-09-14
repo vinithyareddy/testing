@@ -23,7 +23,7 @@ type CountryCost = {
   position?: THREE.Vector3;
 };
 
-const DEFAULT_GLOBE_COLOR = '#84c9f6';
+const DEFAULT_GLOBE_COLOR = '#1a4d66'; // Custom globe color
 const REGION_COLORS: Record<string, string> = {
   'North America': '#3c87d7',
   'South America': '#144c88',
@@ -100,11 +100,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     this.controls.rotateSpeed = 0.5;
     this.controls.zoomSpeed = 0.8;
 
-    this.globe = new Globe()
-      .showGlobe(true)
-      .showGraticules(false)
-      .polygonAltitude(() => 0.0001); // Set minimal altitude globally
-
+    this.globe = new Globe().showGlobe(true).showGraticules(false);
     this.globe.globeMaterial(new THREE.MeshBasicMaterial({ color: new THREE.Color(DEFAULT_GLOBE_COLOR) }));
 
     this.countries = topojson.feature(
@@ -264,83 +260,18 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   private applyColors(mode: 'region' | 'country') {
     if (!this.countries) return;
 
-    // Update the globe texture instead of using polygons
-    this.updateGlobeTexture();
-  }
+    this.globe.polygonsData(this.countries.features)
+      .polygonCapColor((d: any) => {
+        const countryName = d.properties.name;
+        const entry = this.laborData.find(c => c.country === countryName);
 
-  private updateGlobeTexture() {
-    // Create a canvas to draw the world map with custom colors
-    const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 512;
-    const ctx = canvas.getContext('2d')!;
-    
-    // Fill with your custom globe/ocean color - change this to whatever color you want
-    ctx.fillStyle = '#1a4d66'; // Change this to your desired globe color
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Draw countries with colors based on region/cost data
-    this.countries.features.forEach(feature => {
-      const countryName = feature.properties.name;
-      const entry = this.laborData.find(c => c.country === countryName);
-      
-      let color = REGION_COLORS['Other'];
-      if (entry) {
-        if (this.selectedView === 'By Region') {
-          color = REGION_COLORS[entry.region] || REGION_COLORS['Other'];
+        if (mode === 'region') {
+          return entry ? REGION_COLORS[entry.region] || REGION_COLORS['Other'] : REGION_COLORS['Other'];
         } else {
-          color = this.countryColorScale(entry.cost);
+          return entry ? this.countryColorScale(entry.cost) : FALLBACK_COLOR;
         }
-      }
-      
-      // Convert GeoJSON coordinates to canvas coordinates
-      // This is a simplified projection - you might want to use a proper map projection
-      if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
-        ctx.fillStyle = color;
-        this.drawCountryOnCanvas(ctx, feature.geometry, canvas.width, canvas.height);
-      }
-    });
-    
-    // Update the globe texture
-    const texture = new THREE.CanvasTexture(canvas);
-    this.globe.globeMaterial(new THREE.MeshBasicMaterial({ map: texture }));
-  }
-
-  private drawCountryOnCanvas(ctx: CanvasRenderingContext2D, geometry: any, width: number, height: number) {
-    // Simple equirectangular projection
-    const coordinates = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates;
-    
-    coordinates.forEach((polygon: any) => {
-      polygon.forEach((ring: any) => {
-        ctx.beginPath();
-        ring.forEach((coord: any, i: number) => {
-          const x = ((coord[0] + 180) / 360) * width;
-          const y = ((90 - coord[1]) / 180) * height;
-          
-          if (i === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
-          }
-        });
-        ctx.closePath();
-        ctx.fill();
-      });
-    });
-  }
-
-  private latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
-    const phi = (90 - lat) * (Math.PI / 180);
-    const theta = (lng + 180) * (Math.PI / 180);
-
-    const x = -radius * Math.sin(phi) * Math.cos(theta);
-    const y = radius * Math.cos(phi);
-    const z = radius * Math.sin(phi) * Math.sin(theta);
-
-    const v = new THREE.Vector3(x, y, z);
-
-    v.applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
-
-    return v;
+      })
+      .polygonSideColor(() => DEFAULT_GLOBE_COLOR)
+      .polygonStrokeColor(() => mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION);
   }
 }
