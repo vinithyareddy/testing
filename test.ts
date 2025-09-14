@@ -4,12 +4,14 @@ import { FormsModule } from '@angular/forms';
 import { HighchartsChartModule } from 'highcharts-angular';
 import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
 
+import Globe from 'three-globe';
 import * as THREE from 'three';
 import * as topojson from 'topojson-client';
 import worldData from 'world-atlas/countries-110m.json';
 import { FeatureCollection, Geometry } from 'geojson';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import * as d3 from 'd3';
+import { geoCentroid } from 'd3-geo';
 
 type CountryCost = {
   country: string;
@@ -36,6 +38,7 @@ const COUNTRY_COLOR_RANGE: [string, string] = ['#8db4ddff', '#144c88'];
 const STROKE_COLOR_COUNTRY = '#7e8790';
 const STROKE_COLOR_REGION = '#84c9f6';
 const FALLBACK_COLOR = '#e0e0e0';
+const ROTATION_SPEED = 0.002;
 const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
 const RADIUS = 100;
 
@@ -54,75 +57,63 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   countryList: CountryCost[] = [];
 
   private controls!: OrbitControls;
-  private globe!: THREE.Mesh;
+  private globe: any;
   private countries!: FeatureCollection<Geometry, any>;
-  private scene!: THREE.Scene;
   private renderer!: THREE.WebGLRenderer;
   private camera!: THREE.PerspectiveCamera;
+  private scene!: THREE.Scene;
 
   currentZoom: number = ZOOM.initial;
   selectedView: string = 'By Region';
+  showMenu: boolean = false;
 
   private countryColorScale = d3.scaleLinear<string>()
     .domain([0, 1])
     .range(COUNTRY_COLOR_RANGE);
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   private latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
     const phi = (90 - lat) * (Math.PI / 180);
     const theta = (lng + 180) * (Math.PI / 180);
 
     const x = -radius * Math.sin(phi) * Math.cos(theta);
-    const y =  radius * Math.cos(phi);
-    const z =  radius * Math.sin(phi) * Math.sin(theta);
+    const y = radius * Math.cos(phi);
+    const z = radius * Math.sin(phi) * Math.sin(theta);
 
     const v = new THREE.Vector3(x, y, z);
+
     v.applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
 
     return v;
   }
 
-  private createWorldTexture(mode: 'region' | 'country'): HTMLCanvasElement {
-    const canvas = document.createElement('canvas');
-    const size = 2048; // higher res to avoid blur
-    canvas.width = size;
-    canvas.height = size / 2; // 2:1 aspect ratio
-    const ctx = canvas.getContext('2d')!;
+  private updateRendererSize() {
+    const globeDiv = this.globeContainer.nativeElement;
+    const width = globeDiv.offsetWidth;
+    const height = globeDiv.offsetHeight;
     
-    ctx.fillStyle = DEFAULT_GLOBE_COLOR;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Update renderer size
+    this.renderer.setSize(width, height);
     
-    const projection = d3.geoEquirectangular()
-      .scale(size / (2 * Math.PI))
-      .translate([size / 2, size / 4]);
-    
-    const path = d3.geoPath(projection, ctx as any);
-    
-    if (!this.countries || !this.countries.features) return canvas;
+    // Update camera aspect ratio
+    this.camera.aspect = width / height;
+    this.camera.updateProjectionMatrix();
+  }
 
-    this.countries.features.forEach(feature => {
-      const countryName = feature.properties.name;
-      const entry = this.laborData.find(c => c.country === countryName);
-      
-      let color: string;
-      if (mode === 'region') {
-        color = entry ? REGION_COLORS[entry.region] || REGION_COLORS['Other'] : REGION_COLORS['Other'];
-      } else {
-        color = entry ? this.countryColorScale(entry.cost) : FALLBACK_COLOR;
-      }
-      
-      ctx.fillStyle = color;
-      ctx.strokeStyle = mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION;
-      ctx.lineWidth = 0.5;
-      
-      ctx.beginPath();
-      path(feature as any);
-      ctx.fill();
-      ctx.stroke();
-    });
+  private debugRenderSetup() {
+    const globeDiv = this.globeContainer.nativeElement;
+    console.log('Container dimensions:', globeDiv.offsetWidth, globeDiv.offsetHeight);
+    console.log('Camera aspect:', this.camera.aspect);
+    console.log('Camera position:', this.camera.position);
     
-    return canvas;
+    // Force proper aspect ratio
+    const aspect = globeDiv.offsetWidth / globeDiv.offsetHeight;
+    if (Math.abs(this.camera.aspect - aspect) > 0.01) {
+      this.camera.aspect = aspect;
+      this.camera.updateProjectionMatrix();
+      console.log('Fixed camera aspect ratio');
+    }
   }
 
   ngAfterViewInit() {
@@ -135,34 +126,61 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     this.camera = new THREE.PerspectiveCamera(75, globeDiv.offsetWidth / globeDiv.offsetHeight, 0.1, 1000);
     this.camera.position.z = this.currentZoom;
 
+    // Add wireframe sphere for debugging
+    const testGeometry = new THREE.SphereGeometry(RADIUS, 32, 32);
+    const testMaterial = new THREE.MeshBasicMaterial({ wireframe: true, color: 0xff0000, visible: false });
+    const testSphere = new THREE.Mesh(testGeometry, testMaterial);
+    this.scene.add(testSphere);
+
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.rotateSpeed = 0.5;
     this.controls.zoomSpeed = 0.8;
 
-    const globeGeometry = new THREE.SphereGeometry(RADIUS, 128, 128);
+    this.globe = new Globe()
+      .showGlobe(true)
+      .showGraticules(false)
+      .globeRadius(RADIUS); // Explicitly set radius
+      
+    this.globe.globeMaterial(new THREE.MeshBasicMaterial({ color: new THREE.Color(DEFAULT_GLOBE_COLOR) }));
+
+    // Debug globe properties
+    console.log('Globe scale:', this.globe.scale);
+    console.log('Globe position:', this.globe.position);
+    console.log('Globe rotation:', this.globe.rotation);
+    
+    // Force globe to maintain proper scale
+    this.globe.scale.set(1, 1, 1);
+    this.scene.scale.set(1, 1, 1);
 
     this.countries = topojson.feature(
       worldData as any,
       (worldData as any).objects.countries
-    ) as FeatureCollection<Geometry, any>;
+    ) as unknown as FeatureCollection<Geometry, any>;
 
-    const textureCanvas = this.createWorldTexture('region');
-    const texture = new THREE.CanvasTexture(textureCanvas);
-    texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+    // Filter out problematic geometries
+    this.countries.features = this.countries.features.filter(feature => 
+      feature.geometry && 
+      feature.geometry.type && 
+      feature.properties &&
+      feature.properties.name
+    );
 
-    const globeMaterial = new THREE.MeshBasicMaterial({ 
-      map: texture,
-      transparent: false
-    });
+    this.globe.polygonsData(this.countries.features);
 
-    this.globe = new THREE.Mesh(globeGeometry, globeMaterial);
     this.scene.add(this.globe);
-
     this.scene.add(new THREE.AmbientLight(0xffffff, 1.2));
     const dir = new THREE.DirectionalLight(0xffffff, 0.8);
     dir.position.set(5, 3, 5);
     this.scene.add(dir);
+
+    // Add window resize listener
+    window.addEventListener('resize', () => {
+      this.updateRendererSize();
+    });
+
+    // Debug render setup
+    this.debugRenderSetup();
 
     const tooltip = document.createElement('div');
     tooltip.style.position = 'absolute';
@@ -194,7 +212,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         .range(COUNTRY_COLOR_RANGE);
 
       this.showRegionData();
-      this.updateGlobeTexture('region');
+      this.applyColors('region');
 
       const handleHover = (event: MouseEvent) => {
         const mouse = new THREE.Vector2(
@@ -213,11 +231,14 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
           let minDist = Infinity;
           for (const c of this.laborData) {
             if (!c.position) continue;
+
+            // clone original position and apply globe rotation transform
             const rotatedPos = c.position.clone().applyMatrix4(this.globe.matrixWorld);
+
             const dist = point.distanceTo(rotatedPos);
             if (dist < minDist) {
               minDist = dist;
-              closest = { ...c, position: rotatedPos };
+              closest = { ...c, position: rotatedPos }; // use rotated position
             }
           }
 
@@ -245,24 +266,11 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
     const animate = () => {
       requestAnimationFrame(animate);
+      this.globe.rotation.y += ROTATION_SPEED;
       this.controls.update();
       this.renderer.render(this.scene, this.camera);
     };
     animate();
-  }
-
-  private updateGlobeTexture(mode: 'region' | 'country') {
-    const textureCanvas = this.createWorldTexture(mode);
-    const texture = new THREE.CanvasTexture(textureCanvas);
-    texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
-
-    const material = this.globe.material as THREE.MeshBasicMaterial;
-    if (material.map) {
-      material.map.dispose();
-    }
-
-    material.map = texture;
-    material.needsUpdate = true;
   }
 
   expandRow(region: any) {
@@ -287,10 +295,10 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     this.selectedView = view;
     if (view === 'By Region') {
       this.showRegionData();
-      this.updateGlobeTexture('region');
+      this.applyColors('region');
     } else {
       this.showCountryData();
-      this.updateGlobeTexture('country');
+      this.applyColors('country');
     }
   }
 
@@ -313,5 +321,25 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   private showCountryData() {
     this.countryList = [...this.laborData].sort((a, b) => a.country.localeCompare(b.country));
     this.regionGroups = [];
+  }
+
+  private applyColors(mode: 'region' | 'country') {
+    if (!this.countries) return;
+
+    this.globe.polygonsData(this.countries.features)
+      .polygonCapColor((d: any) => {
+        const countryName = d.properties.name;
+        const entry = this.laborData.find(c => c.country === countryName);
+
+        if (mode === 'region') {
+          return entry ? REGION_COLORS[entry.region] || REGION_COLORS['Other'] : REGION_COLORS['Other'];
+        } else {
+          return entry ? this.countryColorScale(entry.cost) : FALLBACK_COLOR;
+        }
+      })
+      .polygonSideColor(() => DEFAULT_GLOBE_COLOR)
+      .polygonStrokeColor(() => mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION)
+      .polygonResolution(3)
+      .polygonsTransitionDuration(1000);
   }
 }
