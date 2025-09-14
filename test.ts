@@ -91,6 +91,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     const globeDiv = this.globeContainer.nativeElement;
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setSize(globeDiv.offsetWidth, globeDiv.offsetHeight);
+    this.renderer.setClearColor(0x000011, 1); // Dark background to see the globe
     globeDiv.appendChild(this.renderer.domElement);
 
     this.scene = new THREE.Scene();
@@ -102,16 +103,17 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     this.controls.rotateSpeed = 0.5;
     this.controls.zoomSpeed = 0.8;
 
-    // Create the globe with proper spherical configuration
+    // Create the globe with basic configuration
     this.globe = new Globe()
       .showGlobe(true)
       .showGraticules(false)
-      .showAtmosphere(false); // Disable atmosphere for cleaner look
+      .showAtmosphere(true); // Enable atmosphere for better visibility
 
-    // Configure globe material for better spherical appearance
-    this.globe.globeMaterial(new THREE.MeshLambertMaterial({ 
+    // Configure globe material
+    this.globe.globeMaterial(new THREE.MeshPhongMaterial({ 
       color: new THREE.Color(DEFAULT_GLOBE_COLOR),
-      transparent: false
+      transparent: false,
+      shininess: 0.1
     }));
 
     this.countries = topojson.feature(
@@ -119,19 +121,23 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       (worldData as any).objects.countries
     ) as unknown as FeatureCollection<Geometry, any>;
 
-    // Configure polygons for proper 3D rendering
+    // Configure polygons with basic settings
     this.globe.polygonsData(this.countries.features)
-      .polygonAltitude(0.01)  // Small altitude to make countries slightly raised
-      .polygonResolution(3)   // Higher resolution for smoother curves
       .polygonSideColor(() => DEFAULT_GLOBE_COLOR);
 
     this.scene.add(this.globe);
 
-    // Add proper lighting for 3D sphere effect
-    this.scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(5, 3, 5);
-    this.scene.add(directionalLight);
+    // Enhanced lighting setup for better globe visibility
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    this.scene.add(ambientLight);
+    
+    const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.6);
+    directionalLight1.position.set(1, 1, 1);
+    this.scene.add(directionalLight1);
+    
+    const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.3);
+    directionalLight2.position.set(-1, -1, -1);
+    this.scene.add(directionalLight2);
 
     const tooltip = document.createElement('div');
     tooltip.style.position = 'absolute';
@@ -308,4 +314,3 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       .polygonSideColor(() => DEFAULT_GLOBE_COLOR)
       .polygonStrokeColor(() => mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION);
   }
-}
