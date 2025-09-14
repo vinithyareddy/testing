@@ -274,7 +274,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       })
       .polygonSideColor(() => DEFAULT_GLOBE_COLOR)
       .polygonStrokeColor(() => mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION)
-      .polygonAltitude(0.0001) // Extremely minimal altitude to keep flat against surface
       .polygonsTransitionDuration(1000);
   }
 }
