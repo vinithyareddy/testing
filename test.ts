@@ -142,26 +142,33 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     coordinates.forEach((polygon: any) => {
       polygon.forEach((ring: any) => {
         ctx.beginPath();
+        let hasValidPoints = false;
         
         ring.forEach((coord: any, i: number) => {
           const lat = coord[1];
           const lng = coord[0];
           
-          // Skip extreme polar regions to avoid line artifacts
-          if (Math.abs(lat) > 80) return;
+          // Skip extreme polar regions to avoid line artifacts - more aggressive filtering
+          if (Math.abs(lat) > 75) return; // Increased from 80 to 75 degrees
           
           const x = ((lng + 180) / 360) * width;
           const y = ((90 - lat) / 180) * height;
           
-          if (i === 0) {
+          // Additional check to ensure we're not near texture edges
+          if (y < 120 || y > height - 120) return;
+          
+          if (!hasValidPoints) {
             ctx.moveTo(x, y);
+            hasValidPoints = true;
           } else {
             ctx.lineTo(x, y);
           }
         });
         
-        ctx.closePath();
-        ctx.fill();
+        if (hasValidPoints) {
+          ctx.closePath();
+          ctx.fill();
+        }
       });
     });
   }
