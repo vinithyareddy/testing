@@ -224,7 +224,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       this.showRegionData();
       this.applyColors('region');
 
-      // Setup hover interactions - using the same approach as original working code
+      // Setup hover interactions - direct lat/lng conversion approach
       const handleHover = (event: MouseEvent) => {
         const mouse = new THREE.Vector2(
           (event.offsetX / this.renderer.domElement.clientWidth) * 2 - 1,
@@ -236,31 +236,41 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
         const intersects = raycaster.intersectObject(this.globe);
         if (intersects.length > 0) {
-          const point = intersects[0].point;
-
+          // Get the intersection point in world coordinates
+          let intersectionPoint = intersects[0].point;
+          
+          // Account for globe rotation
+          const inverseMatrix = new THREE.Matrix4().copy(this.globe.matrixWorld).invert();
+          intersectionPoint = intersectionPoint.clone().applyMatrix4(inverseMatrix);
+          
+          // Convert 3D point to lat/lng
+          const lat = Math.asin(intersectionPoint.y / RADIUS) * (180 / Math.PI);
+          const lng = Math.atan2(-intersectionPoint.z, intersectionPoint.x) * (180 / Math.PI);
+          
+          // Find closest country by geographic distance
           let closest: CountryCost | null = null;
-          let minDist = Infinity;
-          for (const c of this.laborData) {
-            if (!c.position) continue;
-
-            // clone original position and apply globe rotation transform
-            const rotatedPos = c.position.clone().applyMatrix4(this.globe.matrixWorld);
-
-            const dist = point.distanceTo(rotatedPos);
-            if (dist < minDist) {
-              minDist = dist;
-              closest = { ...c, position: rotatedPos }; // use rotated position
+          let minDistance = Infinity;
+          
+          for (const country of this.laborData) {
+            // Calculate geographic distance (great circle distance approximation)
+            const dLat = (lat - country.lat) * Math.PI / 180;
+            const dLng = (lng - country.lng) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + 
+                     Math.cos(country.lat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) * 
+                     Math.sin(dLng/2) * Math.sin(dLng/2);
+            const distance = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            
+            if (distance < minDistance) {
+              minDistance = distance;
+              closest = country;
             }
           }
 
-          if (closest && closest.position) {
-            const vector = closest.position.clone().project(this.camera);
-            const x = (vector.x * 0.5 + 0.5) * this.renderer.domElement.clientWidth;
-            const y = (-vector.y * 0.5 + 0.5) * this.renderer.domElement.clientHeight;
-
-            tooltip.innerHTML = `<b>${closest.country}</b><br>Region: ${closest.region}<br>Avg Cost: ${closest.cost}`;
-            tooltip.style.left = `${x + 15}px`;
-            tooltip.style.top = `${y + 15}px`;
+          // Only show tooltip if we're reasonably close to a country (within ~300km equivalent)
+          if (closest && minDistance < 0.05) { // roughly 300km at Earth's radius
+            tooltip.innerHTML = `<b>${closest.country}</b><br>Region: ${closest.region}<br>Avg Cost: $${closest.cost}`;
+            tooltip.style.left = `${event.offsetX + 15}px`;
+            tooltip.style.top = `${event.offsetY + 15}px`;
             tooltip.style.display = 'block';
             return;
           }
