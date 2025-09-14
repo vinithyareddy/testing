@@ -59,9 +59,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   private controls!: OrbitControls;
   private globe: any;
   private countries!: FeatureCollection<Geometry, any>;
-  private renderer!: THREE.WebGLRenderer;
-  private camera!: THREE.PerspectiveCamera;
-  private scene!: THREE.Scene;
 
   currentZoom: number = ZOOM.initial;
   selectedView: string = 'By Region';
@@ -88,104 +85,37 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     return v;
   }
 
-  private updateRendererSize() {
-    const globeDiv = this.globeContainer.nativeElement;
-    const containerWidth = globeDiv.offsetWidth;
-    const containerHeight = Math.min(containerWidth, 800); // Keep it square
-    
-    // Force container height to match the calculated height
-    globeDiv.style.height = containerHeight + 'px';
-    
-    // Update renderer size with square dimensions
-    this.renderer.setSize(containerWidth, containerHeight);
-    
-    // Update camera aspect ratio
-    this.camera.aspect = containerWidth / containerHeight;
-    this.camera.updateProjectionMatrix();
-    
-    // Log to check if aspect ratio is being applied correctly
-    console.log('Updated aspect ratio:', this.camera.aspect, 'from dimensions:', containerWidth, 'x', containerHeight);
-  }
-
-  private debugRenderSetup() {
-    const globeDiv = this.globeContainer.nativeElement;
-    console.log('Container dimensions:', globeDiv.offsetWidth, globeDiv.offsetHeight);
-    console.log('Camera aspect:', this.camera.aspect);
-    console.log('Camera position:', this.camera.position);
-    
-    // Force proper aspect ratio
-    const aspect = globeDiv.offsetWidth / globeDiv.offsetHeight;
-    if (Math.abs(this.camera.aspect - aspect) > 0.01) {
-      this.camera.aspect = aspect;
-      this.camera.updateProjectionMatrix();
-      console.log('Fixed camera aspect ratio');
-    }
-  }
-
   ngAfterViewInit() {
     const globeDiv = this.globeContainer.nativeElement;
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    this.renderer.setSize(globeDiv.offsetWidth, globeDiv.offsetHeight);
-    globeDiv.appendChild(this.renderer.domElement);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(globeDiv.offsetWidth, globeDiv.offsetHeight);
+    globeDiv.appendChild(renderer.domElement);
 
-    this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(75, globeDiv.offsetWidth / globeDiv.offsetHeight, 0.1, 1000);
-    this.camera.position.z = this.currentZoom;
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, globeDiv.offsetWidth / globeDiv.offsetHeight, 0.1, 1000);
+    camera.position.z = this.currentZoom;
 
-    // Add wireframe sphere for debugging
-    const testGeometry = new THREE.SphereGeometry(RADIUS, 32, 32);
-    const testMaterial = new THREE.MeshBasicMaterial({ wireframe: true, color: 0xff0000, visible: false });
-    const testSphere = new THREE.Mesh(testGeometry, testMaterial);
-    this.scene.add(testSphere);
-
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls = new OrbitControls(camera, renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.rotateSpeed = 0.5;
     this.controls.zoomSpeed = 0.8;
 
-    this.globe = new Globe()
-      .showGlobe(true)
-      .showGraticules(false);
-      
+    this.globe = new Globe().showGlobe(true).showGraticules(false);
     this.globe.globeMaterial(new THREE.MeshBasicMaterial({ color: new THREE.Color(DEFAULT_GLOBE_COLOR) }));
-
-    // Debug globe properties
-    console.log('Globe scale:', this.globe.scale);
-    console.log('Globe position:', this.globe.position);
-    console.log('Globe rotation:', this.globe.rotation);
-    
-    // Force globe to maintain proper scale
-    this.globe.scale.set(1, 1, 1);
-    this.scene.scale.set(1, 1, 1);
 
     this.countries = topojson.feature(
       worldData as any,
       (worldData as any).objects.countries
     ) as unknown as FeatureCollection<Geometry, any>;
 
-    // Filter out problematic geometries
-    this.countries.features = this.countries.features.filter(feature => 
-      feature.geometry && 
-      feature.geometry.type && 
-      feature.properties &&
-      feature.properties.name
-    );
+    // Use hex polygons instead of regular polygons for better surface conformity
+    this.globe.hexPolygonsData(this.countries.features);
 
-    this.globe.polygonsData(this.countries.features);
-
-    this.scene.add(this.globe);
-    this.scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+    scene.add(this.globe);
+    scene.add(new THREE.AmbientLight(0xffffff, 1.2));
     const dir = new THREE.DirectionalLight(0xffffff, 0.8);
     dir.position.set(5, 3, 5);
-    this.scene.add(dir);
-
-    // Add window resize listener
-    window.addEventListener('resize', () => {
-      this.updateRendererSize();
-    });
-
-    // Debug render setup
-    this.debugRenderSetup();
+    scene.add(dir);
 
     const tooltip = document.createElement('div');
     tooltip.style.position = 'absolute';
@@ -221,12 +151,12 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
       const handleHover = (event: MouseEvent) => {
         const mouse = new THREE.Vector2(
-          (event.offsetX / this.renderer.domElement.clientWidth) * 2 - 1,
-          -(event.offsetY / this.renderer.domElement.clientHeight) * 2 + 1
+          (event.offsetX / renderer.domElement.clientWidth) * 2 - 1,
+          -(event.offsetY / renderer.domElement.clientHeight) * 2 + 1
         );
 
         const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera(mouse, this.camera);
+        raycaster.setFromCamera(mouse, camera);
 
         const intersects = raycaster.intersectObject(this.globe);
         if (intersects.length > 0) {
@@ -248,11 +178,11 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
           }
 
           if (closest && closest.position) {
-            const vector = closest.position.clone().project(this.camera);
-            const x = (vector.x * 0.5 + 0.5) * this.renderer.domElement.clientWidth;
-            const y = (-vector.y * 0.5 + 0.5) * this.renderer.domElement.clientHeight;
+            const vector = closest.position.clone().project(camera);
+            const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
+            const y = (-vector.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
 
-            tooltip.innerHTML = `<b>${closest.country}</b><br>Region: ${closest.region}<br>Avg Cost: ${closest.cost}`;
+            tooltip.innerHTML = `<b>${closest.country}</b><br>Region: ${closest.region}<br>Avg Cost: $${closest.cost}`;
             tooltip.style.left = `${x + 15}px`;
             tooltip.style.top = `${y + 15}px`;
             tooltip.style.display = 'block';
@@ -262,9 +192,9 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         tooltip.style.display = 'none';
       };
 
-      this.renderer.domElement.addEventListener('mousemove', handleHover);
-      this.renderer.domElement.addEventListener('click', handleHover);
-      this.renderer.domElement.addEventListener('mouseleave', () => {
+      renderer.domElement.addEventListener('mousemove', handleHover);
+      renderer.domElement.addEventListener('click', handleHover);
+      renderer.domElement.addEventListener('mouseleave', () => {
         tooltip.style.display = 'none';
       });
     });
@@ -273,7 +203,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       requestAnimationFrame(animate);
       this.globe.rotation.y += ROTATION_SPEED;
       this.controls.update();
-      this.renderer.render(this.scene, this.camera);
+      renderer.render(scene, camera);
     };
     animate();
   }
@@ -331,8 +261,12 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   private applyColors(mode: 'region' | 'country') {
     if (!this.countries) return;
 
-    this.globe.polygonsData(this.countries.features)
-      .polygonCapColor((d: any) => {
+    // Use hex polygons instead of regular polygons for better surface conformity
+    this.globe
+      .hexPolygonsData(this.countries.features)
+      .hexPolygonResolution(3)
+      .hexPolygonMargin(0.1)
+      .hexPolygonColor((d: any) => {
         const countryName = d.properties.name;
         const entry = this.laborData.find(c => c.country === countryName);
 
@@ -341,9 +275,9 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         } else {
           return entry ? this.countryColorScale(entry.cost) : FALLBACK_COLOR;
         }
-      })
-      .polygonSideColor(() => DEFAULT_GLOBE_COLOR)
-      .polygonStrokeColor(() => mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION)
-      .polygonsTransitionDuration(1000);
+      });
+      
+    // Clear regular polygons to avoid conflicts
+    this.globe.polygonsData([]);
   }
 }
