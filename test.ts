@@ -278,14 +278,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       })
       .polygonSideColor(() => CUSTOM_GLOBE_COLOR)
       .polygonStrokeColor(() => 'transparent')
-      .polygonCapMaterial(() => new THREE.MeshBasicMaterial({ 
-        transparent: false,
-        opacity: 1.0
-      }))
-      .polygonSideMaterial(() => new THREE.MeshBasicMaterial({ 
-        transparent: true,
-        opacity: 0.0,
-        color: CUSTOM_GLOBE_COLOR
-      }));
+      .polygonsTransitionDuration(1000);
   }
 }
