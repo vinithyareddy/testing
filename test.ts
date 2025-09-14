@@ -129,6 +129,9 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
   private drawCountryOnCanvas(ctx: CanvasRenderingContext2D, geometry: any, width: number, height: number, color: string) {
     ctx.fillStyle = color;
+    // Disable stroke to avoid lines
+    ctx.strokeStyle = 'transparent';
+    ctx.lineWidth = 0;
     
     const coordinates = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates;
     
@@ -147,6 +150,8 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         });
         ctx.closePath();
         ctx.fill();
+        // Explicitly avoid stroke
+        // ctx.stroke(); // Remove this line completely
       });
     });
   }
