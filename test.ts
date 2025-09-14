@@ -354,7 +354,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   private applyColors(mode: 'region' | 'country') {
     if (!this.countries || this.laborData.length === 0) return;
 
-    const texture = this.createSmoothCountryTexture();
-    this.globe.material = new THREE.MeshBasicMaterial({ map: texture });
+    // Use geometry-based approach instead of texture
+    this.createCountryGeometries();
   }
 }
