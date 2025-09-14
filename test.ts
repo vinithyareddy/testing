@@ -129,7 +129,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
   private drawCountryOnCanvas(ctx: CanvasRenderingContext2D, geometry: any, width: number, height: number, color: string) {
     ctx.fillStyle = color;
-    // Disable stroke to avoid lines
     ctx.strokeStyle = 'transparent';
     ctx.lineWidth = 0;
     
@@ -138,20 +137,31 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     coordinates.forEach((polygon: any) => {
       polygon.forEach((ring: any) => {
         ctx.beginPath();
+        let validPath = false;
+        
         ring.forEach((coord: any, i: number) => {
-          const x = ((coord[0] + 180) / 360) * width;
-          const y = ((90 - coord[1]) / 180) * height;
+          // Clamp latitude to avoid polar distortion
+          const lat = Math.max(-85, Math.min(85, coord[1])); // Limit to ±85 degrees
+          const lng = coord[0];
           
-          if (i === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
+          const x = ((lng + 180) / 360) * width;
+          const y = ((90 - lat) / 180) * height;
+          
+          // Skip if coordinates are at extreme poles
+          if (Math.abs(lat) < 85) {
+            if (i === 0 || !validPath) {
+              ctx.moveTo(x, y);
+              validPath = true;
+            } else {
+              ctx.lineTo(x, y);
+            }
           }
         });
-        ctx.closePath();
-        ctx.fill();
-        // Explicitly avoid stroke
-        // ctx.stroke(); // Remove this line completely
+        
+        if (validPath) {
+          ctx.closePath();
+          ctx.fill();
+        }
       });
     });
   }
