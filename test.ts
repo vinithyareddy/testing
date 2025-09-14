@@ -1,25 +1,25 @@
-for (const c of this.laborData) {
-  if (!c.position) continue;
-
-  // clone original position and apply globe rotation transform
-  const rotatedPos = c.position.clone().applyMatrix4(this.globe.matrixWorld);
-
-  const dist = point.distanceTo(rotatedPos);
-  if (dist < minDist) {
-    minDist = dist;
-    closest = { ...c, position: rotatedPos }; // use rotated position
-  }
-}
+const earth = new THREE.Mesh(
+  new THREE.SphereGeometry(RADIUS, 75, 75),
+  new THREE.MeshPhongMaterial({
+    color: new THREE.Color(DEFAULT_GLOBE_COLOR), // base fill
+    shininess: 1
+  })
+);
+scene.add(earth);
 
 
-if (closest && closest.position) {
-  const vector = closest.position.clone().project(camera);
-  const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
-  const y = (-vector.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
+this.globe
+  .polygonsData(this.countries.features)
+  .polygonAltitude(() => 0)   // sit directly on sphere
+  .polygonCapColor((d: any) => {
+    const countryName = d.properties.name;
+    const entry = this.laborData.find(c => c.country === countryName);
 
-  tooltip.innerHTML = `<b>${closest.country}</b><br>Region: ${closest.region}<br>Avg Cost: $${closest.cost}`;
-  tooltip.style.left = `${x + 15}px`;
-  tooltip.style.top = `${y + 15}px`;
-  tooltip.style.display = 'block';
-  return;
-}
+    if (mode === 'region') {
+      return entry ? REGION_COLORS[entry.region] || REGION_COLORS['Other'] : REGION_COLORS['Other'];
+    } else {
+      return entry ? this.countryColorScale(entry.cost) : FALLBACK_COLOR;
+    }
+  })
+  .polygonSideColor(() => 'rgba(0,0,0,0)')  // transparent sides
+  .polygonStrokeColor(() => mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION);
