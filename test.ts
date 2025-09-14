@@ -246,7 +246,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
             const x = (vector.x * 0.5 + 0.5) * this.renderer.domElement.clientWidth;
             const y = (-vector.y * 0.5 + 0.5) * this.renderer.domElement.clientHeight;
 
-            tooltip.innerHTML = `<b>${closest.country}</b><br>Region: ${closest.region}<br>Avg Cost: $${closest.cost}`;
+            tooltip.innerHTML = `<b>${closest.country}</b><br>Region: ${closest.region}<br>Avg Cost: ${closest.cost}`;
             tooltip.style.left = `${x + 15}px`;
             tooltip.style.top = `${y + 15}px`;
             tooltip.style.display = 'block';
@@ -338,7 +338,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       })
       .polygonSideColor(() => DEFAULT_GLOBE_COLOR)
       .polygonStrokeColor(() => mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION)
-      .polygonResolution(3)
       .polygonsTransitionDuration(1000);
   }
 }
