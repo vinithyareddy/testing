@@ -63,6 +63,9 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   private renderer!: THREE.WebGLRenderer;
   private countries!: FeatureCollection<Geometry, any>;
   private countryMeshes: THREE.Mesh[] = [];
+  private countryCanvas!: HTMLCanvasElement;
+  private countryContext!: CanvasRenderingContext2D;
+  private countryColorMap: Map<string, string> = new Map();
 
   currentZoom: number = ZOOM.initial;
   selectedView: string = 'By Region';
@@ -89,14 +92,17 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   }
 
   private createCountryTexture(): THREE.CanvasTexture {
-    const canvas = document.createElement('canvas');
-    canvas.width = 2048;
-    canvas.height = 1024;
-    const ctx = canvas.getContext('2d')!;
+    this.countryCanvas = document.createElement('canvas');
+    this.countryCanvas.width = 2048;
+    this.countryCanvas.height = 1024;
+    this.countryContext = this.countryCanvas.getContext('2d')!;
+    
+    // Clear the color map
+    this.countryColorMap.clear();
     
     // Fill with custom globe color
-    ctx.fillStyle = CUSTOM_GLOBE_COLOR;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    this.countryContext.fillStyle = CUSTOM_GLOBE_COLOR;
+    this.countryContext.fillRect(0, 0, this.countryCanvas.width, this.countryCanvas.height);
     
     // Draw countries
     this.countries.features.forEach(feature => {
@@ -112,10 +118,13 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         }
       }
       
-      this.drawCountryOnCanvas(ctx, feature.geometry, canvas.width, canvas.height, color);
+      // Store color mapping for this country
+      this.countryColorMap.set(color, countryName);
+      
+      this.drawCountryOnCanvas(this.countryContext, feature.geometry, this.countryCanvas.width, this.countryCanvas.height, color);
     });
     
-    return new THREE.CanvasTexture(canvas);
+    return new THREE.CanvasTexture(this.countryCanvas);
   }
 
   private drawCountryOnCanvas(ctx: CanvasRenderingContext2D, geometry: any, width: number, height: number, color: string) {
@@ -227,34 +236,34 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
         const intersects = raycaster.intersectObject(this.globe);
         if (intersects.length > 0) {
-          const intersectionPoint = intersects[0].point;
-          
-          // Convert 3D intersection point to lat/lng
-          const lat = Math.asin(intersectionPoint.y / RADIUS) * (180 / Math.PI);
-          const lng = Math.atan2(intersectionPoint.z, -intersectionPoint.x) * (180 / Math.PI);
-          
-          // Find the closest country based on lat/lng distance
-          let closest: CountryCost | null = null;
-          let minDistance = Infinity;
-          
-          for (const country of this.laborData) {
-            const distance = Math.sqrt(
-              Math.pow(lat - country.lat, 2) + Math.pow(lng - country.lng, 2)
-            );
+          // Get UV coordinates from the intersection
+          const uv = intersects[0].uv;
+          if (uv && this.countryCanvas) {
+            // Convert UV to canvas pixel coordinates
+            const x = Math.floor(uv.x * this.countryCanvas.width);
+            const y = Math.floor((1 - uv.y) * this.countryCanvas.height); // Flip Y coordinate
             
-            if (distance < minDistance) {
-              minDistance = distance;
-              closest = country;
+            // Get pixel color at this position
+            const imageData = this.countryContext.getImageData(x, y, 1, 1);
+            const r = imageData.data[0];
+            const g = imageData.data[1];
+            const b = imageData.data[2];
+            
+            // Convert RGB to hex color
+            const hexColor = '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+            
+            // Find country by color
+            const countryName = this.countryColorMap.get(hexColor);
+            if (countryName) {
+              const country = this.laborData.find(c => c.country === countryName);
+              if (country) {
+                tooltip.innerHTML = `<b>${country.country}</b><br>Region: ${country.region}<br>Avg Cost: $${country.cost}`;
+                tooltip.style.left = `${event.offsetX + 15}px`;
+                tooltip.style.top = `${event.offsetY + 15}px`;
+                tooltip.style.display = 'block';
+                return;
+              }
             }
-          }
-
-          // Only show tooltip if we found a reasonably close country (within ~5 degrees)
-          if (closest && minDistance < 5) {
-            tooltip.innerHTML = `<b>${closest.country}</b><br>Region: ${closest.region}<br>Avg Cost: ${closest.cost}`;
-            tooltip.style.left = `${event.offsetX + 15}px`;
-            tooltip.style.top = `${event.offsetY + 15}px`;
-            tooltip.style.display = 'block';
-            return;
           }
         }
         tooltip.style.display = 'none';
