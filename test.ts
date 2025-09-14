@@ -139,8 +139,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
     this.globe = new Globe()
       .showGlobe(true)
-      .showGraticules(false)
-      .globeRadius(RADIUS); // Explicitly set radius
+      .showGraticules(false);
       
     this.globe.globeMaterial(new THREE.MeshBasicMaterial({ color: new THREE.Color(DEFAULT_GLOBE_COLOR) }));
 
