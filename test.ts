@@ -268,6 +268,67 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     this.updateGlobeTexture();
   }
 
+  private updateGlobeTexture() {
+    // Create a canvas to draw the world map with custom colors
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d')!;
+    
+    // Fill with your custom globe/ocean color - change this to whatever color you want
+    ctx.fillStyle = '#1a4d66'; // Change this to your desired globe color
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw countries with colors based on region/cost data
+    this.countries.features.forEach(feature => {
+      const countryName = feature.properties.name;
+      const entry = this.laborData.find(c => c.country === countryName);
+      
+      let color = REGION_COLORS['Other'];
+      if (entry) {
+        if (this.selectedView === 'By Region') {
+          color = REGION_COLORS[entry.region] || REGION_COLORS['Other'];
+        } else {
+          color = this.countryColorScale(entry.cost);
+        }
+      }
+      
+      // Convert GeoJSON coordinates to canvas coordinates
+      // This is a simplified projection - you might want to use a proper map projection
+      if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
+        ctx.fillStyle = color;
+        this.drawCountryOnCanvas(ctx, feature.geometry, canvas.width, canvas.height);
+      }
+    });
+    
+    // Update the globe texture
+    const texture = new THREE.CanvasTexture(canvas);
+    this.globe.globeMaterial(new THREE.MeshBasicMaterial({ map: texture }));
+  }
+
+  private drawCountryOnCanvas(ctx: CanvasRenderingContext2D, geometry: any, width: number, height: number) {
+    // Simple equirectangular projection
+    const coordinates = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates;
+    
+    coordinates.forEach((polygon: any) => {
+      polygon.forEach((ring: any) => {
+        ctx.beginPath();
+        ring.forEach((coord: any, i: number) => {
+          const x = ((coord[0] + 180) / 360) * width;
+          const y = ((90 - coord[1]) / 180) * height;
+          
+          if (i === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+        ctx.closePath();
+        ctx.fill();
+      });
+    });
+  }
+
   private latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
     const phi = (90 - lat) * (Math.PI / 180);
     const theta = (lng + 180) * (Math.PI / 180);
