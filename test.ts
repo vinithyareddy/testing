@@ -264,18 +264,22 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   private applyColors(mode: 'region' | 'country') {
     if (!this.countries) return;
 
-    this.globe.polygonsData(this.countries.features)
-      .polygonCapColor((d: any) => {
-        const countryName = d.properties.name;
-        const entry = this.laborData.find(c => c.country === countryName);
+    // Update the globe texture instead of using polygons
+    this.updateGlobeTexture();
+  }
 
-        if (mode === 'region') {
-          return entry ? REGION_COLORS[entry.region] || REGION_COLORS['Other'] : REGION_COLORS['Other'];
-        } else {
-          return entry ? this.countryColorScale(entry.cost) : FALLBACK_COLOR;
-        }
-      })
-      .polygonSideColor(() => DEFAULT_GLOBE_COLOR)
-      .polygonStrokeColor(() => mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION);
+  private latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
+    const phi = (90 - lat) * (Math.PI / 180);
+    const theta = (lng + 180) * (Math.PI / 180);
+
+    const x = -radius * Math.sin(phi) * Math.cos(theta);
+    const y = radius * Math.cos(phi);
+    const z = radius * Math.sin(phi) * Math.sin(theta);
+
+    const v = new THREE.Vector3(x, y, z);
+
+    v.applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
+
+    return v;
   }
 }
