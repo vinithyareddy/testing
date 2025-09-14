@@ -264,12 +264,12 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     this.regionGroups = [];
   }
 
-  // Updated applyColors method with altitude fix
+  // Updated applyColors method with small altitude to avoid z-fighting
   private applyColors(mode: 'region' | 'country') {
     if (!this.countries) return;
 
     this.globe.polygonsData(this.countries.features)
-      .polygonAltitude(0)  // Ensure no 3D extrusion - crucial fix
+      .polygonAltitude(0.001)  // Very small altitude to avoid z-fighting
       .polygonCapColor((d: any) => {
         const countryName = d.properties.name;
         const entry = this.laborData.find(c => c.country === countryName);
@@ -280,7 +280,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
           return entry ? this.countryColorScale(entry.cost) : FALLBACK_COLOR;
         }
       })
-      .polygonSideColor(() => 'rgba(0,0,0,0)')  // Transparent sides since no altitude
+      .polygonSideColor(() => 'rgba(0,0,0,0)')  // Transparent sides
       .polygonStrokeColor(() => mode === 'country' ? STROKE_COLOR_COUNTRY : STROKE_COLOR_REGION);
   }
 }
