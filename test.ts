@@ -18,6 +18,7 @@ type CountrySkill = {
   skillSupply: number;
   lat: number;
   lng: number;
+  position?: THREE.Vector3;
 };
 
 const ROTATION_SPEED = 0.002;
@@ -33,11 +34,15 @@ const RADIUS = 100;
 })
 export class SsByLocationComponent implements AfterViewInit {
   @ViewChild('globeContainer', { static: true }) globeContainer!: ElementRef;
-
   countriesList: CountrySkill[] = [];
   filteredList: CountrySkill[] = [];
   searchTerm = '';
   legendCollapsed = false;
+  selectedCountry: CountrySkill | null = null;
+  private highlightGroup!: THREE.Group;
+  private isRotationPaused = false;
+  private pauseStartTime = 0;
+  private readonly PAUSE_DURATION = 1000; // 1 second pause
 
   private controls!: OrbitControls;
   private globe: any;
@@ -49,14 +54,220 @@ export class SsByLocationComponent implements AfterViewInit {
   private lastZoom: number = ZOOM.initial;
   currentZoom: number = ZOOM.initial;
 
-  private isFocusing = false;
-
   constructor(private http: HttpClient) { }
+
+  // Add method to select country
+  selectCountry(country: CountrySkill) {
+    this.selectedCountry = country;
+    this.highlightCountryOnGlobe(country);
+    this.rotateToCountry(country);
+  }
+
+  // Add method to rotate globe to show country
+  private rotateToCountry(country: CountrySkill) {
+    if (!country.position) return;
+
+    console.log(`Rotating to ${country.country} (${country.code}) at lat: ${country.lat}, lng: ${country.lng}`);
+    console.log('Country 3D position:', country.position);
+
+    // Get the current world position of the country after any existing rotations
+    const worldPosition = country.position.clone();
+    worldPosition.applyMatrix4(this.globeGroup.matrixWorld);
+    console.log('World position:', worldPosition);
+
+    // We want to rotate the globe so this point faces the camera (0, 0, positive Z)
+    // Calculate the spherical coordinates of the current position
+    const currentRadius = worldPosition.length();
+    const currentLat = Math.asin(worldPosition.y / currentRadius);
+    const currentLng = Math.atan2(worldPosition.z, worldPosition.x);
+
+    console.log('Current spherical - lat:', currentLat * 180/Math.PI, 'lng:', currentLng * 180/Math.PI);
+
+    // Target: we want the point to be at (0, 0, positive radius) in world space
+    // This means latitude = 0, longitude = 0 (facing camera)
+    const targetLat = 0;
+    const targetLng = 0;
+
+    // Calculate rotation needed
+    // For Y rotation (longitude): rotate by the negative of current longitude
+    const rotationY = -currentLng;
+    // For X rotation (latitude): rotate by the negative of current latitude  
+    const rotationX = -currentLat;
+
+    console.log('Target rotations - Y:', rotationY * 180/Math.PI, 'X:', rotationX * 180/Math.PI);
+
+    // Get current globe rotations
+    const startRotationY = this.globeGroup.rotation.y;
+    const startRotationX = this.globeGroup.rotation.x;
+
+    // Calculate final target rotations
+    let targetRotationY = startRotationY + rotationY;
+    let targetRotationX = startRotationX + rotationX;
+
+    // Normalize Y rotation and find shortest path
+    while (targetRotationY - startRotationY > Math.PI) targetRotationY -= 2 * Math.PI;
+    while (targetRotationY - startRotationY < -Math.PI) targetRotationY += 2 * Math.PI;
+
+    // Limit X rotation to prevent flipping
+    const maxTilt = Math.PI / 3; // 60 degrees
+    targetRotationX = Math.max(-maxTilt, Math.min(maxTilt, targetRotationX));
+
+    const rotationDiffY = targetRotationY - startRotationY;
+    const rotationDiffX = targetRotationX - startRotationX;
+
+    console.log(`Rotation differences - Y: ${rotationDiffY * 180/Math.PI}°, X: ${rotationDiffX * 180/Math.PI}°`);
+
+    // Animate rotation
+    const duration = 2000; // 2 seconds
+    const startTime = Date.now();
+    
+    this.isRotationPaused = true;
+    
+    const animateRotation = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function
+      const easeInOutCubic = (t: number) => 
+        t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+      
+      const easedProgress = easeInOutCubic(progress);
+      
+      // Apply rotation
+      this.globeGroup.rotation.y = startRotationY + (rotationDiffY * easedProgress);
+      this.globeGroup.rotation.x = startRotationX + (rotationDiffX * easedProgress);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animateRotation);
+      } else {
+        this.pauseStartTime = Date.now();
+        console.log(`Animation complete. Final rotations - Y: ${this.globeGroup.rotation.y * 180/Math.PI}°, X: ${this.globeGroup.rotation.x * 180/Math.PI}°`);
+        
+        // Verify final position
+        const finalWorldPos = country.position.clone();
+        finalWorldPos.applyMatrix4(this.globeGroup.matrixWorld);
+        console.log('Final world position:', finalWorldPos);
+      }
+    };
+    
+    animateRotation();
+  }
+
+  // Add method to highlight country on globe
+  private highlightCountryOnGlobe(country: CountrySkill) {
+    // Clear existing highlights
+    if (this.highlightGroup) {
+      this.globeGroup.remove(this.highlightGroup);
+    }
+    
+    this.highlightGroup = new THREE.Group();
+    this.globeGroup.add(this.highlightGroup);
+
+    if (country.position) {
+      console.log(`Highlighting ${country.country} at position:`, country.position);
+
+      // Create a larger pulsing ring around the country
+      const ringGeometry = new THREE.RingGeometry(3, 6, 32);
+      const ringMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff0000, // Changed to red for better visibility
+        transparent: true,
+        opacity: 0.8,
+        side: THREE.DoubleSide
+      });
+      
+      const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+      
+      // Position the ring at the country's location
+      const ringPosition = country.position.clone().normalize();
+      ringPosition.multiplyScalar(RADIUS + 2); // Slightly further out
+      ring.position.copy(ringPosition);
+      
+      // Make the ring face outward from the globe center
+      ring.lookAt(ringPosition.clone().multiplyScalar(2));
+      
+      this.highlightGroup.add(ring);
+
+      // Create a larger glowing sphere
+      const sphereGeometry = new THREE.SphereGeometry(2.5, 16, 16);
+      const sphereMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff4444, // Bright red
+        transparent: true,
+        opacity: 0.9
+      });
+      
+      const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+      sphere.position.copy(ringPosition);
+      this.highlightGroup.add(sphere);
+
+      // Add a crosshair at the center for precise location
+      const crosshairGroup = new THREE.Group();
+      
+      // Horizontal line
+      const hLineGeometry = new THREE.PlaneGeometry(8, 0.5);
+      const hLineMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffff00, // Yellow
+        transparent: true,
+        opacity: 0.9
+      });
+      const hLine = new THREE.Mesh(hLineGeometry, hLineMaterial);
+      crosshairGroup.add(hLine);
+      
+      // Vertical line
+      const vLineGeometry = new THREE.PlaneGeometry(0.5, 8);
+      const vLineMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffff00, // Yellow
+        transparent: true,
+        opacity: 0.9
+      });
+      const vLine = new THREE.Mesh(vLineGeometry, vLineMaterial);
+      crosshairGroup.add(vLine);
+      
+      crosshairGroup.position.copy(ringPosition);
+      crosshairGroup.lookAt(ringPosition.clone().multiplyScalar(2));
+      this.highlightGroup.add(crosshairGroup);
+
+      // Add text label showing country name
+      const labelSprite = this.createTextSprite(
+        `${country.country} (${country.code})`, 
+        '#ffff00', 
+        32
+      );
+      const labelPosition = ringPosition.clone();
+      labelPosition.multiplyScalar(1.2); // Further out for the label
+      labelSprite.position.copy(labelPosition);
+      this.highlightGroup.add(labelSprite);
+
+      // Animate the highlight
+      this.animateHighlight(ring, sphere, crosshairGroup);
+    }
+  }
+
+  // Add animation for the highlight
+  private animateHighlight(ring: THREE.Mesh, sphere: THREE.Mesh, crosshair: THREE.Group) {
+    const animate = () => {
+      if (this.highlightGroup && this.highlightGroup.children.includes(ring)) {
+        // Pulse the ring
+        const time = Date.now() * 0.003;
+        const scale = 1 + Math.sin(time) * 0.3;
+        ring.scale.setScalar(scale);
+        
+        // Pulse the sphere opacity
+        const sphereMaterial = sphere.material as THREE.MeshBasicMaterial;
+        sphereMaterial.opacity = 0.6 + Math.sin(time * 2) * 0.3;
+        
+        // Animate crosshair
+        const crosshairScale = 1 + Math.sin(time * 1.5) * 0.2;
+        crosshair.scale.setScalar(crosshairScale);
+        
+        requestAnimationFrame(animate);
+      }
+    };
+    animate();
+  }
 
   private latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
     const phi = (90 - lat) * (Math.PI / 180);
     const theta = (lng + 180) * (Math.PI / 180);
-
     return new THREE.Vector3(
       -radius * Math.sin(phi) * Math.cos(theta),
       radius * Math.cos(phi),
@@ -74,6 +285,7 @@ export class SsByLocationComponent implements AfterViewInit {
     const padding = 4;
     canvas.width = textWidth + (padding * 2);
     canvas.height = textHeight + (padding * 2);
+
     context.clearRect(0, 0, canvas.width, canvas.height);
     context.font = `bold ${fontSize}px Arial, sans-serif`;
     context.textAlign = 'center';
@@ -99,25 +311,24 @@ export class SsByLocationComponent implements AfterViewInit {
     const scaleX = Math.max(baseScale, textWidth * 0.015);
     const scaleY = baseScale * 0.8;
     sprite.scale.set(scaleX, scaleY, 1);
+
     return sprite;
   }
 
   private addCountryLabels() {
     if (this.labelGroup) this.globeGroup.remove(this.labelGroup);
-
     this.labelGroup = new THREE.Group();
     this.globeGroup.add(this.labelGroup);
 
     this.countriesList.forEach(country => {
-      const pos = this.latLngToVector3(country.lat, country.lng, RADIUS);
-
-      const label = this.createTextSprite(country.code, '#ffffff', 26);
-      const labelPosition = pos.clone().normalize().multiplyScalar(RADIUS + 0.5);
-
-      label.position.copy(labelPosition);
-      (label as any).userData = { country };
-
-      this.labelGroup.add(label);
+      if (country.position) {
+        const label = this.createTextSprite(country.code, '#ffffff', 26);
+        const labelPosition = country.position.clone().normalize();
+        labelPosition.multiplyScalar(RADIUS + 0.5);
+        label.position.copy(labelPosition);
+        (label as any).userData = { country };
+        this.labelGroup.add(label);
+      }
     });
   }
 
@@ -181,7 +392,6 @@ export class SsByLocationComponent implements AfterViewInit {
     this.controls.enableDamping = true;
     this.controls.rotateSpeed = 0.5;
     this.controls.zoomSpeed = 0.8;
-    this.controls.target.set(0, 0, 0); // ✅ orbit always around globe center
 
     this.globe = new Globe().showGraticules(true).showAtmosphere(true);
     this.globe.atmosphereColor('#9ec2ff').atmosphereAltitude(0.25);
@@ -206,13 +416,17 @@ export class SsByLocationComponent implements AfterViewInit {
       })
     );
 
+    // build globeGroup
     this.globeGroup = new THREE.Group();
     this.globeGroup.add(this.globe);
     this.globeGroup.add(earth);
     this.scene.add(this.globeGroup);
 
+    // init label group and highlight group inside globeGroup
     this.labelGroup = new THREE.Group();
+    this.highlightGroup = new THREE.Group();
     this.globeGroup.add(this.labelGroup);
+    this.globeGroup.add(this.highlightGroup);
 
     this.countries = topojson.feature(
       worldData as any,
@@ -227,6 +441,7 @@ export class SsByLocationComponent implements AfterViewInit {
       .polygonAltitude(0);
 
     this.scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+
     const dir = new THREE.DirectionalLight(0xffffff, 0.8);
     dir.position.set(5, 3, 5);
     this.scene.add(dir);
@@ -239,23 +454,81 @@ export class SsByLocationComponent implements AfterViewInit {
         uniqueSkills: c.uniqueSkills > 0 ? c.uniqueSkills : Math.floor(Math.random() * 100),
         skillSupply: c.skillSupply > 0 ? c.skillSupply : Math.floor(Math.random() * 50),
         lat: c.lat,
-        lng: c.lng
+        lng: c.lng,
+        position: this.latLngToVector3(c.lat, c.lng, RADIUS)
       }));
 
       this.filteredList = [...this.countriesList];
       this.addCountryLabels();
+
+      const handleHover = (event: MouseEvent) => {
+        const mouse = new THREE.Vector2(
+          (event.offsetX / renderer.domElement.clientWidth) * 2 - 1,
+          -(event.offsetY / renderer.domElement.clientHeight) * 2 + 1
+        );
+
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, this.camera);
+
+        const intersects = raycaster.intersectObject(earth);
+
+        if (intersects.length > 0) {
+          const point = intersects[0].point;
+          let closest: CountrySkill | null = null;
+          let minDist = Infinity;
+
+          for (const c of this.countriesList) {
+            if (!c.position) continue;
+            const rotatedPos = c.position.clone().applyMatrix4(this.globeGroup.matrixWorld);
+            const dist = point.distanceTo(rotatedPos);
+            if (dist < minDist) {
+              minDist = dist;
+              closest = { ...c, position: rotatedPos };
+            }
+          }
+
+          if (closest) {
+            const vector = closest.position!.clone().project(this.camera);
+            const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
+            const y = (-vector.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
+
+            tooltip.innerHTML = `<b>${closest.country}</b><br>Code: ${closest.code}<br>Unique Skills: ${closest.uniqueSkills}<br>Skill Supply: ${closest.skillSupply}`;
+            tooltip.style.left = `${x + 15}px`;
+            tooltip.style.top = `${y + 15}px`;
+            tooltip.style.display = 'block';
+            return;
+          }
+        }
+
+        tooltip.style.display = 'none';
+      };
+
+      renderer.domElement.addEventListener('mousemove', handleHover);
+      renderer.domElement.addEventListener('click', handleHover);
+      renderer.domElement.addEventListener('mouseleave', () => {
+        tooltip.style.display = 'none';
+      });
     });
 
     const animate = () => {
       requestAnimationFrame(animate);
-
-      if (!this.isFocusing) {
+      
+      // Handle rotation pause logic
+      if (this.isRotationPaused) {
+        // Check if pause duration has elapsed
+        if (this.pauseStartTime > 0 && Date.now() - this.pauseStartTime > this.PAUSE_DURATION) {
+          this.isRotationPaused = false;
+          this.pauseStartTime = 0;
+        }
+        // Don't rotate while paused
+      } else {
+        // Normal rotation
         this.globeGroup.rotation.y += ROTATION_SPEED;
       }
 
       this.controls.update();
-      const currentZ = this.camera.position.z;
 
+      const currentZ = this.camera.position.z;
       if (Math.abs(currentZ - this.lastZoom) > 5) {
         this.currentZoom = currentZ;
         this.addCountryLabels();
@@ -274,10 +547,11 @@ export class SsByLocationComponent implements AfterViewInit {
     this.filteredList = !q
       ? [...this.countriesList]
       : this.countriesList.filter(
-          c =>
-            c.country.toLowerCase().includes(q) ||
-            c.code.toLowerCase().includes(q)
-        );
+        c =>
+          c.country.toLowerCase().includes(q) ||
+          c.code.toLowerCase().includes(q)
+      );
+
     this.addCountryLabels();
   }
 
@@ -295,44 +569,5 @@ export class SsByLocationComponent implements AfterViewInit {
 
   private updateCameraZoom() {
     if (this.controls.object) this.controls.object.position.z = this.currentZoom;
-  }
-
-  // ✅ final focusOnCountry: rotates globe, keeps pins aligned, highlight works
-  focusOnCountry(country: CountrySkill) {
-    if (!country) return;
-
-    this.isFocusing = true;
-
-    // base position from lat/lng
-    const basePos = this.latLngToVector3(country.lat, country.lng, RADIUS);
-
-    // desired direction (country vector)
-    const targetDir = basePos.clone().normalize();
-
-    // current front direction of globe
-    const currentDir = new THREE.Vector3(0, 0, 1).applyQuaternion(this.globeGroup.quaternion);
-
-    // compute rotation needed
-    const q = new THREE.Quaternion().setFromUnitVectors(currentDir, targetDir);
-
-    // rotate globe
-    this.globeGroup.quaternion.premultiply(q);
-
-    // controls always orbit around center
-    this.controls.target.set(0, 0, 0);
-    this.controls.update();
-
-    // highlight marker inside globeGroup
-    const highlight = new THREE.Mesh(
-      new THREE.SphereGeometry(2.5, 16, 16),
-      new THREE.MeshBasicMaterial({ color: 0xff0000 })
-    );
-    highlight.position.copy(basePos);
-    this.globeGroup.add(highlight);
-
-    setTimeout(() => {
-      this.globeGroup.remove(highlight);
-      this.isFocusing = false;
-    }, 2000);
   }
 }
