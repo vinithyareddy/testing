@@ -3,30 +3,27 @@ focusOnCountry(country: CountrySkill) {
 
   this.isFocusing = true;
 
-  // base position from lat/lng (unrotated)
+  // base position from lat/lng
   const basePos = this.latLngToVector3(country.lat, country.lng, RADIUS);
 
-  // ✅ apply current globe rotation so it matches what you see
-  const rotatedPos = basePos.clone().applyMatrix4(this.globeGroup.matrix);
+  // convert to world direction (no matrix yet, we’ll rotate globe)
+  const direction = basePos.clone().normalize();
 
-  // current camera distance (keep same zoom)
-  const distance = this.camera.position.length();
+  // get current camera forward direction
+  const camDir = new THREE.Vector3();
+  this.camera.getWorldDirection(camDir);
 
-  // set OrbitControls target
-  this.controls.target.copy(rotatedPos);
+  // compute quaternion rotation to align globe so that country faces camera
+  const q = new THREE.Quaternion().setFromUnitVectors(direction, camDir.negate());
 
-  // move camera to same relative direction, preserving distance
-  const newCamPos = rotatedPos.clone().normalize().multiplyScalar(distance);
-  this.camera.position.copy(newCamPos);
+  this.globeGroup.quaternion.premultiply(q);
 
-  this.controls.update();
-
-  // highlight marker at rotated position
+  // add highlight marker
   const highlight = new THREE.Mesh(
     new THREE.SphereGeometry(2.5, 16, 16),
     new THREE.MeshBasicMaterial({ color: 0xff0000 })
   );
-  highlight.position.copy(rotatedPos);
+  highlight.position.copy(basePos);
   this.scene.add(highlight);
 
   setTimeout(() => {
@@ -34,3 +31,4 @@ focusOnCountry(country: CountrySkill) {
     this.isFocusing = false;
   }, 2000);
 }
+this.controls.target.set(0, 0, 0);
