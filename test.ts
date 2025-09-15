@@ -67,22 +67,31 @@ export class SsByLocationComponent implements AfterViewInit {
   private rotateToCountry(country: CountrySkill) {
     if (!country.position) return;
 
-    // Calculate target rotation to bring country to front
-    // For longitude: positive longitude should rotate globe left (negative Y rotation)
-    // Add PI to bring the country to the front (facing camera)
-    const targetRotationY = (country.lng * Math.PI / 180) + Math.PI;
+    console.log(`Rotating to ${country.country} (${country.code}) at lat: ${country.lat}, lng: ${country.lng}`);
+
+    // Calculate target rotation - we want to rotate the globe so the country faces the camera
+    // The globe rotates around Y axis (horizontal rotation)
+    // Positive longitude should result in negative rotation to bring it to front
+    const targetRotationY = -country.lng * (Math.PI / 180);
+    const targetRotationX = country.lat * (Math.PI / 180);
+    
     const currentRotationY = this.globeGroup.rotation.y;
+    const currentRotationX = this.globeGroup.rotation.x;
     
-    // Calculate the shortest rotation path
-    let rotationDiff = targetRotationY - currentRotationY;
+    // Calculate the shortest rotation path for Y (longitude)
+    let rotationDiffY = targetRotationY - currentRotationY;
+    while (rotationDiffY > Math.PI) rotationDiffY -= 2 * Math.PI;
+    while (rotationDiffY < -Math.PI) rotationDiffY += 2 * Math.PI;
     
-    // Normalize to [-PI, PI] for shortest path
-    while (rotationDiff > Math.PI) rotationDiff -= 2 * Math.PI;
-    while (rotationDiff < -Math.PI) rotationDiff += 2 * Math.PI;
+    // Calculate rotation for X (latitude) - limit to reasonable range
+    let rotationDiffX = targetRotationX - currentRotationX;
+    // Limit latitude rotation to avoid flipping the globe
+    rotationDiffX = Math.max(-Math.PI/3, Math.min(Math.PI/3, rotationDiffX));
     
     // Animate rotation
-    const startRotation = currentRotationY;
-    const duration = 1500; // 1.5 seconds to rotate
+    const startRotationY = currentRotationY;
+    const startRotationX = currentRotationX;
+    const duration = 2000; // 2 seconds to rotate
     const startTime = Date.now();
     
     this.isRotationPaused = true; // Pause automatic rotation during animation
@@ -97,15 +106,16 @@ export class SsByLocationComponent implements AfterViewInit {
       
       const easedProgress = easeInOutCubic(progress);
       
-      // Interpolate rotation
-      this.globeGroup.rotation.y = startRotation + (rotationDiff * easedProgress);
+      // Interpolate rotation for both axes
+      this.globeGroup.rotation.y = startRotationY + (rotationDiffY * easedProgress);
+      this.globeGroup.rotation.x = startRotationX + (rotationDiffX * easedProgress);
       
       if (progress < 1) {
         requestAnimationFrame(animateRotation);
       } else {
         // Animation complete, start pause
         this.pauseStartTime = Date.now();
-        // Keep rotation paused for PAUSE_DURATION, then resume in animate loop
+        console.log(`Rotation complete. Final position: Y=${this.globeGroup.rotation.y}, X=${this.globeGroup.rotation.x}`);
       }
     };
     
@@ -123,10 +133,12 @@ export class SsByLocationComponent implements AfterViewInit {
     this.globeGroup.add(this.highlightGroup);
 
     if (country.position) {
-      // Create a pulsing ring around the country
-      const ringGeometry = new THREE.RingGeometry(2, 4, 16);
+      console.log(`Highlighting ${country.country} at position:`, country.position);
+
+      // Create a larger pulsing ring around the country
+      const ringGeometry = new THREE.RingGeometry(3, 6, 32);
       const ringMaterial = new THREE.MeshBasicMaterial({
-        color: 0x3b82f6,
+        color: 0xff0000, // Changed to red for better visibility
         transparent: true,
         opacity: 0.8,
         side: THREE.DoubleSide
@@ -136,18 +148,18 @@ export class SsByLocationComponent implements AfterViewInit {
       
       // Position the ring at the country's location
       const ringPosition = country.position.clone().normalize();
-      ringPosition.multiplyScalar(RADIUS + 1);
+      ringPosition.multiplyScalar(RADIUS + 2); // Slightly further out
       ring.position.copy(ringPosition);
       
-      // Make the ring face outward
+      // Make the ring face outward from the globe center
       ring.lookAt(ringPosition.clone().multiplyScalar(2));
       
       this.highlightGroup.add(ring);
 
-      // Create a glowing sphere
-      const sphereGeometry = new THREE.SphereGeometry(1.5, 16, 16);
+      // Create a larger glowing sphere
+      const sphereGeometry = new THREE.SphereGeometry(2.5, 16, 16);
       const sphereMaterial = new THREE.MeshBasicMaterial({
-        color: 0x60a5fa,
+        color: 0xff4444, // Bright red
         transparent: true,
         opacity: 0.9
       });
@@ -156,13 +168,51 @@ export class SsByLocationComponent implements AfterViewInit {
       sphere.position.copy(ringPosition);
       this.highlightGroup.add(sphere);
 
+      // Add a crosshair at the center for precise location
+      const crosshairGroup = new THREE.Group();
+      
+      // Horizontal line
+      const hLineGeometry = new THREE.PlaneGeometry(8, 0.5);
+      const hLineMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffff00, // Yellow
+        transparent: true,
+        opacity: 0.9
+      });
+      const hLine = new THREE.Mesh(hLineGeometry, hLineMaterial);
+      crosshairGroup.add(hLine);
+      
+      // Vertical line
+      const vLineGeometry = new THREE.PlaneGeometry(0.5, 8);
+      const vLineMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffff00, // Yellow
+        transparent: true,
+        opacity: 0.9
+      });
+      const vLine = new THREE.Mesh(vLineGeometry, vLineMaterial);
+      crosshairGroup.add(vLine);
+      
+      crosshairGroup.position.copy(ringPosition);
+      crosshairGroup.lookAt(ringPosition.clone().multiplyScalar(2));
+      this.highlightGroup.add(crosshairGroup);
+
+      // Add text label showing country name
+      const labelSprite = this.createTextSprite(
+        `${country.country} (${country.code})`, 
+        '#ffff00', 
+        32
+      );
+      const labelPosition = ringPosition.clone();
+      labelPosition.multiplyScalar(1.2); // Further out for the label
+      labelSprite.position.copy(labelPosition);
+      this.highlightGroup.add(labelSprite);
+
       // Animate the highlight
-      this.animateHighlight(ring, sphere);
+      this.animateHighlight(ring, sphere, crosshairGroup);
     }
   }
 
   // Add animation for the highlight
-  private animateHighlight(ring: THREE.Mesh, sphere: THREE.Mesh) {
+  private animateHighlight(ring: THREE.Mesh, sphere: THREE.Mesh, crosshair: THREE.Group) {
     const animate = () => {
       if (this.highlightGroup && this.highlightGroup.children.includes(ring)) {
         // Pulse the ring
@@ -173,6 +223,10 @@ export class SsByLocationComponent implements AfterViewInit {
         // Pulse the sphere opacity
         const sphereMaterial = sphere.material as THREE.MeshBasicMaterial;
         sphereMaterial.opacity = 0.6 + Math.sin(time * 2) * 0.3;
+        
+        // Animate crosshair
+        const crosshairScale = 1 + Math.sin(time * 1.5) * 0.2;
+        crosshair.scale.setScalar(crosshairScale);
         
         requestAnimationFrame(animate);
       }
