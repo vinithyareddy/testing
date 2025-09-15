@@ -160,7 +160,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       this.startRotation();
     });
 
-    // Add zoom/pan functionality
+    // Add zoom/pan functionality and manual rotation
     const zoom = d3.zoom()
       .scaleExtent([ZOOM.min, ZOOM.max])
       .on('zoom', (event) => {
@@ -169,7 +169,52 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         this.updateCountries();
       });
 
-    this.svg.call(zoom);
+    // Add manual rotation with mouse drag
+    this.svg.call(zoom)
+      .on('mousedown', () => {
+        this.isDragging = true;
+        this.isRotating = false; // Pause auto-rotation during drag
+        this.svg.style('cursor', 'grabbing');
+      })
+      .on('mousemove', (event: any) => {
+        if (this.isDragging) {
+          const mousePos = d3.pointer(event);
+          if (this.lastMousePos[0] !== 0 || this.lastMousePos[1] !== 0) {
+            const deltaX = mousePos[0] - this.lastMousePos[0];
+            const deltaY = mousePos[1] - this.lastMousePos[1];
+            
+            // Convert mouse movement to rotation
+            this.currentRotation[0] += deltaX * 0.25;
+            this.currentRotation[1] -= deltaY * 0.25;
+            
+            // Clamp vertical rotation to prevent flipping
+            this.currentRotation[1] = Math.max(-60, Math.min(60, this.currentRotation[1]));
+            
+            this.projection.rotate(this.currentRotation);
+            this.updateCountries();
+          }
+          this.lastMousePos = mousePos;
+        }
+      })
+      .on('mouseup', () => {
+        if (this.isDragging) {
+          this.isDragging = false;
+          this.isRotating = true; // Resume auto-rotation
+          this.svg.style('cursor', 'grab');
+          this.lastMousePos = [0, 0];
+        }
+      })
+      .on('mouseleave', () => {
+        if (this.isDragging) {
+          this.isDragging = false;
+          this.isRotating = true; // Resume auto-rotation
+          this.svg.style('cursor', 'grab');
+          this.lastMousePos = [0, 0];
+        }
+      });
+
+    // Set initial cursor style
+    this.svg.style('cursor', 'grab');
   }
 
   private drawCountries() {
