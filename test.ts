@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import * as topojson from 'topojson-client';
 import worldData from 'world-atlas/countries-110m.json';
 import { FeatureCollection, Geometry } from 'geojson';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import * as d3 from 'd3';
 
 type CountryCost = {
@@ -20,6 +21,7 @@ type CountryCost = {
   position?: THREE.Vector3;
 };
 
+// Customizable globe color - change this to any color you want
 const CUSTOM_GLOBE_COLOR = '#84c9f6';
 
 const REGION_COLORS: Record<string, string> = {
@@ -32,14 +34,13 @@ const REGION_COLORS: Record<string, string> = {
   'Antarctic': '#8c564b',
   'Other': '#adcdee'
 };
-
 const COUNTRY_COLOR_RANGE: [string, string] = ['#8db4ddff', '#144c88'];
 const STROKE_COLOR_COUNTRY = '#7e8790';
+const STROKE_COLOR_REGION = '#84c9f6';
 const FALLBACK_COLOR = '#e0e0e0';
-
-const ROTATION_SPEED = 0.5;
+const ROTATION_SPEED = 0.5; // Degrees per animation frame for 2D rotation
 const ZOOM = { initial: 1, step: 0.2, min: 0.5, max: 3 };
-const RADIUS = 300;
+const RADIUS = 300; // SVG globe radius
 
 @Component({
   selector: 'app-avg-labor-cost-region',
@@ -93,6 +94,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     const width = globeDiv.offsetWidth;
     const height = globeDiv.offsetHeight;
 
+    // Create D3 orthographic projection for globe effect
     this.projection = d3.geoOrthographic()
       .scale(RADIUS)
       .translate([width / 2, height / 2])
@@ -100,11 +102,13 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
     this.path = d3.geoPath().projection(this.projection);
 
+    // Create SVG
     this.svg = d3.select(globeDiv)
       .append('svg')
       .attr('width', width)
       .attr('height', height);
 
+    // Add ocean/globe background
     this.svg.append('circle')
       .attr('cx', width / 2)
       .attr('cy', height / 2)
@@ -113,21 +117,31 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       .attr('stroke', '#ccc')
       .attr('stroke-width', 1);
 
+    // Load countries data
     this.countries = topojson.feature(
       worldData as any,
       (worldData as any).objects.countries
     ) as unknown as FeatureCollection<Geometry, any>;
 
-    // Tooltip container (styled via SCSS)
+    // Create tooltip
     this.tooltip = d3.select(globeDiv)
       .append('div')
-      .attr('class', 'tooltip');
+      .style('position', 'absolute')
+      .style('pointer-events', 'none')
+      .style('background', 'rgba(0,0,0,0.85)')
+      .style('color', '#fff')
+      .style('padding', '6px 12px')
+      .style('border-radius', '6px')
+      .style('font-size', '13px')
+      .style('z-index', '10')
+      .style('display', 'none');
 
+    // Load data and setup globe
     this.http.get<any>('assets/data/world-globe-data.json').subscribe(data => {
       this.laborData = data.countries.map((c: any) => ({
         country: c.name,
         region: c.region,
-        cost: c.cost ?? 0,
+        cost: c.cost ?? Math.floor(Math.random() * 2),
         code: c.code,
         lat: c.lat,
         lng: c.lng,
@@ -136,19 +150,24 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
       const minCost = d3.min(this.laborData, d => d.cost) || 0;
       const maxCost = d3.max(this.laborData, d => d.cost) || 1;
-
       this.countryColorScale = d3.scaleLinear<string>()
         .domain([minCost, maxCost])
         .range(COUNTRY_COLOR_RANGE);
 
       this.showRegionData();
       this.drawCountries();
+
+      // Start rotation animation
       this.startRotation();
     });
 
+    // Add zoom and drag functionality
     const zoom = d3.zoom()
       .scaleExtent([ZOOM.min, ZOOM.max])
-      .filter((event) => event.type === 'wheel')
+      .filter((event) => {
+        // Only allow zoom on wheel events, not drag events
+        return event.type === 'wheel';
+      })
       .on('zoom', (event) => {
         this.currentZoom = event.transform.k;
         this.projection.scale(RADIUS * event.transform.k);
@@ -156,21 +175,29 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       });
 
     const drag = d3.drag()
-      .filter((event) => event.type !== 'wheel')
-      .on('start', () => {
+      .filter((event) => {
+        // Only allow drag on mouse/touch events, not wheel
+        return event.type !== 'wheel';
+      })
+      .on('start', (event) => {
+        console.log('Drag started'); // Debug log
         this.isDragging = true;
         this.isRotating = false;
       })
       .on('drag', (event) => {
-        const sensitivity = 0.25;
+        console.log('Dragging:', event.dx, event.dy); // Debug log
+        const sensitivity = 0.25; // Reduced sensitivity for smoother control
         this.currentRotation[0] += event.dx * sensitivity;
         this.currentRotation[1] -= event.dy * sensitivity;
+        
+        // Clamp vertical rotation
         this.currentRotation[1] = Math.max(-90, Math.min(90, this.currentRotation[1]));
-
+        
         this.projection.rotate(this.currentRotation);
         this.updateCountries();
       })
-      .on('end', () => {
+      .on('end', (event) => {
+        console.log('Drag ended'); // Debug log
         this.isDragging = false;
         setTimeout(() => {
           if (!this.isDragging) {
@@ -179,7 +206,10 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         }, 2000);
       });
 
+    // Apply zoom only to SVG
     this.svg.call(zoom);
+    
+    // Apply drag to the ocean background circle to avoid conflicts with country hover
     this.svg.select('circle').call(drag);
   }
 
@@ -199,7 +229,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       .on('mouseover', (event: any, d: any) => {
         const countryName = d.properties.name;
         const entry = this.laborData.find(c => c.country === countryName);
-
+        
         if (entry) {
           let tooltipContent = '';
           if (this.selectedView === 'By Region') {
@@ -207,11 +237,11 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
           } else {
             tooltipContent = `<b>${entry.country}</b><br>Region: ${entry.region}<br>Avg Cost: $${entry.cost}`;
           }
-
+          
           const rect = this.globeContainer.nativeElement.getBoundingClientRect();
           const x = event.clientX - rect.left;
           const y = event.clientY - rect.top;
-
+          
           this.tooltip.html(tooltipContent)
             .style('left', (x + 15) + 'px')
             .style('top', (y + 15) + 'px')
@@ -222,7 +252,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         const rect = this.globeContainer.nativeElement.getBoundingClientRect();
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
-
+        
         this.tooltip.style('left', (x + 15) + 'px')
           .style('top', (y + 15) + 'px');
       })
@@ -308,5 +338,9 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   private showCountryData() {
     this.countryList = [...this.laborData].sort((a, b) => a.country.localeCompare(b.country));
     this.regionGroups = [];
+  }
+
+  private applyColors(mode: 'region' | 'country') {
+    this.updateCountries();
   }
 }
