@@ -22,29 +22,53 @@
   flex-direction: row;
 
   button {
-    background: #fff;
-    border: 1px solid #ccc;
-    padding: 5px 10px;
-    margin: 2px 0;
-    cursor: pointer;
-    font-size: 20px;
-    font-weight: bold;
-    color: #214bcc;
-    width: 40px;
-    height: 40px;
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 5px 10px;
+      margin: 2px 0;
+      cursor: pointer;
+      font-size: 20px;
+      font-weight: bold;
+      color: #214bcc;
+      width: 40px;
+      height: 40px;
 
-    &:hover {
-      background-color: #f0f0f0;
-    }
+      &:hover {
+          background-color: #f0f0f0;
+      }
   }
 }
 
-.legend-container {
-  display: flex;
-  flex-direction: column;
+.legend-wrapper {
   margin-top: 120px;
   margin-right: 20px;
   width: 25%;
+  display: flex;
+  flex-direction: column;
+
+  &.scrollable {
+      // Remove background and border from the wrapper
+      .legend-table {
+          max-height: 500px;
+          overflow-y: auto;
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          border-radius: 6px;
+          background: #fff;
+          display: block; // Make table scrollable
+          
+          thead {
+              position: sticky;
+              top: 0;
+              background: #f8f9fa;
+              z-index: 1;
+              display: table-header-group; // Maintain table display for header
+          }
+          
+          tbody {
+              display: table-row-group; // Maintain table display for body
+          }
+      }
+  }
 }
 
 .legend-title {
@@ -52,30 +76,7 @@
   font-size: 1.2rem;
   font-weight: bold;
   text-align: left;
-  color: #fff; // default: Region view
-}
-
-.legend-wrapper {
-  &.scrollable {
-    max-height: 500px;
-    overflow-y: auto;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 6px;
-    background: #fff;
-
-    .legend-table thead {
-      position: sticky;
-      top: 0;
-      background: #f8f9fa;
-      z-index: 1;
-    }
-  }
-}
-
-/* Override title color in Country view (scrollable legend) */
-.legend-wrapper.scrollable ~ .legend-title,
-.legend-container .legend-wrapper.scrollable ~ .legend-title {
-  color: #000;
+  color: #fff;
 }
 
 .legend-table {
@@ -85,6 +86,7 @@
   font-size: 0.9rem;
   color: #000;
   border-radius: 0;
+  margin-top: 0; // Ensure no extra margin
 }
 
 .legend-table th,
@@ -146,47 +148,47 @@
   margin-bottom: 10px;
 
   i {
-    font-size: 16px;
-    cursor: pointer;
+      font-size: 16px;
+      cursor: pointer;
   }
 
   .fa-expand {
-    margin-top: 7px;
+      margin-top: 7px;
   }
 }
 
 .custom-dropdown {
   .btn {
-    padding: 2px 10px;
-    font-size: 14px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    background: #fff;
-    width: 200px;
+      padding: 2px 10px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: #fff;
+      width: 200px;
   }
 
   .dropdown-menu {
-    font-size: 14px;
-    min-width: 140px;
-    z-index: 2000 !important;
-    display: block !important;
-    position: absolute;
-    margin-top: 4px;
+      font-size: 14px;
+      min-width: 140px;
+      z-index: 2000 !important;
+      display: block !important;
+      position: absolute;
+      margin-top: 4px;
   }
 
   .dropdown-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
 
-    &:hover {
-      background-color: #f5f5f5;
-    }
+      &:hover {
+          background-color: #f5f5f5;
+      }
 
-    i {
-      color: #007bff;
-    }
+      i {
+          color: #007bff;
+      }
   }
 }
 
@@ -201,28 +203,28 @@
   margin-left: 20px;
 
   .tooltip-row {
-    padding: 6px 10px;
+      padding: 6px 10px;
   }
 
   .tooltip-header {
-    background: #f4f6f9;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: #000 !important;
+      background: #f4f6f9;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #000 !important;
   }
 
   .tooltip-body {
-    background: #fff;
-    color: #000;
-    display: flex;
-    justify-content: space-between;
+      background: #fff;
+      color: #000;
+      display: flex;
+      justify-content: space-between;
   }
 
   img {
-    width: 20px;
-    height: 14px;
-    border: 1px solid #ccc;
+      width: 20px;
+      height: 14px;
+      border: 1px solid #ccc;
   }
 }
