@@ -63,6 +63,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   private currentRotation = [0, 0];
   private isRotating = true;
   private tooltip: any;
+  private isDragging = false;
 
   currentZoom: number = ZOOM.initial;
   selectedView: string = 'By Region';
@@ -122,7 +123,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       (worldData as any).objects.countries
     ) as unknown as FeatureCollection<Geometry, any>;
 
-    // Create tooltip BEFORE loading data
+    // Create tooltip
     this.tooltip = d3.select(globeDiv)
       .append('div')
       .style('position', 'absolute')
@@ -160,7 +161,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       this.startRotation();
     });
 
-    // Add zoom/pan functionality AND drag rotation
+    // Add zoom and drag functionality
     const zoom = d3.zoom()
       .scaleExtent([ZOOM.min, ZOOM.max])
       .on('zoom', (event) => {
@@ -169,18 +170,16 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         this.updateCountries();
       });
 
-    // Add drag behavior for manual rotation
     const drag = d3.drag()
       .on('start', () => {
         this.isDragging = true;
-        this.isRotating = false; // Stop auto-rotation when dragging
+        this.isRotating = false;
       })
       .on('drag', (event) => {
         const sensitivity = 0.5;
         this.currentRotation[0] += event.dx * sensitivity;
         this.currentRotation[1] -= event.dy * sensitivity;
         
-        // Clamp vertical rotation to prevent flipping
         this.currentRotation[1] = Math.max(-90, Math.min(90, this.currentRotation[1]));
         
         this.projection.rotate(this.currentRotation);
@@ -188,12 +187,11 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       })
       .on('end', () => {
         this.isDragging = false;
-        // Resume auto-rotation after a short delay
         setTimeout(() => {
           if (!this.isDragging) {
             this.isRotating = true;
           }
-        }, 2000); // Resume after 2 seconds
+        }, 2000);
       });
 
     this.svg.call(zoom);
@@ -217,22 +215,17 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         const countryName = d.properties.name;
         const entry = this.laborData.find(c => c.country === countryName);
         
-        console.log('Mouseover:', countryName, entry); // Debug log
-        
         if (entry) {
           let tooltipContent = '';
           if (this.selectedView === 'By Region') {
-            tooltipContent = `<b>${entry.region}</b><br>Country: ${entry.country}<br>Avg Cost: ${entry.cost}`;
+            tooltipContent = `<b>${entry.region}</b><br>Country: ${entry.country}<br>Avg Cost: $${entry.cost}`;
           } else {
-            tooltipContent = `<b>${entry.country}</b><br>Region: ${entry.region}<br>Avg Cost: ${entry.cost}`;
+            tooltipContent = `<b>${entry.country}</b><br>Region: ${entry.region}<br>Avg Cost: $${entry.cost}`;
           }
           
-          // Get correct mouse coordinates relative to the page
           const rect = this.globeContainer.nativeElement.getBoundingClientRect();
           const x = event.clientX - rect.left;
           const y = event.clientY - rect.top;
-          
-          console.log('Tooltip positioning:', x, y); // Debug log
           
           this.tooltip.html(tooltipContent)
             .style('left', (x + 15) + 'px')
@@ -249,7 +242,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
           .style('top', (y + 15) + 'px');
       })
       .on('mouseout', () => {
-        console.log('Mouse out'); // Debug log
         this.tooltip.style('display', 'none');
       });
   }
@@ -259,7 +251,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       .attr('d', this.path)
       .attr('fill', (d: any) => this.getCountryColor(d));
 
-    // Update ocean background
     this.svg.select('circle')
       .attr('r', RADIUS * this.currentZoom);
   }
@@ -310,7 +301,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     } else {
       this.showCountryData();
     }
-    // Redraw countries to update tooltips and styling
     this.drawCountries();
   }
 
