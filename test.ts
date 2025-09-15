@@ -1,19 +1,11 @@
 if (this.selectedView === 'By Region') {
-  const regionGroup = this.regionGroups.find(r => r.region === entry.region);
-
-  let avgCost = 0;
-  if (regionGroup) {
-    avgCost = regionGroup.total / regionGroup.countries.length;
-  }
-
-  // ✅ round or format to match legend
-  const displayCost = avgCost.toFixed(0);
+  // In Region view, the legend is categorical, so tooltip should match it
+  const regionColor = REGION_COLORS[entry.region] || REGION_COLORS['Other'];
 
   tooltipContent = `
-    <div class="tooltip-row tooltip-header">${entry.region}</div>
-    <div class="tooltip-row tooltip-body">
-      <span>Average Cost</span>
-      <span><b>$${displayCost}</b></span>
+    <div class="tooltip-row tooltip-header" style="display:flex; align-items:center; gap:6px;">
+      <div style="width:12px; height:12px; border-radius:50%; background:${regionColor};"></div>
+      <span>${entry.region}</span>
     </div>
   `;
 }
