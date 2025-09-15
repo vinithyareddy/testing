@@ -263,7 +263,8 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     } else {
       this.showCountryData();
     }
-    this.applyColors('region');
+    // Redraw countries to update tooltips and styling
+    this.drawCountries();
   }
 
   private showRegionData() {
