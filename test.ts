@@ -62,6 +62,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
   private countries!: FeatureCollection<Geometry, any>;
   private currentRotation = [0, 0];
   private isRotating = true;
+  private tooltip: any;
 
   currentZoom: number = ZOOM.initial;
   selectedView: string = 'By Region';
@@ -121,8 +122,8 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       (worldData as any).objects.countries
     ) as unknown as FeatureCollection<Geometry, any>;
 
-    // Create tooltip
-    const tooltip = d3.select(globeDiv)
+    // Create tooltip BEFORE loading data
+    this.tooltip = d3.select(globeDiv)
       .append('div')
       .style('position', 'absolute')
       .style('pointer-events', 'none')
@@ -155,27 +156,6 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       this.showRegionData();
       this.drawCountries();
 
-      // Add hover functionality
-      this.svg.selectAll('.country')
-        .on('mouseover', (event: any, d: any) => {
-          const countryName = d.properties.name;
-          const entry = this.laborData.find(c => c.country === countryName);
-          
-          if (entry) {
-            tooltip.html(`<b>${entry.country}</b><br>Region: ${entry.region}<br>Avg Cost: $${entry.cost}`)
-              .style('left', (event.pageX + 15) + 'px')
-              .style('top', (event.pageY + 15) + 'px')
-              .style('display', 'block');
-          }
-        })
-        .on('mousemove', (event: any) => {
-          tooltip.style('left', (event.pageX + 15) + 'px')
-            .style('top', (event.pageY + 15) + 'px');
-        })
-        .on('mouseout', () => {
-          tooltip.style('display', 'none');
-        });
-
       // Start rotation animation
       this.startRotation();
     });
@@ -204,7 +184,34 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       .attr('fill', (d: any) => this.getCountryColor(d))
       .attr('stroke', this.selectedView === 'By Country' ? STROKE_COLOR_COUNTRY : 'none')
       .attr('stroke-width', 0.5)
-      .style('cursor', 'pointer');
+      .style('cursor', 'pointer')
+      .on('mouseover', (event: any, d: any) => {
+        const countryName = d.properties.name;
+        const entry = this.laborData.find(c => c.country === countryName);
+        
+        if (entry) {
+          let tooltipContent = '';
+          if (this.selectedView === 'By Region') {
+            // In region view, show region name prominently
+            tooltipContent = `<b>${entry.region}</b><br>Country: ${entry.country}<br>Avg Cost: $${entry.cost}`;
+          } else {
+            // In country view, show country name prominently
+            tooltipContent = `<b>${entry.country}</b><br>Region: ${entry.region}<br>Avg Cost: $${entry.cost}`;
+          }
+          
+          this.tooltip.html(tooltipContent)
+            .style('left', (event.pageX + 15) + 'px')
+            .style('top', (event.pageY + 15) + 'px')
+            .style('display', 'block');
+        }
+      })
+      .on('mousemove', (event: any) => {
+        this.tooltip.style('left', (event.pageX + 15) + 'px')
+          .style('top', (event.pageY + 15) + 'px');
+      })
+      .on('mouseout', () => {
+        this.tooltip.style('display', 'none');
+      });
   }
 
   private updateCountries() {
