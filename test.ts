@@ -160,7 +160,7 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       this.startRotation();
     });
 
-    // Add zoom/pan functionality and manual rotation
+    // Add zoom/pan functionality AND drag rotation
     const zoom = d3.zoom()
       .scaleExtent([ZOOM.min, ZOOM.max])
       .on('zoom', (event) => {
@@ -169,54 +169,35 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         this.updateCountries();
       });
 
-    // Add manual rotation with mouse drag
-    this.svg.call(zoom)
-      .on('mousedown', (event: MouseEvent) => {
+    // Add drag behavior for manual rotation
+    const drag = d3.drag()
+      .on('start', () => {
         this.isDragging = true;
-        this.isRotating = false; // Pause auto-rotation during drag
-        this.svg.style('cursor', 'grabbing');
-        this.lastMousePos = d3.pointer(event, this.svg.node());
+        this.isRotating = false; // Stop auto-rotation when dragging
       })
-      .on('mousemove', (event: MouseEvent) => {
-        if (this.isDragging) {
-          const mousePos = d3.pointer(event, this.svg.node());
-          
-          if (this.lastMousePos[0] !== 0 || this.lastMousePos[1] !== 0) {
-            const deltaX = mousePos[0] - this.lastMousePos[0];
-            const deltaY = mousePos[1] - this.lastMousePos[1];
-            
-            // Convert mouse movement to rotation
-            this.currentRotation[0] += deltaX * 0.25;
-            this.currentRotation[1] -= deltaY * 0.25;
-            
-            // Clamp vertical rotation to prevent flipping
-            this.currentRotation[1] = Math.max(-60, Math.min(60, this.currentRotation[1]));
-            
-            this.projection.rotate(this.currentRotation);
-            this.updateCountries();
+      .on('drag', (event) => {
+        const sensitivity = 0.5;
+        this.currentRotation[0] += event.dx * sensitivity;
+        this.currentRotation[1] -= event.dy * sensitivity;
+        
+        // Clamp vertical rotation to prevent flipping
+        this.currentRotation[1] = Math.max(-90, Math.min(90, this.currentRotation[1]));
+        
+        this.projection.rotate(this.currentRotation);
+        this.updateCountries();
+      })
+      .on('end', () => {
+        this.isDragging = false;
+        // Resume auto-rotation after a short delay
+        setTimeout(() => {
+          if (!this.isDragging) {
+            this.isRotating = true;
           }
-          this.lastMousePos = mousePos;
-        }
-      })
-      .on('mouseup', () => {
-        if (this.isDragging) {
-          this.isDragging = false;
-          this.isRotating = true; // Resume auto-rotation
-          this.svg.style('cursor', 'grab');
-          this.lastMousePos = [0, 0];
-        }
-      })
-      .on('mouseleave', () => {
-        if (this.isDragging) {
-          this.isDragging = false;
-          this.isRotating = true; // Resume auto-rotation
-          this.svg.style('cursor', 'grab');
-          this.lastMousePos = [0, 0];
-        }
+        }, 2000); // Resume after 2 seconds
       });
 
-    // Set initial cursor style
-    this.svg.style('cursor', 'grab');
+    this.svg.call(zoom);
+    this.svg.call(drag);
   }
 
   private drawCountries() {
