@@ -171,14 +171,16 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
 
     // Add manual rotation with mouse drag
     this.svg.call(zoom)
-      .on('mousedown', () => {
+      .on('mousedown', (event: MouseEvent) => {
         this.isDragging = true;
         this.isRotating = false; // Pause auto-rotation during drag
         this.svg.style('cursor', 'grabbing');
+        this.lastMousePos = d3.pointer(event, this.svg.node());
       })
-      .on('mousemove', (event: any) => {
+      .on('mousemove', (event: MouseEvent) => {
         if (this.isDragging) {
-          const mousePos = d3.pointer(event);
+          const mousePos = d3.pointer(event, this.svg.node());
+          
           if (this.lastMousePos[0] !== 0 || this.lastMousePos[1] !== 0) {
             const deltaX = mousePos[0] - this.lastMousePos[0];
             const deltaY = mousePos[1] - this.lastMousePos[1];
