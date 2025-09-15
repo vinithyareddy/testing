@@ -2,31 +2,32 @@ focusOnCountry(country: CountrySkill) {
   if (!country) return;
   this.isFocusing = true;
 
-  // base position from lat/lng
+  // base position in globe local space
   const basePos = this.latLngToVector3(country.lat, country.lng, RADIUS);
 
-  // normalize target direction
+  // desired direction (vector from globe center to country)
   const targetDir = basePos.clone().normalize();
 
-  // camera looks down -Z in its local space
-  const cameraForward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
+  // camera forward direction in world space
+  const camDir = new THREE.Vector3();
+  this.camera.getWorldDirection(camDir);
 
-  // quaternion to rotate globe so that country aligns with camera forward
-  const q = new THREE.Quaternion().setFromUnitVectors(targetDir, cameraForward);
+  // compute rotation: rotate globe so country faces camera
+  const q = new THREE.Quaternion().setFromUnitVectors(targetDir, camDir.negate());
 
-  // apply rotation while preserving upright Y
+  // apply rotation to globeGroup (pins + labels rotate with it)
   this.globeGroup.quaternion.premultiply(q);
 
-  // keep controls centered
+  // keep orbit controls pivot at globe center
   this.controls.target.set(0, 0, 0);
   this.controls.update();
 
-  // add a highlight pin (on globe surface)
+  // add a temporary red highlight pin at that country's local position
   const highlight = new THREE.Mesh(
     new THREE.SphereGeometry(2.5, 16, 16),
     new THREE.MeshBasicMaterial({ color: 0xff0000 })
   );
-  highlight.position.copy(basePos);
+  highlight.position.copy(basePos); // still local to globeGroup
   this.globeGroup.add(highlight);
 
   setTimeout(() => {
