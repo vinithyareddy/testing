@@ -1,51 +1,33 @@
 focusOnCountry(country: CountryCost) {
   if (!country) return;
 
-  // Convert lat/lng to [lon, lat] rotation for D3
-  const targetRotation: [number, number] = [
-    -country.lng, // D3 needs negative longitude
-    -country.lat  // negative latitude
-  ];
+  // Stop auto-rotation while focusing
+  this.isRotating = false;
 
-  // Smooth animation from currentRotation to target
-  const start = [...this.currentRotation];
-  const end = targetRotation;
-  const duration = 1000; // 1 second
-  const startTime = Date.now();
+  // Get the vector position for the country
+  const pos = this.latLngToVector3(country.lat, country.lng, RADIUS);
 
-  const animate = () => {
-    const now = Date.now();
-    const t = Math.min(1, (now - startTime) / duration);
+  // Calculate screen projection for tooltip/marker
+  const [x, y] = this.projection([country.lng, country.lat]) || [0, 0];
 
-    this.currentRotation[0] = start[0] + (end[0] - start[0]) * t;
-    this.currentRotation[1] = start[1] + (end[1] - start[1]) * t;
+  // Add a temporary red circle (marker) on the globe
+  const marker = this.svg.append('circle')
+    .attr('cx', x)
+    .attr('cy', y)
+    .attr('r', 6)
+    .attr('fill', 'red')
+    .attr('stroke', '#fff')
+    .attr('stroke-width', 2);
 
-    this.projection.rotate(this.currentRotation);
-    this.updateCountries();
+  // Remove marker after 2 seconds
+  setTimeout(() => {
+    marker.remove();
+    this.isRotating = true;
+  }, 2000);
 
-    if (t < 1) {
-      requestAnimationFrame(animate);
-    }
-  };
-
-  this.isRotating = false; // pause auto rotation while focusing
-  animate();
+  // Rotate globe smoothly toward the country
+  const targetRotation = [-country.lng, -country.lat];
+  this.currentRotation = targetRotation;
+  this.projection.rotate(this.currentRotation);
+  this.updateCountries();
 }
-
-
-<tr *ngFor="let c of countryList" class="country-row" (click)="focusOnCountry(c)">
-  <td class="country-info">
-    <img [src]="'https://flagcdn.com/16x12/' + c.code.toLowerCase() + '.png'" class="flag-icon" />
-    {{ c.country }}
-  </td>
-  <td class="cost-col">${{ c.cost }}</td>
-</tr>
-
-
-<tr *ngFor="let c of region.countries" [hidden]="!region.expanded" class="country-row" (click)="focusOnCountry(c)">
-  <td class="country-info">
-    <img [src]="'https://flagcdn.com/16x12/' + c.code.toLowerCase() + '.png'" class="flag-icon" />
-    {{ c.country }}
-  </td>
-  <td class="cost-col">${{ c.cost }}</td>
-</tr>
