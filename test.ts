@@ -5,15 +5,19 @@
     let tooltipContent = '';
 
     if (this.selectedView === 'By Region') {
-      // Region view → only region name + cost
+      // Region view → only region + cost
       tooltipContent = `
         <div style="font-weight:600; margin-bottom:4px;">${entry.region}</div>
         <div><b>Avg Cost:</b> $${entry.cost}</div>
       `;
     } else {
-      // Country view → only country name + cost
+      // Country view → flag + country name + cost
+      const flagUrl = `https://flagcdn.com/w20/${entry.code.toLowerCase()}.png`;
       tooltipContent = `
-        <div style="font-weight:600; margin-bottom:4px;">${entry.country}</div>
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+          <img src="${flagUrl}" style="width:20px; height:14px; border:1px solid #ccc;"/>
+          <span style="font-weight:600;">${entry.country}</span>
+        </div>
         <div><b>Avg Cost:</b> $${entry.cost}</div>
       `;
     }
