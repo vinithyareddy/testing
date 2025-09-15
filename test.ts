@@ -1,40 +1,30 @@
-if (closest) {
-  const vector = closest.position!.clone().project(this.camera);
-  const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
-  const y = (-vector.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
-
-  tooltip.innerHTML = `
-    <div class="tooltip-header">
-      <img src="https://flagcdn.com/24x18/${closest.code.toLowerCase()}.png" class="flag-icon" />
-      <span class="country-name">${closest.country}</span>
+tooltip.innerHTML = `
+  <div class="tooltip-header">
+    <img src="https://flagcdn.com/24x18/${closest.code.toLowerCase()}.png" class="flag-icon" />
+    <span class="country-name">${closest.country}</span>
+  </div>
+  <hr />
+  <div class="tooltip-metrics">
+    <div class="metric-row">
+      <span class="metric-label">Unique Skills</span>
+      <span class="metric-value">${closest.uniqueSkills}</span>
     </div>
-    <hr/>
-    <div class="tooltip-metrics">
-      <div class="metric-row">
-        <span class="metric-label">Unique Skills</span>
-        <span class="metric-value">${closest.uniqueSkills}</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">Skill Supply (FTE)</span>
-        <span class="metric-value">${closest.skillSupply}</span>
-      </div>
+    <div class="metric-row">
+      <span class="metric-label">Skill Supply (FTE)</span>
+      <span class="metric-value">${closest.skillSupply}</span>
     </div>
-  `;
+  </div>
+`;
 
-  tooltip.style.left = `${x + 15}px`;
-  tooltip.style.top = `${y + 15}px`;
-  tooltip.style.display = 'block';
-  return;
-}
+
 .globe-tooltip {
   position: absolute;
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  padding: 10px 14px;
+  padding: 0; // remove global padding, structure will add spacing
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   font-size: 13px;
-  line-height: 1.5;
   pointer-events: none;
   display: none;
   z-index: 2000;
@@ -44,10 +34,13 @@ if (closest) {
   .tooltip-header {
     display: flex;
     align-items: center;
-    margin-bottom: 6px;
+    background: #f9fafb;  // light grey header
+    padding: 8px 12px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
 
     .flag-icon {
-      width: 22px;
+      width: 20px;
       height: auto;
       margin-right: 8px;
       border-radius: 2px;
@@ -61,30 +54,33 @@ if (closest) {
   }
 
   hr {
-    margin: 6px 0;
-    border: 0;
+    margin: 0;
+    border: none;
     border-top: 1px solid #e5e7eb;
   }
 
   .tooltip-metrics {
+    padding: 8px 12px;
+
     .metric-row {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
 
       .metric-label {
-        font-size: 12px;
-        color: #6b7280;
+        font-size: 13px;
+        color: #374151;
       }
 
       .metric-value {
-        font-size: 13px;
         font-weight: 600;
+        font-size: 13px;
         color: #111827;
       }
-    }
-    .metric-row:last-child {
-      margin-bottom: 0;
     }
   }
 }
