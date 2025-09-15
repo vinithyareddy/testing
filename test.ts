@@ -3,30 +3,32 @@ focusOnCountry(country: CountrySkill) {
 
   this.isFocusing = true;
 
-  // base position from lat/lng
+  // base position from lat/lng → attach to globe surface
   const basePos = this.latLngToVector3(country.lat, country.lng, RADIUS);
 
-  // compute direction from globe center to country
+  // desired direction (where country is)
   const targetDir = basePos.clone().normalize();
 
-  // get current "front" direction of globe (Z axis in globeGroup’s local space)
+  // current "front" direction of the globe (Z axis)
   const currentDir = new THREE.Vector3(0, 0, 1).applyQuaternion(this.globeGroup.quaternion);
 
-  // quaternion to rotate currentDir → targetDir
+  // compute rotation needed
   const q = new THREE.Quaternion().setFromUnitVectors(currentDir, targetDir);
 
-  // rotate globeGroup
+  // rotate globe
   this.globeGroup.quaternion.premultiply(q);
 
+  // controls always orbit around center
+  this.controls.target.set(0, 0, 0);
   this.controls.update();
 
-  // add highlight marker (attach to globeGroup so it rotates with pins)
+  // highlight marker → must be inside globeGroup so it rotates with pins
   const highlight = new THREE.Mesh(
     new THREE.SphereGeometry(2.5, 16, 16),
     new THREE.MeshBasicMaterial({ color: 0xff0000 })
   );
   highlight.position.copy(basePos);
-  this.globeGroup.add(highlight); // ✅ add to globeGroup
+  this.globeGroup.add(highlight);
 
   setTimeout(() => {
     this.globeGroup.remove(highlight);
