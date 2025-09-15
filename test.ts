@@ -1,230 +1,327 @@
-.globe-wrapper {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  background: #154361;
-  padding: 15px;
-  color: #fff;
-  position: relative;
-}
+import { CommonModule } from '@angular/common';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
+import { HighchartsChartModule } from 'highcharts-angular';
+import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
+import * as THREE from 'three';
+import * as topojson from 'topojson-client';
+import worldData from 'world-atlas/countries-50m.json';
+import { FeatureCollection, Geometry } from 'geojson';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import * as d3 from 'd3';
 
-.globe-container {
-  width: 70%;
-  height: 800px;
-  aspect-ratio: 1 / 1;
-}
+type CountryCost = {
+  country: string;
+  region: string;
+  cost: number;
+  code: string;
+  lat: number;
+  lng: number;
+  position?: THREE.Vector3;
+};
 
-.zoom-container {
-  position: absolute;
-  bottom: 20px;
-  left: 20px;
-  display: flex;
-  flex-direction: row;
+const CUSTOM_GLOBE_COLOR = '#84c9f6';
 
-  button {
-      background: #fff;
-      border: 1px solid #ccc;
-      padding: 5px 10px;
-      margin: 2px 0;
-      cursor: pointer;
-      font-size: 20px;
-      font-weight: bold;
-      color: #214bcc;
-      width: 40px;
-      height: 40px;
+const REGION_COLORS: Record<string, string> = {
+  'North America': '#3c87d7',
+  'South America': '#144c88',
+  'Asia': '#343875ff',
+  'Europe': '#375691ff',
+  'Africa': '#83c083ff',
+  'Oceania': '#9467bd',
+  'Antarctic': '#8c564b',
+  'Other': '#adcdee'
+};
+const COUNTRY_COLOR_RANGE: [string, string] = ['#8db4ddff', '#144c88'];
+const STROKE_COLOR_COUNTRY = '#7e8790';
+const FALLBACK_COLOR = '#e0e0e0';
+const ROTATION_SPEED = 0.5;
+const ZOOM = { initial: 1, step: 0.2, min: 0.5, max: 3 };
+const RADIUS = 300;
 
-      &:hover {
-          background-color: #f0f0f0;
-      }
+@Component({
+  selector: 'app-avg-labor-cost-region',
+  templateUrl: './avg-labor-cost-region.component.html',
+  standalone: true,
+  imports: [CommonModule, FormsModule, HttpClientModule, HighchartsChartModule],
+  styleUrls: ['./avg-labor-cost-region.component.scss']
+})
+export class AvgLaborCostRegionComponent implements AfterViewInit {
+  @ViewChild('globeContainer', { static: true }) globeContainer!: ElementRef;
+  laborData: CountryCost[] = [];
+  regionGroups: { region: string; total: number; countries: CountryCost[]; expanded?: boolean }[] = [];
+  countryList: CountryCost[] = [];
+  private svg: any;
+  private projection: any;
+  private path: any;
+  private countries!: FeatureCollection<Geometry, any>;
+  private currentRotation = [0, 0];
+  private isRotating = true;
+  private tooltip: any;
+  private isDragging = false;
+  currentZoom: number = ZOOM.initial;
+  selectedView: string = 'By Region';
+  showMenu: boolean = false;
+  private countryColorScale = d3.scaleLinear<string>()
+    .domain([0, 1])
+    .range(COUNTRY_COLOR_RANGE);
+
+  constructor(private http: HttpClient) { }
+
+  private latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
+    const phi = (90 - lat) * (Math.PI / 180);
+    const theta = (lng + 180) * (Math.PI / 180);
+    const x = -radius * Math.sin(phi) * Math.cos(theta);
+    const y = radius * Math.cos(phi);
+    const z = radius * Math.sin(phi) * Math.sin(theta);
+    const v = new THREE.Vector3(x, y, z);
+    v.applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
+    return v;
   }
-}
 
-.legend-wrapper {
-  margin-top: 120px;
-  margin-right: 20px;
-  width: 25%;
-  display: flex;
-  flex-direction: column;
+  ngAfterViewInit() {
+    const globeDiv = this.globeContainer.nativeElement;
+    const width = globeDiv.offsetWidth;
+    const height = globeDiv.offsetHeight;
+    this.projection = d3.geoOrthographic()
+      .scale(RADIUS)
+      .translate([width / 2, height / 2])
+      .clipAngle(90);
+    this.path = d3.geoPath().projection(this.projection);
+    this.svg = d3.select(globeDiv)
+      .append('svg')
+      .attr('width', width)
+      .attr('height', height);
+    this.svg.append('circle')
+      .attr('cx', width / 2)
+      .attr('cy', height / 2)
+      .attr('r', RADIUS)
+      .attr('fill', CUSTOM_GLOBE_COLOR)
+      .attr('stroke', '#ccc')
+      .attr('stroke-width', 1);
+    this.countries = topojson.feature(
+      worldData as any,
+      (worldData as any).objects.countries
+    ) as unknown as FeatureCollection<Geometry, any>;
+    this.tooltip = d3.select(globeDiv)
+      .append('div')
+      .attr('class', 'tooltip-card')
+      .style('position', 'absolute')
+      .style('pointer-events', 'none')
+      .style('display', 'none');
 
-  &.scrollable {
-      // Remove background and border from the wrapper
-      .legend-table {
-          max-height: 500px;
-          overflow-y: auto;
-          border: 1px solid rgba(0, 0, 0, 0.1);
-          border-radius: 6px;
-          background: #fff;
-          display: block; // Make table scrollable
-          
-          thead {
-              position: sticky;
-              top: 0;
-              background: #f8f9fa;
-              z-index: 1;
-              display: table-header-group; // Maintain table display for header
+    this.http.get<any>('assets/data/world-globe-data.json').subscribe(data => {
+      this.laborData = data.countries.map((c: any) => ({
+        country: c.name,
+        region: c.region,
+        cost: c.cost ?? Math.floor(Math.random() * 2),
+        code: c.code,
+        lat: c.lat,
+        lng: c.lng,
+        position: this.latLngToVector3(c.lat, c.lng, RADIUS)
+      }));
+
+      const minCost = d3.min(this.laborData, d => d.cost) || 0;
+      const maxCost = d3.max(this.laborData, d => d.cost) || 1;
+
+      this.countryColorScale = d3.scaleLinear<string>()
+        .domain([minCost, maxCost])
+        .range(COUNTRY_COLOR_RANGE);
+
+      this.showRegionData();
+      this.drawCountries();
+      this.startRotation();
+    });
+
+    const zoom = d3.zoom()
+      .scaleExtent([ZOOM.min, ZOOM.max])
+      .filter((event) => {
+        return event.type === 'wheel';
+      })
+      .on('zoom', (event) => {
+        this.currentZoom = event.transform.k;
+        this.projection.scale(RADIUS * event.transform.k);
+        this.updateCountries();
+      });
+
+    const drag = d3.drag()
+      .filter((event) => {
+        return event.type !== 'wheel';
+      })
+      .on('start', (event) => {
+        this.isDragging = true;
+        this.isRotating = false;
+      })
+      .on('drag', (event) => {
+        const sensitivity = 0.25;
+        this.currentRotation[0] += event.dx * sensitivity;
+        this.currentRotation[1] -= event.dy * sensitivity;
+        this.currentRotation[1] = Math.max(-90, Math.min(90, this.currentRotation[1]));
+        this.projection.rotate(this.currentRotation);
+        this.updateCountries();
+      })
+      .on('end', (event) => {
+        this.isDragging = false;
+        setTimeout(() => {
+          if (!this.isDragging) {
+            this.isRotating = true;
           }
-          
-          tbody {
-              display: table-row-group; // Maintain table display for body
+        }, 2000);
+      });
+
+    this.svg.call(zoom);
+    this.svg.select('circle').call(drag);
+  }
+
+  private drawCountries() {
+    this.svg.selectAll('.country').remove();
+
+    this.svg.selectAll('.country')
+      .data(this.countries.features)
+      .enter()
+      .append('path')
+      .attr('class', 'country')
+      .attr('d', this.path)
+      .attr('fill', (d: any) => this.getCountryColor(d))
+      .attr('stroke', this.selectedView === 'By Country' ? STROKE_COLOR_COUNTRY : 'none')
+      .attr('stroke-width', 0.5)
+      .style('cursor', 'pointer')
+      .on('mouseover', (event: any, d: any) => {
+        const entry = this.laborData.find(c => c.country === d.properties.name);
+
+        if (entry) {
+          let tooltipContent = '';
+
+          if (this.selectedView === 'By Region') {
+            // Find the region group to get the total cost
+            const regionGroup = this.regionGroups.find(r => r.region === entry.region);
+            const regionTotal = regionGroup ? regionGroup.total : entry.cost;
+            
+            tooltipContent = `
+            <div class="tooltip-row tooltip-header">${entry.region}</div>
+            <div class="tooltip-row tooltip-body">
+              <span>Average Cost</span>
+              <span><b>$${regionTotal}</b></span>
+            </div>
+          `;
+          } else {
+            // Country view - show individual country cost
+            const flagUrl = `https://flagcdn.com/w20/${entry.code.toLowerCase()}.png`;
+            tooltipContent = `
+            <div class="tooltip-row tooltip-header">
+              <img src="${flagUrl}" />
+              <span>${entry.country}</span>
+            </div>
+            <div class="tooltip-row tooltip-body">
+              <span>Average Cost</span>
+              <span><b>$${entry.cost}</b></span>
+            </div>
+          `;
           }
+
+          const rect = this.globeContainer.nativeElement.getBoundingClientRect();
+          const x = event.clientX - rect.left;
+          const y = event.clientY - rect.top;
+
+          this.tooltip.html(tooltipContent)
+            .style('left', (x + 15) + 'px')
+            .style('top', (y + 15) + 'px')
+            .style('display', 'block');
+        }
+      })
+      .on('mousemove', (event: any) => {
+        const rect = this.globeContainer.nativeElement.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+        this.tooltip.style('left', (x + 15) + 'px')
+          .style('top', (y + 15) + 'px');
+      })
+      .on('mouseout', () => {
+        this.tooltip.style('display', 'none');
+      });
+  }
+
+  private updateCountries() {
+    this.svg.selectAll('.country')
+      .attr('d', this.path)
+      .attr('fill', (d: any) => this.getCountryColor(d));
+
+    this.svg.select('circle')
+      .attr('r', RADIUS * this.currentZoom);
+  }
+
+  private getCountryColor(d: any): string {
+    const countryName = d.properties.name;
+    const entry = this.laborData.find(c => c.country === countryName);
+
+    if (this.selectedView === 'By Region') {
+      return entry ? REGION_COLORS[entry.region] || REGION_COLORS['Other'] : REGION_COLORS['Other'];
+    } else {
+      return entry ? this.countryColorScale(entry.cost) : FALLBACK_COLOR;
+    }
+  }
+
+  private startRotation() {
+    const rotate = () => {
+      if (this.isRotating) {
+        this.currentRotation[0] += ROTATION_SPEED;
+        this.projection.rotate(this.currentRotation);
+        this.updateCountries();
       }
-  }
-}
-
-.legend-title {
-  margin-bottom: 15px;
-  font-size: 1.2rem;
-  font-weight: bold;
-  text-align: left;
-  color: #fff;
-}
-
-.legend-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #ffffff;
-  font-size: 0.9rem;
-  color: #000;
-  border-radius: 0;
-  margin-top: 0; // Ensure no extra margin
-}
-
-.legend-table th,
-.legend-table td {
-  padding: 10px;
-}
-
-.legend-table th:first-child {
-  text-align: left !important;
-  padding-left: 30px !important;
-}
-
-.legend-table th.left {
-  text-align: left;
-}
-
-.legend-table th.right {
-  text-align: right;
-}
-
-.legend-table td.cost-col {
-  text-align: right;
-}
-
-.legend-table tr {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.cell-content {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.expand-icon {
-  font-size: 1rem;
-  color: #2083c4;
-}
-
-.flag-icon {
-  width: 20px;
-  margin-right: 8px;
-  vertical-align: middle;
-}
-
-.ellipsis {
-  cursor: pointer;
-  font-size: 18px;
-  margin-left: 12px;
-  color: #0071bc;
-  margin-top: 1px;
-}
-
-.header-icons {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 10px;
-
-  i {
-      font-size: 16px;
-      cursor: pointer;
+      requestAnimationFrame(rotate);
+    };
+    rotate();
   }
 
-  .fa-expand {
-      margin-top: 7px;
-  }
-}
-
-.custom-dropdown {
-  .btn {
-      padding: 2px 10px;
-      font-size: 14px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      background: #fff;
-      width: 200px;
+  expandRow(region: any) {
+    region.expanded = !region.expanded;
   }
 
-  .dropdown-menu {
-      font-size: 14px;
-      min-width: 140px;
-      z-index: 2000 !important;
-      display: block !important;
-      position: absolute;
-      margin-top: 4px;
+  zoomIn() {
+    this.currentZoom = Math.min(this.currentZoom + ZOOM.step, ZOOM.max);
+    this.projection.scale(RADIUS * this.currentZoom);
+    this.updateCountries();
   }
 
-  .dropdown-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      cursor: pointer;
-
-      &:hover {
-          background-color: #f5f5f5;
-      }
-
-      i {
-          color: #007bff;
-      }
-  }
-}
-
-:host ::ng-deep .tooltip-card {
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  overflow: hidden;
-  width: 160px;
-  font-size: 13px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  background: #fff;
-  margin-left: 20px;
-
-  .tooltip-row {
-      padding: 6px 10px;
+  zoomOut() {
+    this.currentZoom = Math.max(this.currentZoom - ZOOM.step, ZOOM.min);
+    this.projection.scale(RADIUS * this.currentZoom);
+    this.updateCountries();
   }
 
-  .tooltip-header {
-      background: #f4f6f9;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      color: #000 !important;
+  setView(view: string) {
+    this.selectedView = view;
+    if (view === 'By Region') {
+      this.showRegionData();
+    } else {
+      this.showCountryData();
+    }
+    this.drawCountries();
   }
 
-  .tooltip-body {
-      background: #fff;
-      color: #000;
-      display: flex;
-      justify-content: space-between;
+  private showRegionData() {
+    const grouped = this.laborData.reduce((acc, c) => {
+      (acc[c.region] ||= []).push(c);
+      return acc;
+    }, {} as Record<string, CountryCost[]>);
+
+    this.regionGroups = Object.entries(grouped).map(([region, arr]) => ({
+      region,
+      total: arr.reduce((s, x) => s + x.cost, 0),
+      countries: arr,
+      expanded: false
+    }));
+
+    this.countryList = [];
   }
 
-  img {
-      width: 20px;
-      height: 14px;
-      border: 1px solid #ccc;
+  private showCountryData() {
+    this.countryList = [...this.laborData].sort((a, b) => a.country.localeCompare(b.country));
+    this.regionGroups = [];
+  }
+
+  private applyColors(mode: 'region' | 'country') {
+    this.updateCountries();
   }
 }
