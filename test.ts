@@ -233,9 +233,26 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         if (entry) {
           let tooltipContent = '';
           if (this.selectedView === 'By Region') {
-            tooltipContent = `<b>${entry.region}</b><br>Country: ${entry.country}<br>Avg Cost: $${entry.cost}`;
+            // Format like the clean design: Flag + Country name, then "Average Cost $XX"
+            tooltipContent = `
+              <div style="display: flex; align-items: center; margin-bottom: 4px;">
+                <img src="https://flagcdn.com/16x12/${entry.code.toLowerCase()}.png" 
+                     style="margin-right: 8px; width: 16px; height: 12px;" />
+                <span style="font-weight: 500;">${entry.country}</span>
+              </div>
+              <div style="color: #666; font-size: 13px;">Average Cost</div>
+              <div style="font-weight: 600; color: #2e7d32;">${entry.cost}</div>
+            `;
           } else {
-            tooltipContent = `<b>${entry.country}</b><br>Region: ${entry.region}<br>Avg Cost: $${entry.cost}`;
+            tooltipContent = `
+              <div style="display: flex; align-items: center; margin-bottom: 4px;">
+                <img src="https://flagcdn.com/16x12/${entry.code.toLowerCase()}.png" 
+                     style="margin-right: 8px; width: 16px; height: 12px;" />
+                <span style="font-weight: 500;">${entry.country}</span>
+              </div>
+              <div style="color: #666; font-size: 13px;">Average Cost</div>
+              <div style="font-weight: 600; color: #2e7d32;">${entry.cost}</div>
+            `;
           }
           
           const rect = this.globeContainer.nativeElement.getBoundingClientRect();
