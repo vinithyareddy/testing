@@ -2,25 +2,24 @@ focusOnCountry(country: CountrySkill) {
   if (!country) return;
   this.isFocusing = true;
 
-  // Base position from lat/lng (in globe local space)
+  // 1. Base position (globe local space)
   const basePos = this.latLngToVector3(country.lat, country.lng, RADIUS);
 
-  // Step 1: direction to country
-  const targetDir = basePos.clone().normalize();
+  // 2. World position after current globe rotation
+  const worldPos = basePos.clone().applyMatrix4(this.globeGroup.matrixWorld);
 
-  // Step 2: desired "lookAt" transform
-  const m = new THREE.Matrix4();
-  m.lookAt(new THREE.Vector3(0, 0, 0), targetDir, new THREE.Vector3(0, 1, 0));
+  // 3. Current distance of camera from center
+  const distance = this.camera.position.length();
 
-  // Step 3: Convert to quaternion and apply to globe
-  const q = new THREE.Quaternion().setFromRotationMatrix(m);
-  this.globeGroup.setRotationFromQuaternion(q);
+  // 4. Move camera so that it looks at this country, preserving zoom
+  const dir = worldPos.clone().normalize();
+  this.camera.position.copy(dir.multiplyScalar(distance));
 
-  // Keep OrbitControls pivot centered
+  // 5. Always orbit around globe center
   this.controls.target.set(0, 0, 0);
   this.controls.update();
 
-  // Temporary red highlight
+  // 6. Temporary highlight marker
   const highlight = new THREE.Mesh(
     new THREE.SphereGeometry(2.5, 16, 16),
     new THREE.MeshBasicMaterial({ color: 0xff0000 })
