@@ -164,6 +164,10 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
     // Add zoom and drag functionality
     const zoom = d3.zoom()
       .scaleExtent([ZOOM.min, ZOOM.max])
+      .filter((event) => {
+        // Only allow zoom on wheel events, not drag events
+        return event.type === 'wheel';
+      })
       .on('zoom', (event) => {
         this.currentZoom = event.transform.k;
         this.projection.scale(RADIUS * event.transform.k);
@@ -171,21 +175,29 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       });
 
     const drag = d3.drag()
-      .on('start', () => {
+      .filter((event) => {
+        // Only allow drag on mouse/touch events, not wheel
+        return event.type !== 'wheel';
+      })
+      .on('start', (event) => {
+        console.log('Drag started'); // Debug log
         this.isDragging = true;
         this.isRotating = false;
       })
       .on('drag', (event) => {
-        const sensitivity = 0.5;
+        console.log('Dragging:', event.dx, event.dy); // Debug log
+        const sensitivity = 0.25; // Reduced sensitivity for smoother control
         this.currentRotation[0] += event.dx * sensitivity;
         this.currentRotation[1] -= event.dy * sensitivity;
         
+        // Clamp vertical rotation
         this.currentRotation[1] = Math.max(-90, Math.min(90, this.currentRotation[1]));
         
         this.projection.rotate(this.currentRotation);
         this.updateCountries();
       })
-      .on('end', () => {
+      .on('end', (event) => {
+        console.log('Drag ended'); // Debug log
         this.isDragging = false;
         setTimeout(() => {
           if (!this.isDragging) {
@@ -194,8 +206,11 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         }, 2000);
       });
 
+    // Apply zoom only to SVG
     this.svg.call(zoom);
-    this.svg.call(drag);
+    
+    // Apply drag to the ocean background circle to avoid conflicts with country hover
+    this.svg.select('circle').call(drag);
   }
 
   private drawCountries() {
