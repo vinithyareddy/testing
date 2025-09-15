@@ -1,33 +1,25 @@
-.country-list {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-right: 4px;
+.toggle-btn {
+  position: absolute;
+  top: 50%;
+  right: -12px;
+  transform: translateY(-50%);
+  background: #fff;
+  border: 1px solid #ddd;
+  border-left: none;   // blends into legend box
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  width: 28px;
+  height: 60px;        // taller, more rectangular
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  z-index: 10;
 
-  /* Firefox */
-  scrollbar-width: thin;
-  scrollbar-color: #c1c1c1 #f1f1f1;
-
-  /* WebKit (Chrome, Edge, Safari) */
-  &::-webkit-scrollbar {
-    width: 8px;            /* thickness */
-  }
-
-  &::-webkit-scrollbar-track {
-    background: #f1f1f1;   /* light gray track */
-    border-radius: 8px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background-color: #c1c1c1; /* darker thumb */
-    border-radius: 8px;
-    border: 2px solid #f1f1f1; /* space around thumb */
-  }
-
-  /* 🚫 This removes the arrows completely */
-  &::-webkit-scrollbar-button {
-    display: none;
-    width: 0;
-    height: 0;
+  i {
+    font-size: 14px;
+    color: #374151;
   }
 }
