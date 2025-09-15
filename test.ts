@@ -67,8 +67,10 @@ export class SsByLocationComponent implements AfterViewInit {
   private rotateToCountry(country: CountrySkill) {
     if (!country.position) return;
 
-    // Calculate target rotation to show the country
-    const targetRotationY = -country.lng * (Math.PI / 180);
+    // Calculate target rotation to bring country to front
+    // For longitude: positive longitude should rotate globe left (negative Y rotation)
+    // Add PI to bring the country to the front (facing camera)
+    const targetRotationY = (country.lng * Math.PI / 180) + Math.PI;
     const currentRotationY = this.globeGroup.rotation.y;
     
     // Calculate the shortest rotation path
@@ -77,8 +79,6 @@ export class SsByLocationComponent implements AfterViewInit {
     // Normalize to [-PI, PI] for shortest path
     while (rotationDiff > Math.PI) rotationDiff -= 2 * Math.PI;
     while (rotationDiff < -Math.PI) rotationDiff += 2 * Math.PI;
-    
-    const finalTargetRotation = currentRotationY + rotationDiff;
     
     // Animate rotation
     const startRotation = currentRotationY;
