@@ -1,37 +1,28 @@
-<div class="metrics">
-  <div class="metric-labels">
-    <span>Unique Skills</span>
-    <span>Skill Supply (FTE)</span>
-  </div>
-  <div class="metric-values">
-    <span>{{ c.uniqueSkills }}</span>
-    <span>{{ c.skillSupply }}</span>
-  </div>
-</div>
+.country-list {
+  flex: 1;
+  overflow-y: auto;      // enable vertical scrolling
+  overflow-x: hidden;    // no horizontal scroll
+  padding-right: 4px;
 
-.metrics {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 13px;
-  color: #374151;
+  // Hide scrollbar arrows and style like default bar
+  scrollbar-width: thin;         // Firefox
+  scrollbar-color: #c1c1c1 #f1f1f1;
 
-  .metric-labels,
-  .metric-values {
-    display: flex;
-    justify-content: space-between;
-    gap: 20px;   // spacing between columns
+  &::-webkit-scrollbar {
+    width: 6px;                  // thin scrollbar
   }
 
-  .metric-labels {
-    font-size: 12px;
-    color: #6b7280;   // lighter gray for labels
-    font-weight: 500;
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
   }
 
-  .metric-values {
-    font-size: 14px;
-    font-weight: 600;
-    color: #111827;
+  &::-webkit-scrollbar-thumb {
+    background-color: #c1c1c1;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-button {
+    display: none;               // removes up/down arrows
   }
 }
