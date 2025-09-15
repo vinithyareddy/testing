@@ -189,27 +189,39 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
         const countryName = d.properties.name;
         const entry = this.laborData.find(c => c.country === countryName);
         
+        console.log('Mouseover:', countryName, entry); // Debug log
+        
         if (entry) {
           let tooltipContent = '';
           if (this.selectedView === 'By Region') {
-            // In region view, show region name prominently
-            tooltipContent = `<b>${entry.region}</b><br>Country: ${entry.country}<br>Avg Cost: $${entry.cost}`;
+            tooltipContent = `<b>${entry.region}</b><br>Country: ${entry.country}<br>Avg Cost: ${entry.cost}`;
           } else {
-            // In country view, show country name prominently
-            tooltipContent = `<b>${entry.country}</b><br>Region: ${entry.region}<br>Avg Cost: $${entry.cost}`;
+            tooltipContent = `<b>${entry.country}</b><br>Region: ${entry.region}<br>Avg Cost: ${entry.cost}`;
           }
           
+          // Get correct mouse coordinates relative to the page
+          const rect = this.globeContainer.nativeElement.getBoundingClientRect();
+          const x = event.clientX - rect.left;
+          const y = event.clientY - rect.top;
+          
+          console.log('Tooltip positioning:', x, y); // Debug log
+          
           this.tooltip.html(tooltipContent)
-            .style('left', (event.pageX + 15) + 'px')
-            .style('top', (event.pageY + 15) + 'px')
+            .style('left', (x + 15) + 'px')
+            .style('top', (y + 15) + 'px')
             .style('display', 'block');
         }
       })
       .on('mousemove', (event: any) => {
-        this.tooltip.style('left', (event.pageX + 15) + 'px')
-          .style('top', (event.pageY + 15) + 'px');
+        const rect = this.globeContainer.nativeElement.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        
+        this.tooltip.style('left', (x + 15) + 'px')
+          .style('top', (y + 15) + 'px');
       })
       .on('mouseout', () => {
+        console.log('Mouse out'); // Debug log
         this.tooltip.style('display', 'none');
       });
   }
