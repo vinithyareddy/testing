@@ -1,34 +1,78 @@
-focusOnCountry(country: CountrySkill) {
-  if (!country) return;
-  this.isFocusing = true;
+tooltip.innerHTML = `
+  <div class="tooltip-content">
+    <div class="country-header">
+      <img src="https://flagcdn.com/24x18/${closest.code.toLowerCase()}.png" class="flag-icon" />
+      <div class="country-name">${closest.country}</div>
+    </div>
+    <div class="tooltip-metrics">
+      <div class="metric-row">
+        <span class="metric-label">Unique Skills</span>
+        <span class="metric-label">Skill Supply (FTE)</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-value">${closest.uniqueSkills}</span>
+        <span class="metric-value">${closest.skillSupply}</span>
+      </div>
+    </div>
+  </div>
+`;
 
-  // 1. Base position (globe local space)
-  const basePos = this.latLngToVector3(country.lat, country.lng, RADIUS);
 
-  // 2. World position after current globe rotation
-  const worldPos = basePos.clone().applyMatrix4(this.globeGroup.matrixWorld);
+.globe-tooltip {
+  position: absolute;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-size: 13px;
+  line-height: 1.5;
+  pointer-events: none;
+  display: none;
+  z-index: 2000;
+  max-width: 250px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
-  // 3. Current distance of camera from center
-  const distance = this.camera.position.length();
+  .country-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
 
-  // 4. Move camera so that it looks at this country, preserving zoom
-  const dir = worldPos.clone().normalize();
-  this.camera.position.copy(dir.multiplyScalar(distance));
+    .flag-icon {
+      width: 20px;
+      height: auto;
+      margin-right: 8px;
+      border-radius: 2px;
+    }
 
-  // 5. Always orbit around globe center
-  this.controls.target.set(0, 0, 0);
-  this.controls.update();
+    .country-name {
+      font-weight: 600;
+      color: #1f2937;
+      font-size: 14px;
+    }
+  }
 
-  // 6. Temporary highlight marker
-  const highlight = new THREE.Mesh(
-    new THREE.SphereGeometry(2.5, 16, 16),
-    new THREE.MeshBasicMaterial({ color: 0xff0000 })
-  );
-  highlight.position.copy(basePos);
-  this.globeGroup.add(highlight);
+  .tooltip-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 
-  setTimeout(() => {
-    this.globeGroup.remove(highlight);
-    this.isFocusing = false;
-  }, 2000);
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      color: #4b5563;
+
+      .metric-label {
+        font-size: 12px;
+        color: #6b7280;
+        font-weight: 500;
+      }
+
+      .metric-value {
+        font-weight: 600;
+        color: #111827;
+        font-size: 14px;
+      }
+    }
+  }
 }
