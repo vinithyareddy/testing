@@ -1,14 +1,30 @@
-this.tooltip = d3.select(globeDiv)
-  .append('div')
-  .style('position', 'absolute')
-  .style('pointer-events', 'none')
-  .style('background', '#fff')                 // white background
-  .style('color', '#333')                      // dark text
-  .style('padding', '8px 14px')                // more padding
-  .style('border-radius', '8px')               // rounded corners
-  .style('box-shadow', '0 4px 10px rgba(0,0,0,0.15)') // soft shadow
-  .style('font-size', '13px')
-  .style('font-weight', '500')
-  .style('border', '1px solid #e0e0e0')        // subtle border
-  .style('z-index', '10')
-  .style('display', 'none');
+.on('mouseover', (event: any, d: any) => {
+  const entry = this.laborData.find(c => c.country === d.properties.name);
+
+  if (entry) {
+    let tooltipContent = '';
+
+    if (this.selectedView === 'By Region') {
+      // Region view → only region name + cost
+      tooltipContent = `
+        <div style="font-weight:600; margin-bottom:4px;">${entry.region}</div>
+        <div><b>Avg Cost:</b> $${entry.cost}</div>
+      `;
+    } else {
+      // Country view → only country name + cost
+      tooltipContent = `
+        <div style="font-weight:600; margin-bottom:4px;">${entry.country}</div>
+        <div><b>Avg Cost:</b> $${entry.cost}</div>
+      `;
+    }
+
+    const rect = this.globeContainer.nativeElement.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    this.tooltip.html(tooltipContent)
+      .style('left', (x + 15) + 'px')
+      .style('top', (y + 15) + 'px')
+      .style('display', 'block');
+  }
+})
