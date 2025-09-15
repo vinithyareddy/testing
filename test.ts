@@ -5,32 +5,23 @@ focusOnCountry(country: CountrySkill) {
   // base position from lat/lng
   const basePos = this.latLngToVector3(country.lat, country.lng, RADIUS);
 
-  // desired direction (country vector)
+  // normalize target direction
   const targetDir = basePos.clone().normalize();
 
-  // get current camera forward direction
-  const camDir = new THREE.Vector3();
-  this.camera.getWorldDirection(camDir);
+  // camera looks down -Z in its local space
+  const cameraForward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
 
-  // create a rotation matrix that looks from globe center → country
-  const m = new THREE.Matrix4();
-  m.lookAt(new THREE.Vector3(0, 0, 0), targetDir, new THREE.Vector3(0, 1, 0));
+  // quaternion to rotate globe so that country aligns with camera forward
+  const q = new THREE.Quaternion().setFromUnitVectors(targetDir, cameraForward);
 
-  // convert to quaternion
-  const q = new THREE.Quaternion().setFromRotationMatrix(m);
+  // apply rotation while preserving upright Y
+  this.globeGroup.quaternion.premultiply(q);
 
-  // apply only Y-axis rotation first (prevent upside-down flip)
-  const euler = new THREE.Euler().setFromQuaternion(q, 'YXZ');
-  euler.z = 0; // lock roll
-  euler.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, euler.x)); // clamp pitch
-
-  this.globeGroup.setRotationFromEuler(euler);
-
-  // controls orbit around globe center
+  // keep controls centered
   this.controls.target.set(0, 0, 0);
   this.controls.update();
 
-  // highlight marker
+  // add a highlight pin (on globe surface)
   const highlight = new THREE.Mesh(
     new THREE.SphereGeometry(2.5, 16, 16),
     new THREE.MeshBasicMaterial({ color: 0xff0000 })
