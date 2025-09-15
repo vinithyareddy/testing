@@ -6,29 +6,30 @@ focusOnCountry(country: CountrySkill) {
   // base position from lat/lng
   const basePos = this.latLngToVector3(country.lat, country.lng, RADIUS);
 
-  // convert to world direction (no matrix yet, we’ll rotate globe)
-  const direction = basePos.clone().normalize();
+  // compute direction from globe center to country
+  const targetDir = basePos.clone().normalize();
 
-  // get current camera forward direction
-  const camDir = new THREE.Vector3();
-  this.camera.getWorldDirection(camDir);
+  // get current "front" direction of globe (Z axis in globeGroup’s local space)
+  const currentDir = new THREE.Vector3(0, 0, 1).applyQuaternion(this.globeGroup.quaternion);
 
-  // compute quaternion rotation to align globe so that country faces camera
-  const q = new THREE.Quaternion().setFromUnitVectors(direction, camDir.negate());
+  // quaternion to rotate currentDir → targetDir
+  const q = new THREE.Quaternion().setFromUnitVectors(currentDir, targetDir);
 
+  // rotate globeGroup
   this.globeGroup.quaternion.premultiply(q);
 
-  // add highlight marker
+  this.controls.update();
+
+  // add highlight marker (attach to globeGroup so it rotates with pins)
   const highlight = new THREE.Mesh(
     new THREE.SphereGeometry(2.5, 16, 16),
     new THREE.MeshBasicMaterial({ color: 0xff0000 })
   );
   highlight.position.copy(basePos);
-  this.scene.add(highlight);
+  this.globeGroup.add(highlight); // ✅ add to globeGroup
 
   setTimeout(() => {
-    this.scene.remove(highlight);
+    this.globeGroup.remove(highlight);
     this.isFocusing = false;
   }, 2000);
 }
-this.controls.target.set(0, 0, 0);
