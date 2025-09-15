@@ -1,16 +1,3 @@
-.tooltip {
-  position: absolute;
-  pointer-events: none;
-  background: rgba(0, 0, 0, 0.85);
-  color: #fff;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 13px;
-  z-index: 10;
-  display: none;
-}
-
-
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -131,9 +118,10 @@ export class AvgLaborCostRegionComponent implements AfterViewInit {
       (worldData as any).objects.countries
     ) as unknown as FeatureCollection<Geometry, any>;
 
+    // Tooltip container (styled via SCSS)
     this.tooltip = d3.select(globeDiv)
       .append('div')
-      .attr('class', 'tooltip'); // use SCSS class
+      .attr('class', 'tooltip');
 
     this.http.get<any>('assets/data/world-globe-data.json').subscribe(data => {
       this.laborData = data.countries.map((c: any) => ({
