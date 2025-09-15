@@ -69,11 +69,16 @@ export class SsByLocationComponent implements AfterViewInit {
 
     console.log(`Rotating to ${country.country} (${country.code}) at lat: ${country.lat}, lng: ${country.lng}`);
 
-    // Calculate target rotation - we want to rotate the globe so the country faces the camera
-    // The globe rotates around Y axis (horizontal rotation)
-    // Positive longitude should result in negative rotation to bring it to front
+    // We need to rotate the globe so that the country's position faces the camera
+    // The camera is at (0, 0, positive Z), so we want the country to be at the "front" of the globe
+    
+    // For longitude (Y rotation): 
+    // If country is at lng=90 (east), we need to rotate globe -90 degrees to bring it to front
     const targetRotationY = -country.lng * (Math.PI / 180);
-    const targetRotationX = country.lat * (Math.PI / 180);
+    
+    // For latitude (X rotation):
+    // If country is at lat=45 (north), we need to rotate globe -45 degrees to bring it to center
+    const targetRotationX = -country.lat * (Math.PI / 180);
     
     const currentRotationY = this.globeGroup.rotation.y;
     const currentRotationX = this.globeGroup.rotation.x;
@@ -83,10 +88,17 @@ export class SsByLocationComponent implements AfterViewInit {
     while (rotationDiffY > Math.PI) rotationDiffY -= 2 * Math.PI;
     while (rotationDiffY < -Math.PI) rotationDiffY += 2 * Math.PI;
     
-    // Calculate rotation for X (latitude) - limit to reasonable range
+    // Calculate rotation for X (latitude)
     let rotationDiffX = targetRotationX - currentRotationX;
-    // Limit latitude rotation to avoid flipping the globe
-    rotationDiffX = Math.max(-Math.PI/3, Math.min(Math.PI/3, rotationDiffX));
+    // Limit latitude rotation to avoid extreme tilting
+    const maxLatRotation = Math.PI / 4; // 45 degrees max
+    if (Math.abs(targetRotationX) > maxLatRotation) {
+      rotationDiffX = Math.sign(targetRotationX) * maxLatRotation - currentRotationX;
+    }
+    
+    console.log(`Current rotation: Y=${currentRotationY}, X=${currentRotationX}`);
+    console.log(`Target rotation: Y=${targetRotationY}, X=${targetRotationX}`);
+    console.log(`Rotation difference: Y=${rotationDiffY}, X=${rotationDiffX}`);
     
     // Animate rotation
     const startRotationY = currentRotationY;
@@ -115,7 +127,7 @@ export class SsByLocationComponent implements AfterViewInit {
       } else {
         // Animation complete, start pause
         this.pauseStartTime = Date.now();
-        console.log(`Rotation complete. Final position: Y=${this.globeGroup.rotation.y}, X=${this.globeGroup.rotation.x}`);
+        console.log(`Rotation complete. Final position: Y=${this.globeGroup.rotation.y.toFixed(3)}, X=${this.globeGroup.rotation.x.toFixed(3)}`);
       }
     };
     
