@@ -3,29 +3,27 @@ focusOnCountry(country: CountrySkill) {
 
   this.isFocusing = true;
 
-  // base position from lat/lng
-  const basePos = this.latLngToVector3(country.lat, country.lng, RADIUS);
+  // ✅ use original lat/lng → vector (no matrix applied)
+  const countryPos = this.latLngToVector3(country.lat, country.lng, RADIUS);
 
-  // adjust for current globe rotation
-  const worldPos = basePos.clone().applyMatrix4(this.globeGroup.matrixWorld);
+  // current camera distance from origin (keep same zoom level)
+  const distance = this.camera.position.length();
 
-  // ✅ only change the controls target
-  this.controls.target.copy(worldPos);
+  // set OrbitControls target
+  this.controls.target.copy(countryPos);
 
-  // keep camera distance (don’t change zoom)
-  const currentDistance = this.camera.position.length();
-  this.camera.position.copy(
-    worldPos.clone().normalize().multiplyScalar(currentDistance)
-  );
+  // position camera along the same direction as countryPos
+  const newCamPos = countryPos.clone().normalize().multiplyScalar(distance);
+  this.camera.position.copy(newCamPos);
 
   this.controls.update();
 
-  // highlight sphere at correct location
+  // highlight marker at correct globe surface
   const highlight = new THREE.Mesh(
     new THREE.SphereGeometry(2.5, 16, 16),
     new THREE.MeshBasicMaterial({ color: 0xff0000 })
   );
-  highlight.position.copy(worldPos);
+  highlight.position.copy(countryPos);
   this.scene.add(highlight);
 
   setTimeout(() => {
