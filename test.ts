@@ -1,17 +1,23 @@
 focusOnCountry(country: CountryCost) {
   if (!country) return;
 
-  // Stop auto-rotation while focusing
   this.isRotating = false;
 
-  // Get the vector position for the country
-  const pos = this.latLngToVector3(country.lat, country.lng, RADIUS);
+  // Target rotation (longitude, latitude)
+  const targetRotation = [-country.lng, -country.lat];
+  this.currentRotation = targetRotation;
+  this.projection.rotate(this.currentRotation);
+  this.updateCountries();
 
-  // Calculate screen projection for tooltip/marker
+  // Remove any existing markers first
+  this.svg.selectAll('.country-marker').remove();
+
+  // Now compute projected coords AFTER rotation
   const [x, y] = this.projection([country.lng, country.lat]) || [0, 0];
 
-  // Add a temporary red circle (marker) on the globe
+  // Add red marker
   const marker = this.svg.append('circle')
+    .attr('class', 'country-marker')
     .attr('cx', x)
     .attr('cy', y)
     .attr('r', 6)
@@ -19,15 +25,9 @@ focusOnCountry(country: CountryCost) {
     .attr('stroke', '#fff')
     .attr('stroke-width', 2);
 
-  // Remove marker after 2 seconds
+  // Remove marker after 2s
   setTimeout(() => {
     marker.remove();
     this.isRotating = true;
   }, 2000);
-
-  // Rotate globe smoothly toward the country
-  const targetRotation = [-country.lng, -country.lat];
-  this.currentRotation = targetRotation;
-  this.projection.rotate(this.currentRotation);
-  this.updateCountries();
 }
