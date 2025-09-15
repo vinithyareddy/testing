@@ -50,7 +50,6 @@ export class SsByLocationComponent implements AfterViewInit {
   private lastZoom: number = ZOOM.initial;
   currentZoom: number = ZOOM.initial;
 
-  // New flag to pause auto-rotation while focusing
   private isFocusing = false;
 
   constructor(private http: HttpClient) { }
@@ -353,28 +352,33 @@ export class SsByLocationComponent implements AfterViewInit {
     if (this.controls.object) this.controls.object.position.z = this.currentZoom;
   }
 
-  // ✅ New: focus on country from legend
+  // ✅ Fixed: Focus on country accounts for globe rotation
   focusOnCountry(country: CountrySkill) {
     if (!country) return;
 
     this.isFocusing = true;
 
-    const countryPos = this.getCountryPosition(country.lat, country.lng, RADIUS);
+    // base position from lat/lng
+    const basePos = this.latLngToVector3(country.lat, country.lng, RADIUS);
 
-    // Set controls target to country
-    this.controls.target.copy(countryPos);
+    // adjust for current globe rotation
+    const worldPos = basePos.clone().applyMatrix4(this.globeGroup.matrixWorld);
 
-    // Position camera back a bit from that target
-    const cameraPos = countryPos.clone().normalize().multiplyScalar(RADIUS + 150);
+    // update controls target
+    this.controls.target.copy(worldPos);
+
+    // move camera outward from world position
+    const cameraPos = worldPos.clone().normalize().multiplyScalar(RADIUS + 150);
     this.camera.position.copy(cameraPos);
+
     this.controls.update();
 
-    // Highlight marker
+    // add highlight sphere
     const highlight = new THREE.Mesh(
       new THREE.SphereGeometry(2.5, 16, 16),
       new THREE.MeshBasicMaterial({ color: 0xff0000 })
     );
-    highlight.position.copy(countryPos);
+    highlight.position.copy(worldPos);
     this.scene.add(highlight);
 
     setTimeout(() => {
