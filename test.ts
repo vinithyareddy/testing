@@ -1,33 +1,46 @@
-focusOnCountry(country: CountryCost) {
-  if (!country) return;
+.legend-wrapper {
+  margin-top: 120px;
+  margin-right: 20px;
+  width: 25%;
+  display: flex;
+  flex-direction: column;
 
-  this.isRotating = false;
+  &.scrollable {
+    .legend-table {
+      display: block;
+      max-height: 500px;       // ✅ Limit height
+      overflow-y: auto;        // ✅ Make scrollable
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 3px;
+      background: #fff;
 
-  // Target rotation (longitude, latitude)
-  const targetRotation = [-country.lng, -country.lat];
-  this.currentRotation = targetRotation;
-  this.projection.rotate(this.currentRotation);
-  this.updateCountries();
+      thead {
+        position: sticky;
+        top: 0;
+        background: #f8f9fa;
+        z-index: 1;
+        display: table-header-group;
+      }
 
-  // Remove any existing markers first
-  this.svg.selectAll('.country-marker').remove();
+      tbody {
+        display: block;        // ✅ Allow tbody scrolling
+      }
 
-  // Now compute projected coords AFTER rotation
-  const [x, y] = this.projection([country.lng, country.lat]) || [0, 0];
+      tr {
+        display: table;
+        width: 100%;
+        table-layout: fixed;
+      }
+    }
+  }
+}
 
-  // Add red marker
-  const marker = this.svg.append('circle')
-    .attr('class', 'country-marker')
-    .attr('cx', x)
-    .attr('cy', y)
-    .attr('r', 6)
-    .attr('fill', 'red')
-    .attr('stroke', '#fff')
-    .attr('stroke-width', 2);
+/* ✅ Legend row click feedback */
+.legend-table tr {
+  cursor: pointer;             // makes it feel clickable
+  transition: background 0.2s ease;
 
-  // Remove marker after 2s
-  setTimeout(() => {
-    marker.remove();
-    this.isRotating = true;
-  }, 2000);
+  &:hover {
+    background-color: #f1f5f9; // light hover highlight
+  }
 }
