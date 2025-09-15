@@ -39,6 +39,8 @@ export class SsByLocationComponent implements AfterViewInit {
   filteredList: CountrySkill[] = [];
   searchTerm = '';
   legendCollapsed = false;
+  selectedCountry: CountrySkill | null = null;
+  private highlightGroup!: THREE.Group;
 
   private controls!: OrbitControls;
   private globe: any;
@@ -55,7 +57,124 @@ export class SsByLocationComponent implements AfterViewInit {
   constructor(private http: HttpClient) { }
 
   selectCountry(country: CountrySkill) {
+    this.selectedCountry = country;
+    this.highlightCountryOnGlobe(country);
     this.focusOnCountry(country);
+  }
+
+  private highlightCountryOnGlobe(country: CountrySkill) {
+    // Clear existing highlights
+    if (this.highlightGroup) {
+      this.globeGroup.remove(this.highlightGroup);
+    }
+    
+    this.highlightGroup = new THREE.Group();
+    this.globeGroup.add(this.highlightGroup);
+
+    // Ensure country has position
+    if (!country.position) {
+      country.position = this.latLngToVector3(country.lat, country.lng, RADIUS);
+    }
+
+    if (country.position) {
+      console.log(`Highlighting ${country.country} at position:`, country.position);
+
+      // Create a larger pulsing ring around the country
+      const ringGeometry = new THREE.RingGeometry(3, 6, 32);
+      const ringMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff0000, // Red for better visibility
+        transparent: true,
+        opacity: 0.8,
+        side: THREE.DoubleSide
+      });
+      
+      const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+      
+      // Position the ring at the country's location
+      const ringPosition = country.position.clone().normalize();
+      ringPosition.multiplyScalar(RADIUS + 2); // Slightly further out
+      ring.position.copy(ringPosition);
+      
+      // Make the ring face outward from the globe center
+      ring.lookAt(ringPosition.clone().multiplyScalar(2));
+      
+      this.highlightGroup.add(ring);
+
+      // Create a larger glowing sphere
+      const sphereGeometry = new THREE.SphereGeometry(2.5, 16, 16);
+      const sphereMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff4444, // Bright red
+        transparent: true,
+        opacity: 0.9
+      });
+      
+      const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+      sphere.position.copy(ringPosition);
+      this.highlightGroup.add(sphere);
+
+      // Add a crosshair at the center for precise location
+      const crosshairGroup = new THREE.Group();
+      
+      // Horizontal line
+      const hLineGeometry = new THREE.PlaneGeometry(8, 0.5);
+      const hLineMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffff00, // Yellow
+        transparent: true,
+        opacity: 0.9
+      });
+      const hLine = new THREE.Mesh(hLineGeometry, hLineMaterial);
+      crosshairGroup.add(hLine);
+      
+      // Vertical line
+      const vLineGeometry = new THREE.PlaneGeometry(0.5, 8);
+      const vLineMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffff00, // Yellow
+        transparent: true,
+        opacity: 0.9
+      });
+      const vLine = new THREE.Mesh(vLineGeometry, vLineMaterial);
+      crosshairGroup.add(vLine);
+      
+      crosshairGroup.position.copy(ringPosition);
+      crosshairGroup.lookAt(ringPosition.clone().multiplyScalar(2));
+      this.highlightGroup.add(crosshairGroup);
+
+      // Add text label showing country name
+      const labelSprite = this.createTextSprite(
+        `${country.country} (${country.code})`, 
+        '#ffff00', 
+        32
+      );
+      const labelPosition = ringPosition.clone();
+      labelPosition.multiplyScalar(1.2); // Further out for the label
+      labelSprite.position.copy(labelPosition);
+      this.highlightGroup.add(labelSprite);
+
+      // Animate the highlight
+      this.animateHighlight(ring, sphere, crosshairGroup);
+    }
+  }
+
+  private animateHighlight(ring: THREE.Mesh, sphere: THREE.Mesh, crosshair: THREE.Group) {
+    const animate = () => {
+      if (this.highlightGroup && this.highlightGroup.children.includes(ring)) {
+        // Pulse the ring
+        const time = Date.now() * 0.003;
+        const scale = 1 + Math.sin(time) * 0.3;
+        ring.scale.setScalar(scale);
+        
+        // Pulse the sphere opacity
+        const sphereMaterial = sphere.material as THREE.MeshBasicMaterial;
+        sphereMaterial.opacity = 0.6 + Math.sin(time * 2) * 0.3;
+        
+        // Animate crosshair
+        const crosshairScale = 1 + Math.sin(time * 1.5) * 0.2;
+        crosshair.scale.setScalar(crosshairScale);
+        
+        requestAnimationFrame(animate);
+      }
+    };
+    animate();
   }
 
   private latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
@@ -234,7 +353,9 @@ export class SsByLocationComponent implements AfterViewInit {
     this.scene.add(this.globeGroup);
 
     this.labelGroup = new THREE.Group();
+    this.highlightGroup = new THREE.Group();
     this.globeGroup.add(this.labelGroup);
+    this.globeGroup.add(this.highlightGroup);
 
     this.countries = topojson.feature(
       worldData as any,
@@ -427,19 +548,7 @@ export class SsByLocationComponent implements AfterViewInit {
         this.controls.target.set(0, 0, 0);
         this.controls.update();
         
-        // Add highlight marker
-        const basePos = this.latLngToVector3(country.lat, country.lng, RADIUS);
-        const rotatedPos = basePos.clone().applyMatrix4(this.globeGroup.matrix);
-
-        const highlight = new THREE.Mesh(
-          new THREE.SphereGeometry(2.5, 16, 16),
-          new THREE.MeshBasicMaterial({ color: 0xff0000 })
-        );
-        highlight.position.copy(rotatedPos);
-        this.scene.add(highlight);
-
         setTimeout(() => {
-          this.scene.remove(highlight);
           this.isFocusing = false;
         }, 2000);
       }
