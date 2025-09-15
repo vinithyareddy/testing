@@ -59,8 +59,28 @@ export class SsByLocationComponent implements AfterViewInit {
   // Add method to select country
   selectCountry(country: CountrySkill) {
     this.selectedCountry = country;
+    
+    // Check if country has position, if not calculate it
+    if (!country.position) {
+      country.position = this.latLngToVector3(country.lat, country.lng, RADIUS);
+      console.log('Calculated position for', country.country, ':', country.position);
+    }
+    
     this.highlightCountryOnGlobe(country);
-    this.rotateToCountry(country);
+    
+    // Let's try a simple test first - just reset rotation to see the country
+    console.log('=== DEBUGGING ROTATION ===');
+    console.log('Selected country:', country.country, 'at', country.lat, country.lng);
+    console.log('Country position:', country.position);
+    
+    // First, let's see where the country is with zero rotation
+    this.globeGroup.rotation.set(0, 0, 0);
+    console.log('Globe reset to zero rotation');
+    
+    // Wait a moment, then rotate
+    setTimeout(() => {
+      this.rotateToCountry(country);
+    }, 1000);
   }
 
   // Add method to rotate globe to show country
@@ -68,88 +88,65 @@ export class SsByLocationComponent implements AfterViewInit {
     if (!country.position) return;
 
     console.log(`Rotating to ${country.country} (${country.code}) at lat: ${country.lat}, lng: ${country.lng}`);
-    console.log('Country 3D position:', country.position);
 
-    // Get the current world position of the country after any existing rotations
-    const worldPosition = country.position.clone();
-    worldPosition.applyMatrix4(this.globeGroup.matrixWorld);
-    console.log('World position:', worldPosition);
+    // Simple approach: rotate to bring the country to face the camera
+    // Camera is looking down the negative Z axis, so we want the country at (0, 0, -radius)
+    
+    // Target rotation is simply the negative of the country's longitude and latitude
+    // This will bring the country to the "front" of the globe facing the camera
+    const targetRotationY = -country.lng * (Math.PI / 180);
+    const targetRotationX = -country.lat * (Math.PI / 180);
 
-    // We want to rotate the globe so this point faces the camera (0, 0, positive Z)
-    // Calculate the spherical coordinates of the current position
-    const currentRadius = worldPosition.length();
-    const currentLat = Math.asin(worldPosition.y / currentRadius);
-    const currentLng = Math.atan2(worldPosition.z, worldPosition.x);
+    // Limit latitude rotation to prevent excessive tilting
+    const maxTilt = Math.PI / 4; // 45 degrees
+    const limitedTargetRotationX = Math.max(-maxTilt, Math.min(maxTilt, targetRotationX));
 
-    console.log('Current spherical - lat:', currentLat * 180/Math.PI, 'lng:', currentLng * 180/Math.PI);
+    console.log(`Target rotations: Y=${targetRotationY * 180/Math.PI}°, X=${limitedTargetRotationX * 180/Math.PI}°`);
 
-    // Target: we want the point to be at (0, 0, positive radius) in world space
-    // This means latitude = 0, longitude = 0 (facing camera)
-    const targetLat = 0;
-    const targetLng = 0;
+    // Get current rotations
+    const currentRotationY = this.globeGroup.rotation.y;
+    const currentRotationX = this.globeGroup.rotation.x;
 
-    // Calculate rotation needed
-    // For Y rotation (longitude): rotate by the negative of current longitude
-    const rotationY = -currentLng;
-    // For X rotation (latitude): rotate by the negative of current latitude  
-    const rotationX = -currentLat;
+    // Calculate rotation differences (shortest path for Y)
+    let diffY = targetRotationY - currentRotationY;
+    while (diffY > Math.PI) diffY -= 2 * Math.PI;
+    while (diffY < -Math.PI) diffY += 2 * Math.PI;
 
-    console.log('Target rotations - Y:', rotationY * 180/Math.PI, 'X:', rotationX * 180/Math.PI);
+    const diffX = limitedTargetRotationX - currentRotationX;
 
-    // Get current globe rotations
-    const startRotationY = this.globeGroup.rotation.y;
-    const startRotationX = this.globeGroup.rotation.x;
+    console.log(`Current: Y=${currentRotationY * 180/Math.PI}°, X=${currentRotationX * 180/Math.PI}°`);
+    console.log(`Differences: Y=${diffY * 180/Math.PI}°, X=${diffX * 180/Math.PI}°`);
 
-    // Calculate final target rotations
-    let targetRotationY = startRotationY + rotationY;
-    let targetRotationX = startRotationX + rotationX;
-
-    // Normalize Y rotation and find shortest path
-    while (targetRotationY - startRotationY > Math.PI) targetRotationY -= 2 * Math.PI;
-    while (targetRotationY - startRotationY < -Math.PI) targetRotationY += 2 * Math.PI;
-
-    // Limit X rotation to prevent flipping
-    const maxTilt = Math.PI / 3; // 60 degrees
-    targetRotationX = Math.max(-maxTilt, Math.min(maxTilt, targetRotationX));
-
-    const rotationDiffY = targetRotationY - startRotationY;
-    const rotationDiffX = targetRotationX - startRotationX;
-
-    console.log(`Rotation differences - Y: ${rotationDiffY * 180/Math.PI}°, X: ${rotationDiffX * 180/Math.PI}°`);
-
-    // Animate rotation
-    const duration = 2000; // 2 seconds
+    // Animate to target rotation
+    const duration = 2000;
     const startTime = Date.now();
-    
     this.isRotationPaused = true;
-    
+
     const animateRotation = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      
-      // Easing function
-      const easeInOutCubic = (t: number) => 
-        t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
-      
-      const easedProgress = easeInOutCubic(progress);
-      
-      // Apply rotation
-      this.globeGroup.rotation.y = startRotationY + (rotationDiffY * easedProgress);
-      this.globeGroup.rotation.x = startRotationX + (rotationDiffX * easedProgress);
-      
+
+      // Smooth easing
+      const easeInOutQuad = (t: number) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+      const easedProgress = easeInOutQuad(progress);
+
+      // Apply interpolated rotation
+      this.globeGroup.rotation.y = currentRotationY + (diffY * easedProgress);
+      this.globeGroup.rotation.x = currentRotationX + (diffX * easedProgress);
+
       if (progress < 1) {
         requestAnimationFrame(animateRotation);
       } else {
         this.pauseStartTime = Date.now();
-        console.log(`Animation complete. Final rotations - Y: ${this.globeGroup.rotation.y * 180/Math.PI}°, X: ${this.globeGroup.rotation.x * 180/Math.PI}°`);
+        console.log(`Animation complete! Final: Y=${this.globeGroup.rotation.y * 180/Math.PI}°, X=${this.globeGroup.rotation.x * 180/Math.PI}°`);
         
-        // Verify final position
-        const finalWorldPos = country.position.clone();
-        finalWorldPos.applyMatrix4(this.globeGroup.matrixWorld);
-        console.log('Final world position:', finalWorldPos);
+        // Let's also check where the country ended up
+        const finalPos = country.position.clone();
+        finalPos.applyEuler(new THREE.Euler(this.globeGroup.rotation.x, this.globeGroup.rotation.y, this.globeGroup.rotation.z));
+        console.log('Final country position after rotation:', finalPos);
       }
     };
-    
+
     animateRotation();
   }
 
@@ -162,6 +159,11 @@ export class SsByLocationComponent implements AfterViewInit {
     
     this.highlightGroup = new THREE.Group();
     this.globeGroup.add(this.highlightGroup);
+
+    // Ensure country has position
+    if (!country.position) {
+      country.position = this.latLngToVector3(country.lat, country.lng, RADIUS);
+    }
 
     if (country.position) {
       console.log(`Highlighting ${country.country} at position:`, country.position);
