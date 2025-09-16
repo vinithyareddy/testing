@@ -1,20 +1,17 @@
-<div #globeContainer class="globe-wrapper">
+<div class="map-modes">
+  <button (click)="setMode('satellite')"><i class="fas fa-globe"></i> Satellite</button>
+  <button (click)="setMode('terrain')"><i class="fas fa-mountain"></i> Terrain</button>
+  <button (click)="setMode('transit')"><i class="fas fa-subway"></i> Transit</button>
+  <button (click)="setMode('biking')"><i class="fas fa-bicycle"></i> Biking</button>
 
-  <!-- Map Modes Toolbar -->
-  <div class="map-modes">
-    <button (click)="setMode('satellite')"><i class="fas fa-globe"></i> Satellite</button>
-    <button (click)="setMode('terrain')"><i class="fas fa-mountain"></i> Terrain</button>
-    <button (click)="setMode('political')"><i class="fas fa-flag"></i> Political</button>
-    <button (click)="toggleRotation()"><i class="fas fa-sync"></i> Rotate</button>
-    <button><i class="fas fa-ellipsis-h"></i> More</button>
+  <div class="dropdown">
+    <button class="dropdown-btn"><i class="fas fa-ellipsis-h"></i> More</button>
+    <div class="dropdown-content">
+      <a (click)="setMode('night')"><i class="fas fa-moon"></i> Night</a>
+      <a (click)="setMode('political')"><i class="fas fa-flag"></i> Political</a>
+      <a (click)="setMode('minimal')"><i class="fas fa-border-none"></i> Minimal</a>
+    </div>
   </div>
-
-  <!-- Existing zoom buttons -->
-  <div class="zoom-container">
-    <button (click)="zoomIn()">+</button>
-    <button (click)="zoomOut()">-</button>
-  </div>
-
 </div>
 
 
@@ -30,7 +27,7 @@
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
     z-index: 2000;
   
-    button {
+    button, .dropdown-btn {
       background: #fff;
       border: 1px solid #ccc;
       border-radius: 4px;
@@ -45,51 +42,92 @@
         background: #f0f0f0;
       }
     }
+  
+    .dropdown {
+      position: relative;
+  
+      .dropdown-content {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background: #fff;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        min-width: 150px;
+        z-index: 3000;
+  
+        a {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 10px;
+          font-size: 13px;
+          color: #333;
+          text-decoration: none;
+          cursor: pointer;
+  
+          &:hover {
+            background: #f5f5f5;
+          }
+        }
+      }
+  
+      &:hover .dropdown-content {
+        display: block;
+      }
+    }
   }
-
   
-  private rotationEnabled = true;
-private earthMaterial!: THREE.MeshPhongMaterial;
 
-
-this.earthMaterial = new THREE.MeshPhongMaterial({
-    map: earthTex,
-    specular: new THREE.Color(0x222222),
-    shininess: 3
-  });
-  
-  const earth = new THREE.Mesh(
-    new THREE.SphereGeometry(RADIUS, 75, 75),
-    this.earthMaterial
-  );
-
-  
-  setMode(mode: 'satellite' | 'terrain' | 'political') {
+  setMode(mode: string) {
     const texLoader = new THREE.TextureLoader();
   
-    if (mode === 'satellite') {
-      this.earthMaterial.map = texLoader.load(
-        'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg'
-      );
-    } else if (mode === 'terrain') {
-      this.earthMaterial.map = texLoader.load(
-        'https://unpkg.com/three-globe/example/img/earth-topology.png'
-      );
-    } else if (mode === 'political') {
-      this.earthMaterial.map = texLoader.load(
-        'https://unpkg.com/three-globe/example/img/earth-night.jpg'
-      );
+    switch (mode) {
+      case 'satellite':
+        this.earthMaterial.map = texLoader.load(
+          'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg'
+        );
+        break;
+  
+      case 'terrain':
+        this.earthMaterial.map = texLoader.load(
+          'https://unpkg.com/three-globe/example/img/earth-topology.png'
+        );
+        break;
+  
+      case 'transit':
+        this.earthMaterial.map = texLoader.load(
+          'https://unpkg.com/three-globe/example/img/earth-railways.png'
+        );
+        break;
+  
+      case 'biking':
+        this.earthMaterial.map = texLoader.load(
+          'https://unpkg.com/three-globe/example/img/earth-bike.png'
+        );
+        break;
+  
+      case 'night':
+        this.earthMaterial.map = texLoader.load(
+          'https://unpkg.com/three-globe/example/img/earth-night.jpg'
+        );
+        break;
+  
+      case 'political':
+        this.earthMaterial.map = texLoader.load(
+          'https://unpkg.com/three-globe/example/img/earth-political.png'
+        );
+        break;
+  
+      case 'minimal':
+        this.earthMaterial.map = texLoader.load(
+          'https://unpkg.com/three-globe/example/img/earth-minimal.png'
+        );
+        break;
     }
   
     this.earthMaterial.needsUpdate = true;
-  }
-  
-  toggleRotation() {
-    this.rotationEnabled = !this.rotationEnabled;
-  }
-
-  
-  if (this.rotationEnabled && !this.isFocusing) {
-    this.globeGroup.rotation.y += ROTATION_SPEED;
   }
   
