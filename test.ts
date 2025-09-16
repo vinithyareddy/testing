@@ -1,0 +1,5 @@
+Updating WPA DAX test IDs in component files
+I am going through each respective component file and aligning the test IDs with the bpssqlmode.json file used in SR beta standard reports. This ensures that the reports reference the correct IDs and eliminates mismatches during validation. The process involves verifying existing mappings, identifying outdated references, and carefully replacing them to maintain consistency across the reporting framework.
+
+Exploring and integrating earth texture maps for the Supply Skills Insights globe widget (SWFP)
+I am researching suitable map textures (satellite, terrain, political, night mode, etc.) that can closely resemble Google Maps while being compatible with our globe rendering component. The goal is to replace the current default texture with a more realistic, interactive option that improves the visualization experience for users. This requires evaluating available texture sources, testing compatibility with our widget, and ensuring performance remains optimal after integration.
