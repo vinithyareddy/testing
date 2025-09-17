@@ -1,36 +1,56 @@
-<div class="content-area">
-
-  <!-- Arrows only for chart -->
-  <button *ngIf="currentView === 'chart'" class="nav-arrow left-arrow" (click)="prevItem()">
-    <i class="fa fa-chevron-left"></i>
-  </button>
-
-  <!-- Chart -->
-  <highcharts-chart *ngIf="currentView === 'chart'"
-    [Highcharts]="Highcharts"
-    [options]="chartOptions"
-    style="width: 95%; height: 290px; display: block;">
-  </highcharts-chart>
-
-  <!-- Table -->
-  <table *ngIf="currentView === 'table'" class="data-table">
-    <thead>
-      <tr>
-        <th>Position</th>
-        <th>Amount</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let row of (data.length > pageSize ? data.slice(currentIndex, currentIndex + pageSize) : data)">
-        <td>{{ row.position }}</td>
-        <td>{{ row.amount }}</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <!-- Arrows only for chart -->
-  <button *ngIf="currentView === 'chart'" class="nav-arrow right-arrow" (click)="nextItem()">
-    <i class="fa fa-chevron-right"></i>
-  </button>
-
+<div class="togglebtn d-flex">
+  <div class="lft-toggle" 
+       (click)="currentView = 'table'" 
+       [class.active]="currentView === 'table'">
+    <i class="fa fa-table fnticon" aria-hidden="true"></i>
+  </div>
+  <div class="rgt-toggle" 
+       (click)="currentView = 'chart'" 
+       [class.active]="currentView === 'chart'">
+    <i class="fa fa-bar-chart fnticon" aria-hidden="true"></i>
+  </div>
 </div>
+
+
+.togglebtn {
+    display: flex;
+    border: 1px solid #ccd5df;
+    border-radius: 4px;
+    overflow: hidden;
+  
+    .lft-toggle,
+    .rgt-toggle {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      background: #fff;
+      border-right: 1px solid #ccd5df;
+  
+      i {
+        font-size: 16px;
+        color: #0071bc;
+        font-weight: 400;
+      }
+  
+      &:hover {
+        background: #f0f4f8;
+      }
+  
+      &.active {
+        border: 2px solid #0071bc;   // highlight border
+        background: #eaf4fb;         // subtle background highlight
+        i {
+          color: #0071bc;
+          font-weight: 600;
+        }
+      }
+    }
+  
+    .rgt-toggle {
+      border-right: none;
+    }
+  }
+  
