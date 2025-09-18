@@ -82,3 +82,31 @@ nextChart() {
   &.left-arrow { left: 10px; }
   &.right-arrow { right: 10px; }
 }
+
+
+
+<ng-container *ngIf="widgetType == 'ch'">
+  <div class="inner-card-box">
+
+    <div class="content-area">
+      <!-- Left Arrow -->
+      <button *ngIf="currentView === 'chart'" class="nav-arrow left-arrow" (click)="prevChart()">
+        <i class="fa fa-chevron-left"></i>
+      </button>
+
+      <!-- Chart -->
+      <highcharts-chart *ngIf="currentView === 'chart'"
+        [Highcharts]="swfpColumnChart[chartIndex]?.Highcharts"
+        [options]="swfpColumnChart[chartIndex]?.chartOptions"
+        [constructorType]="swfpColumnChart[chartIndex]?.chartConstructor"
+        style="width:95%; height:290px; display:block;">
+      </highcharts-chart>
+
+      <!-- Right Arrow -->
+      <button *ngIf="currentView === 'chart'" class="nav-arrow right-arrow" (click)="nextChart()">
+        <i class="fa fa-chevron-right"></i>
+      </button>
+    </div>
+
+  </div>
+</ng-container>
