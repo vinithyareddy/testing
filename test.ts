@@ -1,4 +1,4 @@
-<ng-container *ngIf="widgetType == 'ch'">
+<ng-container *ngIf="widgetType == 'pi'">
   <div class="inner-card-box">
 
     <div class="content-area">
@@ -7,11 +7,11 @@
         <i class="fa fa-chevron-left"></i>
       </button>
 
-      <!-- Show only the active column chart -->
-      <highcharts-chart *ngIf="currentView === 'chart' && swfpColumnChart.length"
-        [Highcharts]="swfpColumnChart[chartIndex]?.Highcharts"
-        [options]="swfpColumnChart[chartIndex]?.chartOptions"
-        [constructorType]="swfpColumnChart[chartIndex]?.chartConstructor"
+      <!-- Show only the active pie chart -->
+      <highcharts-chart *ngIf="currentView === 'chart' && allPieCharts.length"
+        [Highcharts]="allPieCharts[chartIndex]?.Highcharts"
+        [options]="allPieCharts[chartIndex]?.chartOptions"
+        [constructorType]="allPieCharts[chartIndex]?.chartConstructor"
         style="width:95%; height:290px; display:block;">
       </highcharts-chart>
 
@@ -21,7 +21,7 @@
       </button>
     </div>
 
-    <!-- ✅ Keep your legend here -->
+    <!-- ✅ Keep legend below -->
     <div class="pl-4 legend-bottom" *ngIf="legends.length > 0">
       <ul class="listLegend">
         <ng-container *ngFor="let data of legends">
@@ -35,3 +35,26 @@
 
   </div>
 </ng-container>
+
+
+.content-area {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #fff;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  z-index: 2;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+
+  &.left-arrow { left: 10px; }
+  &.right-arrow { right: 10px; }
+}
