@@ -1,49 +1,3 @@
-<div class="inner-card-box">
-
-  <div class="content-area">
-    <!-- Left Arrow -->
-    <button *ngIf="currentView === 'chart'" class="nav-arrow left-arrow" (click)="prevChart()">
-      <i class="fa fa-chevron-left"></i>
-    </button>
-
-    <!-- Column Chart -->
-    <ng-container *ngIf="widgetType === 'ch' && currentView === 'chart'">
-      <highcharts-chart
-        [Highcharts]="swfpColumnChart[chartIndex]?.Highcharts"
-        [options]="swfpColumnChart[chartIndex]?.chartOptions"
-        [constructorType]="swfpColumnChart[chartIndex]?.chartConstructor"
-        style="width:95%; height:290px; display:block;">
-      </highcharts-chart>
-    </ng-container>
-
-    <!-- Pie Charts -->
-    <ng-container *ngIf="widgetType === 'pi' && currentView === 'chart'">
-      <highcharts-chart
-        [Highcharts]="allPieCharts[chartIndex]?.Highcharts"
-        [options]="allPieCharts[chartIndex]?.chartOptions"
-        [constructorType]="allPieCharts[chartIndex]?.chartConstructor"
-        style="width:95%; height:290px; display:block;">
-      </highcharts-chart>
-    </ng-container>
-
-    <!-- Right Arrow -->
-    <button *ngIf="currentView === 'chart'" class="nav-arrow right-arrow" (click)="nextChart()">
-      <i class="fa fa-chevron-right"></i>
-    </button>
-  </div>
-
-</div>
-
-
-currentView: string = 'chart';   // chart | table
-chartIndex: number = 0;          // track which chart is active
-allPieCharts: any[] = [];        // flatten GH + GI pie arrays
-
-ngOnInit(): void {
-  // When loading pie charts, flatten into one list for easy navigation
-  this.allPieCharts = [...this.swfpPieChartByGH, ...this.swfpPieChartByGI];
-}
-
 prevChart() {
   if (this.widgetType === 'pi') {
     this.chartIndex = (this.chartIndex - 1 + this.allPieCharts.length) % this.allPieCharts.length;
@@ -59,6 +13,62 @@ nextChart() {
     this.chartIndex = (this.chartIndex + 1) % this.swfpColumnChart.length;
   }
 }
+
+
+<ng-container *ngIf="widgetType == 'ch'">
+  <div class="inner-card-box">
+    <div class="content-area">
+
+      <!-- Left Arrow -->
+      <button *ngIf="currentView === 'chart'" class="nav-arrow left-arrow" (click)="prevChart()">
+        <i class="fa fa-chevron-left"></i>
+      </button>
+
+      <!-- Show only the active column chart -->
+      <highcharts-chart *ngIf="currentView === 'chart' && swfpColumnChart.length"
+        [Highcharts]="swfpColumnChart[chartIndex]?.Highcharts"
+        [options]="swfpColumnChart[chartIndex]?.chartOptions"
+        [constructorType]="swfpColumnChart[chartIndex]?.chartConstructor"
+        style="width:95%; height:290px; display:block;">
+      </highcharts-chart>
+
+      <!-- Right Arrow -->
+      <button *ngIf="currentView === 'chart'" class="nav-arrow right-arrow" (click)="nextChart()">
+        <i class="fa fa-chevron-right"></i>
+      </button>
+
+    </div>
+  </div>
+</ng-container>
+
+
+
+
+<ng-container *ngIf="widgetType == 'pi'">
+  <div class="inner-card-box">
+    <div class="content-area">
+
+      <!-- Left Arrow -->
+      <button *ngIf="currentView === 'chart'" class="nav-arrow left-arrow" (click)="prevChart()">
+        <i class="fa fa-chevron-left"></i>
+      </button>
+
+      <!-- Show only the active pie chart -->
+      <highcharts-chart *ngIf="currentView === 'chart' && allPieCharts.length"
+        [Highcharts]="allPieCharts[chartIndex]?.Highcharts"
+        [options]="allPieCharts[chartIndex]?.chartOptions"
+        [constructorType]="allPieCharts[chartIndex]?.chartConstructor"
+        style="width:95%; height:290px; display:block;">
+      </highcharts-chart>
+
+      <!-- Right Arrow -->
+      <button *ngIf="currentView === 'chart'" class="nav-arrow right-arrow" (click)="nextChart()">
+        <i class="fa fa-chevron-right"></i>
+      </button>
+
+    </div>
+  </div>
+</ng-container>
 
 
 .content-area {
@@ -82,31 +92,3 @@ nextChart() {
   &.left-arrow { left: 10px; }
   &.right-arrow { right: 10px; }
 }
-
-
-
-<ng-container *ngIf="widgetType == 'ch'">
-  <div class="inner-card-box">
-
-    <div class="content-area">
-      <!-- Left Arrow -->
-      <button *ngIf="currentView === 'chart'" class="nav-arrow left-arrow" (click)="prevChart()">
-        <i class="fa fa-chevron-left"></i>
-      </button>
-
-      <!-- Chart -->
-      <highcharts-chart *ngIf="currentView === 'chart'"
-        [Highcharts]="swfpColumnChart[chartIndex]?.Highcharts"
-        [options]="swfpColumnChart[chartIndex]?.chartOptions"
-        [constructorType]="swfpColumnChart[chartIndex]?.chartConstructor"
-        style="width:95%; height:290px; display:block;">
-      </highcharts-chart>
-
-      <!-- Right Arrow -->
-      <button *ngIf="currentView === 'chart'" class="nav-arrow right-arrow" (click)="nextChart()">
-        <i class="fa fa-chevron-right"></i>
-      </button>
-    </div>
-
-  </div>
-</ng-container>
