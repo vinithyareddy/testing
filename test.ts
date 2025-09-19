@@ -1,38 +1,40 @@
-private createMarkerIcon(
-  icon: string = '\uf041', // fa-map-marker unicode
-  color: string = '#0071bc', // custom blue
-  fontSize: number = 64
+private createIconSprite(
+  iconClass: string = 'fas fa-map-marker-alt',
+  color: string = '#0071bc',
+  size: number = 48
 ): THREE.Sprite {
   const canvas = document.createElement('canvas');
-  const context = canvas.getContext('2d')!;
+  const ctx = canvas.getContext('2d')!;
 
-  canvas.width = fontSize * 2;
-  canvas.height = fontSize * 2;
+  canvas.width = size;
+  canvas.height = size;
 
-  // Font Awesome 5 Free (needs CSS loaded in index.html)
-  context.font = `${fontSize}px "Font Awesome 5 Free"`;
-  context.fillStyle = color;
-  context.textAlign = 'center';
-  context.textBaseline = 'middle';
+  // Use FontAwesome font
+  ctx.font = `${size - 8}px "Font Awesome 5 Free"`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = color;
 
-  // draw icon (\uf041 is fa-map-marker)
-  context.fillText(icon, canvas.width / 2, canvas.height / 2);
+  // Unicode for map-marker-alt = \uf3c5
+  ctx.fillText('\uf3c5', size / 2, size / 2);
 
   const texture = new THREE.CanvasTexture(canvas);
-  const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+  const material = new THREE.SpriteMaterial({
+    map: texture,
+    transparent: true
+  });
 
   const sprite = new THREE.Sprite(material);
-  sprite.scale.set(10, 15, 1); // adjust size
+  sprite.scale.set(8, 12, 1); // adjust size on globe
   return sprite;
 }
 
 
-
-const marker = this.createMarkerIcon('\uf041', '#0071bc', 80); 
-marker.position.copy(basePos.clone().normalize().multiplyScalar(RADIUS + 2));
-this.globeGroup.add(marker);
+const pin = this.createIconSprite('fas fa-map-marker-alt', '#0071bc', 64);
+pin.position.copy(basePos.clone().normalize().multiplyScalar(RADIUS + 2));
+this.globeGroup.add(pin);
 
 setTimeout(() => {
-  this.globeGroup.remove(marker);
+  this.globeGroup.remove(pin);
   this.isFocusing = false;
 }, 2000);
