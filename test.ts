@@ -104,11 +104,7 @@ export class SsByLocationComponent implements AfterViewInit {
     return sprite;
   }
 
-  // ADD THIS NEW METHOD HERE - Location pin creation
-  private createLocationPin(): THREE.Group {
-    const pinGroup = new THREE.Group();
-    
-    // Create the main pin body (circular top part)
+circular top part)
     const pinBodyGeometry = new THREE.SphereGeometry(2, 20, 20);
     const pinMaterial = new THREE.MeshBasicMaterial({ 
       color: 0x1976D2, // Blue color like your reference image
