@@ -479,7 +479,7 @@ export class SsByLocationComponent implements AfterViewInit {
     // Start small and fade in
     pinGroup.scale.set(0.1, 0.1, 0.1);
     pinGroup.traverse((child) => {
-      if (child instanceof THREE.Mesh && child.material instanceof THREE.Material) {
+      if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshLambertMaterial) {
         child.material.opacity = 0;
       }
     });
@@ -495,7 +495,7 @@ export class SsByLocationComponent implements AfterViewInit {
       
       pinGroup.scale.setScalar(easeProgress);
       pinGroup.traverse((child) => {
-        if (child instanceof THREE.Mesh && child.material instanceof THREE.Material) {
+        if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshLambertMaterial) {
           if (child.material.color.getHex() === 0x000000) {
             // Shadow
             child.material.opacity = 0.3 * easeProgress;
@@ -527,7 +527,7 @@ export class SsByLocationComponent implements AfterViewInit {
       
       pinGroup.scale.setScalar(scale);
       pinGroup.traverse((child) => {
-        if (child instanceof THREE.Mesh && child.material instanceof THREE.Material) {
+        if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshLambertMaterial) {
           if (child.material.color.getHex() === 0x000000) {
             // Shadow
             child.material.opacity = 0.3 * opacity;
