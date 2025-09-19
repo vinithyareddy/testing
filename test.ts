@@ -355,46 +355,48 @@ export class SsByLocationComponent implements AfterViewInit {
   private createMapPinMarker(): THREE.Group {
     const pinGroup = new THREE.Group();
     
-    // Create the main pin body (perfect circle/sphere for the top)
-    const pinBodyGeometry = new THREE.SphereGeometry(2, 32, 32);
-    const pinBodyMaterial = new THREE.MeshBasicMaterial({ color: 0x2196F3 }); // Google Maps blue
-    const pinBody = new THREE.Mesh(pinBodyGeometry, pinBodyMaterial);
-    pinBody.position.y = 1; // Move up to make room for the point
+    // Create the classic map pin shape using a 2D shape and extrude it
+    const pinShape = new THREE.Shape();
     
-    // Create the teardrop point using a custom shape
-    const pointShape = new THREE.Shape();
-    pointShape.moveTo(0, 0);
-    pointShape.lineTo(-1.4, -2.5);
-    pointShape.lineTo(0, -4);
-    pointShape.lineTo(1.4, -2.5);
-    pointShape.closePath();
+    // Start from the top center and create the pin outline
+    pinShape.moveTo(0, 3);
     
+    // Create the circular top part using arc
+    pinShape.arc(-3, 0, 3, Math.PI / 2, -Math.PI / 2, false);
+    
+    // Create the bottom point
+    pinShape.lineTo(0, -4);
+    
+    // Complete the other side
+    pinShape.arc(3, 0, 3, -Math.PI / 2, Math.PI / 2, false);
+    
+    pinShape.closePath();
+    
+    // Create the white inner circle hole
+    const hole = new THREE.Path();
+    hole.arc(0, 0, 1.5, 0, Math.PI * 2, false);
+    pinShape.holes.push(hole);
+    
+    // Extrude the shape to give it depth
     const extrudeSettings = {
-      depth: 0.3,
-      bevelEnabled: true,
-      bevelSegments: 8,
-      steps: 1,
-      bevelSize: 0.1,
-      bevelThickness: 0.1
+      depth: 0.5,
+      bevelEnabled: false
     };
     
-    const pointGeometry = new THREE.ExtrudeGeometry(pointShape, extrudeSettings);
-    const pointMaterial = new THREE.MeshBasicMaterial({ color: 0x2196F3 });
-    const pinPoint = new THREE.Mesh(pointGeometry, pointMaterial);
-    pinPoint.position.y = -1;
-    pinPoint.rotation.x = Math.PI / 2; // Rotate to face outward
+    const pinGeometry = new THREE.ExtrudeGeometry(pinShape, extrudeSettings);
+    const pinMaterial = new THREE.MeshBasicMaterial({ color: 0x4285F4 }); // Google blue
+    const pin = new THREE.Mesh(pinGeometry, pinMaterial);
     
-    // Create the inner white circle (flattened to be more like the original)
-    const innerCircleGeometry = new THREE.CircleGeometry(1.2, 32);
+    // Create the white inner circle separately
+    const innerCircleGeometry = new THREE.CircleGeometry(1.5, 32);
     const innerCircleMaterial = new THREE.MeshBasicMaterial({ 
       color: 0xFFFFFF,
       side: THREE.DoubleSide
     });
     const innerCircle = new THREE.Mesh(innerCircleGeometry, innerCircleMaterial);
-    innerCircle.position.y = 1.01; // Slightly in front of the main body
+    innerCircle.position.z = 0.26; // Place slightly in front
     
-    pinGroup.add(pinBody);
-    pinGroup.add(pinPoint);
+    pinGroup.add(pin);
     pinGroup.add(innerCircle);
     
     return pinGroup;
