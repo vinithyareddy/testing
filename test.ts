@@ -254,21 +254,8 @@ export class AvgLaborCostRegionComponent implements AfterViewInit, OnDestroy {
     // Apply drag to the globe circle
     this.svg.select('circle').call(drag);
     
-    // Add hover listeners to the entire globe container for immediate response
-    const globeContainer = this.globeContainer.nativeElement;
-    
-    globeContainer.addEventListener('mouseenter', () => {
-      this.isRotating = false;
-    });
-    
-    globeContainer.addEventListener('mouseleave', () => {
-      if (!this.isDragging) {
-        this.isRotating = true;
-      }
-    });
-    
     // Prevent default wheel behavior on the globe container to allow page scrolling
-    globeContainer.addEventListener('wheel', (event: WheelEvent) => {
+    this.globeContainer.nativeElement.addEventListener('wheel', (event: WheelEvent) => {
       // Don't prevent default - this allows normal page scrolling
     }, { passive: true });
   }
@@ -311,9 +298,19 @@ export class AvgLaborCostRegionComponent implements AfterViewInit, OnDestroy {
       .attr('stroke', this.selectedView === 'By Country' ? STROKE_COLOR_COUNTRY : 'none')
       .attr('stroke-width', 0.5)
       .style('cursor', 'pointer')
-      .on('mouseover', (event: any, d: any) => this.showTooltip(event, d))
+      .on('mouseover', (event: any, d: any) => {
+        // Pause rotation only when hovering over a country
+        this.isRotating = false;
+        this.showTooltip(event, d);
+      })
       .on('mousemove', (event: any) => this.moveTooltip(event))
-      .on('mouseout', () => this.hideTooltip());
+      .on('mouseout', () => {
+        // Resume rotation when leaving the country
+        if (!this.isDragging) {
+          this.isRotating = true;
+        }
+        this.hideTooltip();
+      });
   }
 
   private showTooltip(event: any, d: any) {
