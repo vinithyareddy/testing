@@ -1,706 +1,983 @@
-import { CommonModule } from '@angular/common';
-import { HttpClientModule } from '@angular/common/http';
-import { AfterViewInit, Component, OnInit, HostListener, ViewChild, ElementRef } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
-import { LiftSectionLoaderComponent } from '@lift/loaders';
-import { LiftPopoverComponent, PopoverConfig } from '@lift/ui';
-import * as Highcharts from 'highcharts';
-import { HighchartsChartModule } from 'highcharts-angular';
+// Add these responsive mixins at the top
+@mixin mobile {
+  @media (max-width: 767px) {
+    @content;
+  }
+}
 
-@Component({
-  selector: 'app-swfp-by-fcv-status',
-  templateUrl: './swfp-by-fcv-status.component.html',
-  standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    HttpClientModule,
-    LiftSectionLoaderComponent,
-    HighchartsChartModule,
-    LiftPopoverComponent
-  ],
-  styleUrls: ['./swfp-by-fcv-status.component.scss'],
-})
-export class SwfpByFcvStatusComponent implements OnInit, AfterViewInit {
-  @ViewChild('chartsection', { static: false }) chartSection!: ElementRef;
+@mixin tablet {
+  @media (min-width: 768px) and (max-width: 1024px) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (min-width: 1025px) {
+    @content;
+  }
+}
+
+// Updated main container
+.budget-card-box-lg {
+  width: 100%;
+  min-height: 400px;
   
-  ResponseFlag = false;
-  collapsed = false;
-  widgetType = 'ch';   // ch = chart
-  Highcharts: typeof Highcharts = Highcharts;
-  chartOptions: Highcharts.Options = {};
-  fcvData: any[] = [];
-  config1: PopoverConfig = { showPopoverOnClick: true };
-  
-  // Screen size tracking
-  isMobile = false;
-  isTablet = false;
-  isDesktop = false;
-
-  constructor(private route: ActivatedRoute, private router: Router) {
-    this.updateScreenSize();
-  }
-
-  ngOnInit(): void {
-    this.fcvData = [
-      { name: 'FCV', value: 104, color: '#95dad9' },
-      { name: 'Non-FCV', value: 44, color: '#3e9b9a' },
-    ];
-  }
-
-  ngAfterViewInit(): void {
-    setTimeout(() => {
-      if (this.fcvData.length > 0) {
-        this.onInitLoad(this.fcvData);
-      }
-    }, 100);
-  }
-
-  loadWidget(type: string) {
-    this.widgetType = type;
-    if (this.fcvData.length > 0) {
-      this.onInitLoad(this.fcvData);
-    }
-  }
-
-  onInitLoad(data: any[]): void {
-    this.ResponseFlag = true;
-    const total = data.reduce((acc, cur) => acc + cur.value, 0);
-
-    // Dynamic sizing based on screen size
-    const chartHeight = this.getChartHeight();
-    const fontSize = this.getFontSize();
-    const spacing = this.getSpacing();
-
-    this.chartOptions = {
-      chart: {
-        type: 'pie',
-        height: chartHeight,
-        spacingTop: spacing.top,
-        spacingBottom: spacing.bottom,
-        spacingLeft: spacing.left,
-        spacingRight: spacing.right,
-        backgroundColor: 'transparent',
-      },
-      title: {
-        verticalAlign: 'middle',
-        floating: true,
-        useHTML: true,
-        y: this.isMobile ? -5 : -10,
-        text: `<div style="text-align: center;">
-                <span style="font-size:${fontSize.title}px; font-weight:bold; line-height:1.2;">${total}</span><br/>
-                <span style="font-size:${fontSize.subtitle}px; line-height:1.2;">By FCV Status</span>
-               </div>`,
-      },
-      tooltip: { 
-        pointFormat: '<b>{point.y}</b> ({point.percentage:.0f}%)',
-        style: {
-          fontSize: `${fontSize.tooltip}px`
-        }
-      },
-      credits: { enabled: false },
-      legend: {
-        enabled: !this.isMobile, // Hide legend on mobile for space
-        align: 'center',
-        verticalAlign: 'bottom',
-        layout: this.isMobile ? 'vertical' : 'horizontal',
-        itemStyle: {
-          fontSize: `${fontSize.legend}px`
-        }
-      },
-      plotOptions: {
-        pie: {
-          innerSize: this.isMobile ? '75%' : '85%',
-          borderRadius: 0,
-          showInLegend: !this.isMobile,
-          dataLabels: {
-            enabled: !this.isMobile, // Hide data labels on mobile
-            distance: this.isMobile ? 2 : 5,
-            format: this.isMobile ? '{point.percentage:.0f}%' : '{point.y} ({point.percentage:.0f}%)',
-            style: {
-              fontSize: `${fontSize.dataLabels}px`,
-              textOutline: 'none'
-            },
-            crop: false,
-            overflow: 'allow'
-          },
-          ...(this.widgetType === 'ch'
-            ? { 
-                startAngle: -90, 
-                endAngle: 90, 
-                center: ['50%', this.isMobile ? '70%' : '75%'], 
-                size: this.isMobile ? '110%' : '140%' 
-              }
-            : { 
-                startAngle: 0, 
-                endAngle: 360, 
-                center: ['50%', '50%'], 
-                size: this.isMobile ? '90%' : '120%' 
-              }),
-        },
-      },
-      series: [
-        {
-          type: 'pie',
-          name: 'FCV Status',
-          data: data.map(d => ({ name: d.name, y: d.value, color: d.color })),
-        },
-      ],
-      responsive: {
-        rules: [
-          {
-            condition: {
-              maxWidth: 500
-            },
-            chartOptions: {
-              legend: {
-                enabled: false
-              },
-              plotOptions: {
-                pie: {
-                  dataLabels: {
-                    enabled: false
-                  }
-                }
-              }
-            }
-          },
-          {
-            condition: {
-              maxWidth: 768
-            },
-            chartOptions: {
-              chart: {
-                spacingTop: 10,
-                spacingBottom: 10,
-                spacingLeft: 10,
-                spacingRight: 10
-              }
-            }
-          }
-        ]
-      }
-    };
-  }
-
-  // Helper methods for responsive sizing
-  getChartHeight(): number {
-    if (this.isMobile) return 200;
-    if (this.isTablet) return 250;
-    return 300;
-  }
-
-  getFontSize() {
-    if (this.isMobile) {
-      return {
-        title: 20,
-        subtitle: 10,
-        tooltip: 10,
-        legend: 10,
-        dataLabels: 9
-      };
-    }
-    if (this.isTablet) {
-      return {
-        title: 25,
-        subtitle: 11,
-        tooltip: 11,
-        legend: 11,
-        dataLabels: 10
-      };
-    }
-    return {
-      title: 30,
-      subtitle: 12,
-      tooltip: 12,
-      legend: 12,
-      dataLabels: 11
-    };
-  }
-
-  getSpacing() {
-    if (this.isMobile) {
-      return { top: 10, bottom: 10, left: 20, right: 20 };
-    }
-    if (this.isTablet) {
-      return { top: 15, bottom: 15, left: 30, right: 30 };
-    }
-    return { top: 20, bottom: 20, left: 40, right: 50 };
-  }
-
-  updateScreenSize(): void {
-    const width = window.innerWidth;
-    this.isMobile = width < 576;
-    this.isTablet = width >= 576 && width < 992;
-    this.isDesktop = width >= 992;
-  }
-
-  getDetailPage() {
-    this.router.navigate(['fcv-status'], { relativeTo: this.route });
-  }
-
-  // Enhanced resize handler
-  @HostListener('window:resize')
-  onResize() {
-    this.updateScreenSize();
+  &.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    background: #fff;
+    padding: 10px;
+    margin: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: auto;
     
-    // Reload chart with new responsive settings
-    if (this.fcvData.length > 0) {
-      setTimeout(() => {
-        this.onInitLoad(this.fcvData);
-      }, 100);
-    }
-
-    // Force Highcharts reflow
-    if (this.Highcharts && (Highcharts as any).charts) {
-      (Highcharts as any).charts.forEach((chart: any) => {
-        if (chart) {
-          chart.reflow();
-        }
-      });
+    @include mobile {
+      padding: 5px;
     }
   }
 }
 
-
-
-// Responsive breakpoints
-$mobile: 576px;
-$tablet: 768px;
-$desktop: 992px;
-$large: 1200px;
-
-.budget-card-box {
-  background: #fff;
-  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
-  margin-top: 5px;
+.budget-box-chart-lg {
   width: 100%;
-  box-sizing: border-box;
-  
-  // Responsive padding
-  padding: 15px;
-  
-  @media (min-width: $tablet) {
-    padding: 20px;
-  }
-  
-  @media (min-width: $desktop) {
-    padding: 25px;
-  }
+  height: 100%;
+}
 
-  .widget-heading {
-    margin-right: 20px;
-    font-size: 14px;
-    line-height: 1.4;
+// Responsive header section
+.widget-heading {
+  @include mobile {
+    col-md-8: auto;
+    width: 100% !important;
+    margin-bottom: 10px;
+    text-align: center;
     
-    // Responsive font sizes
-    @media (max-width: #{$mobile - 1px}) {
-      font-size: 12px;
-      margin-right: 10px;
+    .title-with-icon {
+      font-size: 14px;
+      justify-content: center;
     }
+  }
+  
+  @include tablet {
+    font-size: 15px;
+  }
+}
+
+.header-icons {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  
+  @include mobile {
+    width: 100% !important;
+    justify-content: center;
+    margin-top: 10px;
+    gap: 15px;
+  }
+  
+  i {
+    font-size: 16px;
+    cursor: pointer;
     
-    @media (min-width: $desktop) {
+    @include mobile {
+      font-size: 18px;
+    }
+  }
+  
+  .fa-expand {
+    margin-top: 7px;
+    color: #0071bc;
+  }
+  
+  .ellipsis {
+    cursor: pointer;
+    font-size: 18px;
+    margin-left: 12px;
+    color: #0071bc;
+    margin-top: 1px;
+    
+    @include mobile {
+      margin-left: 0;
+    }
+  }
+}
+
+// Responsive globe wrapper
+.globe-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: #154361;
+  padding: 15px;
+  color: #fff;
+  position: relative;
+  min-height: 400px;
+  
+  @include mobile {
+    flex-direction: column;
+    padding: 10px;
+    min-height: 300px;
+  }
+  
+  @include tablet {
+    min-height: 500px;
+  }
+}
+
+// Responsive globe container
+.globe-container {
+  width: 70%;
+  height: 800px;
+  aspect-ratio: 1 / 1;
+  min-height: 300px;
+  
+  @include mobile {
+    width: 100%;
+    height: 300px;
+    margin-bottom: 20px;
+  }
+  
+  @include tablet {
+    width: 65%;
+    height: 500px;
+  }
+  
+  // Responsive SVG
+  svg {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100%;
+  }
+}
+
+// Responsive zoom controls
+.zoom-container {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  display: flex;
+  flex-direction: row;
+  
+  @include mobile {
+    bottom: 10px;
+    left: 10px;
+    
+    button {
+      width: 35px;
+      height: 35px;
       font-size: 16px;
     }
-    
-    i.fa-info-circle {
-      font-size: 14px;
-      color: #0071bc;
-      margin-left: 6px;
-      cursor: pointer;
-      
-      @media (max-width: #{$mobile - 1px}) {
-        font-size: 12px;
-        margin-left: 4px;
-      }
-    }
   }
-
-  .header-icons {
-    margin-bottom: 20px;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
-    
-    @media (max-width: #{$mobile - 1px}) {
-      gap: 4px;
-      margin-bottom: 15px;
-    }
-    
-    @media (min-width: $tablet) {
-      gap: 8px;
-      margin-bottom: 25px;
-    }
-    
-    @media (min-width: $desktop) {
-      margin-bottom: 30px;
-    }
-
-    div {
-      width: 28px;
-      height: 28px;
-      border: 1px solid #d6d6d6;
-      text-align: center;
-      line-height: 28px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      
-      // Responsive icon sizes
-      @media (max-width: #{$mobile - 1px}) {
-        width: 24px;
-        height: 24px;
-        line-height: 24px;
-      }
-      
-      @media (min-width: $large) {
-        width: 32px;
-        height: 32px;
-        line-height: 32px;
-      }
-
-      &:hover {
-        background-color: #f0f8ff;
-        border-color: #0071bc;
-      }
-
-      &.lft-toggle-active,
-      &.rgt-toggle-active {
-        background-color: #0071bc;
-        color: white;
-      }
-
-      i {
-        font-size: 14px;
-        
-        @media (max-width: #{$mobile - 1px}) {
-          font-size: 12px;
-        }
-        
-        @media (min-width: $large) {
-          font-size: 16px;
-        }
-      }
-    }
-
-    .ellipsis {
-      border: none;
-      color: #0071bc;
-      
-      &:hover {
-        background-color: transparent;
-        color: #005a94;
-      }
-    }
-  }
-
-  // Header section responsive layout
-  .card-box-header-sec {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 15px;
-    
-    @media (max-width: #{$mobile - 1px}) {
-      flex-direction: column;
-      gap: 10px;
-      align-items: stretch;
-      margin-bottom: 10px;
-      
-      .header-icons {
-        justify-content: center;
-        margin-bottom: 10px;
-      }
-    }
-    
-    @media (min-width: $tablet) {
-      align-items: center;
-      margin-bottom: 20px;
-    }
-  }
-
-  .inner-card-box {
-    padding: 20px 0 10px 0;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-    
-    // Responsive padding
-    @media (max-width: #{$mobile - 1px}) {
-      padding: 10px 0 5px 0;
-    }
-    
-    @media (min-width: $tablet) {
-      padding: 30px 0 15px 0;
-    }
-    
-    @media (min-width: $desktop) {
-      padding: 40px 0 10px 0;
-    }
-
-    highcharts-chart {
-      width: 100% !important;
-      height: 100% !important;
-      display: block;
-      
-      // Responsive min-heights
-      min-height: 180px;
-      
-      @media (min-width: $tablet) {
-        min-height: 220px;
-      }
-      
-      @media (min-width: $desktop) {
-        min-height: 250px;
-      }
-      
-      @media (min-width: $large) {
-        min-height: 280px;
-      }
-      
-      // Ensure chart container is responsive
-      ::ng-deep {
-        .highcharts-container {
-          width: 100% !important;
-          height: 100% !important;
-        }
-        
-        .highcharts-root {
-          width: 100% !important;
-          height: 100% !important;
-        }
-        
-        .highcharts-background {
-          fill: transparent;
-        }
-      }
-    }
-  }
-
-  .viewmore {
-    font-size: 13px;
-    font-weight: 500;
-    color: #0071bc;
-    text-align: right;
+  
+  button {
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 5px 10px;
+    margin: 2px 0;
     cursor: pointer;
-    transition: color 0.2s ease;
-    padding: 10px 0;
-    
-    // Responsive font sizes
-    @media (max-width: #{$mobile - 1px}) {
-      font-size: 11px;
-      text-align: center;
-      padding: 8px 0;
-    }
-    
-    @media (min-width: $desktop) {
-      font-size: 14px;
-    }
+    font-size: 20px;
+    font-weight: bold;
+    color: #214bcc;
+    width: 40px;
+    height: 40px;
     
     &:hover {
-      color: #005a94;
+      background-color: #f0f0f0;
+    }
+    
+    @include tablet {
+      width: 38px;
+      height: 38px;
+      font-size: 18px;
+    }
+  }
+}
+
+// Responsive legend wrapper
+.legend-wrapper {
+  margin-top: 120px;
+  margin-right: 20px;
+  width: 25%;
+  display: flex;
+  flex-direction: column;
+  
+  @include mobile {
+    width: 100%;
+    margin-top: 0;
+    margin-right: 0;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  
+  @include tablet {
+    width: 30%;
+    margin-top: 50px;
+  }
+  
+  &.scrollable {
+    .legend-table {
+      display: block;
+      max-height: 500px;
+      overflow-y: auto;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 3px;
+      background: #fff;
+      
+      @include mobile {
+        max-height: 250px;
+      }
+      
+      thead {
+        position: sticky;
+        top: 0;
+        background: #f8f9fa;
+        z-index: 1;
+        display: table-header-group;
+      }
+      
+      tbody {
+        display: block;
+      }
+      
+      tr {
+        display: table;
+        width: 100%;
+        table-layout: fixed;
+      }
+    }
+  }
+}
+
+// Responsive legend title
+.legend-title {
+  margin-bottom: 15px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-align: left;
+  color: #fff;
+  
+  @include mobile {
+    font-size: 1rem;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  
+  @include tablet {
+    font-size: 1.1rem;
+  }
+}
+
+// Responsive legend table
+.legend-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+  font-size: 0.9rem;
+  color: #000;
+  border-radius: 0;
+  margin-top: 0;
+  
+  @include mobile {
+    font-size: 0.8rem;
+  }
+  
+  th, td {
+    padding: 10px;
+    
+    @include mobile {
+      padding: 8px 5px;
+    }
+  }
+  
+  th:first-child {
+    text-align: left !important;
+    padding-left: 30px !important;
+    
+    @include mobile {
+      padding-left: 15px !important;
+    }
+  }
+  
+  th.left {
+    text-align: left;
+  }
+  
+  th.right {
+    text-align: right;
+  }
+  
+  td.cost-col {
+    text-align: right;
+  }
+  
+  tr {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: background 0.2s ease;
+    
+    &:hover {
+      background-color: #f1f5f9;
+    }
+  }
+}
+
+// Responsive custom dropdown
+.custom-dropdown {
+  @include mobile {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  
+  .btn {
+    padding: 2px 10px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #fff;
+    width: 200px;
+    
+    @include mobile {
+      width: 100%;
+      max-width: 200px;
+    }
+  }
+  
+  .dropdown-menu {
+    font-size: 14px;
+    min-width: 140px;
+    z-index: 2000 !important;
+    display: block !important;
+    position: absolute;
+    margin-top: 4px;
+    
+    @include mobile {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      max-width: 300px;
+    }
+  }
+  
+  .dropdown-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    
+    &:hover {
+      background-color: #f5f5f5;
     }
     
     i {
-      transition: transform 0.2s ease;
-    }
-    
-    &:hover i {
-      transform: translateX(2px);
+      color: #007bff;
     }
   }
+}
 
-  // Loader responsive styles
-  .loader-img {
+// Responsive country scroll sections
+.country-scroll-cell {
+  padding: 0;
+}
+
+.country-scroll {
+  max-height: 200px;
+  overflow-y: auto;
+  border-top: 1px solid #eee;
+  
+  @include mobile {
+    max-height: 150px;
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  tr {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    
+    &:hover {
+      background-color: #f1f5f9;
+    }
+  }
+}
+
+// Responsive flag and content
+.flag-icon {
+  width: 20px;
+  margin-right: 8px;
+  vertical-align: middle;
+  
+  @include mobile {
+    width: 16px;
+    margin-right: 5px;
+  }
+}
+
+.cell-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  @include mobile {
+    gap: 5px;
+  }
+}
+
+// Responsive tooltip
+:host ::ng-deep .tooltip-card {
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  overflow: hidden;
+  width: 160px;
+  font-size: 13px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  background: #fff;
+  margin-left: 20px;
+  
+  @include mobile {
+    width: 140px;
+    font-size: 12px;
+    margin-left: 10px;
+  }
+  
+  .tooltip-row {
+    padding: 6px 10px;
+    
+    @include mobile {
+      padding: 5px 8px;
+    }
+  }
+  
+  .tooltip-header {
+    background: #f4f6f9;
+    font-weight: 600;
     display: flex;
-    justify-content: center;
     align-items: center;
-    min-height: 200px;
+    gap: 6px;
+    color: #000 !important;
     
-    @media (max-width: #{$mobile - 1px}) {
-      min-height: 150px;
+    @include mobile {
+      gap: 4px;
     }
   }
-}
-
-// Icon transformations
-.fa-chart-bar {
-  display: inline-block;
-  transform: rotate(270deg) scaleY(-1);
-}
-
-.fa-chart-pie {
-  display: inline-block;
-  transform: rotate(180deg) scaleY(-1);
-}
-
-// Additional responsive utilities
-@media (max-width: #{$mobile - 1px}) {
-  .budget-card-box {
-    margin: 2px;
-    border-radius: 4px;
+  
+  .tooltip-body {
+    background: #fff;
+    color: #000;
+    display: flex;
+    justify-content: space-between;
   }
-}
-
-@media (min-width: $tablet) and (max-width: #{$desktop - 1px}) {
-  .budget-card-box {
-    margin: 3px;
-  }
-}
-
-// Print styles
-@media print {
-  .budget-card-box {
-    box-shadow: none;
-    border: 1px solid #ddd;
-    break-inside: avoid;
+  
+  img {
+    width: 20px;
+    height: 14px;
+    border: 1px solid #ccc;
     
-    .header-icons {
-      display: none;
+    @include mobile {
+      width: 16px;
+      height: 12px;
     }
   }
 }
 
-// High DPI displays
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-  .budget-card-box {
-    .widget-heading,
-    .viewmore {
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
+// Responsive view more section
+.viewmore {
+  @include mobile {
+    text-align: center;
+    margin-top: 15px;
+    padding-top: 15px;
+  }
+}
+
+// Responsive header layout
+.d-flex.justify-content-between {
+  @include mobile {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 10px;
+  }
+}
+
+// Additional mobile-specific styles
+@include mobile {
+  .col-md-8, .col-md-4 {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: none !important;
+  }
+}
+
+
+
+import { CommonModule } from '@angular/common';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
+import { HighchartsChartModule } from 'highcharts-angular';
+import { AfterViewInit, Component, ElementRef, ViewChild, OnDestroy, HostListener } from '@angular/core';
+import * as THREE from 'three';
+import * as topojson from 'topojson-client';
+import worldData from 'world-atlas/countries-110m.json';
+import { FeatureCollection, Geometry } from 'geojson';
+import * as d3 from 'd3';
+import { LiftPopoverComponent } from '@lift/ui';
+
+type CountryCost = {
+  country: string;
+  region: string;
+  cost: number;
+  code: string;
+  lat: number;
+  lng: number;
+  position?: THREE.Vector3;
+};
+
+const CUSTOM_GLOBE_COLOR = '#84c9f6';
+
+const REGION_COLORS: Record<string, string> = {
+  'North America': '#3c87d7',
+  'South America': '#144c88',
+  'Asia': '#343875ff',
+  'Europe': '#375691ff',
+  'Africa': '#83c083ff',
+  'Oceania': '#9467bd',
+  'Antarctic': '#8c564b',
+  'Other': '#adcdee'
+};
+
+const COUNTRY_COLOR_RANGE: [string, string] = ['#8db4ddff', '#144c88'];
+const STROKE_COLOR_COUNTRY = '#7e8790';
+const FALLBACK_COLOR = '#e0e0e0';
+const ROTATION_SPEED = 0.5;
+const ZOOM = { initial: 1, step: 0.2, min: 0.5, max: 3 };
+
+@Component({
+  selector: 'app-avg-labor-cost-region',
+  templateUrl: './avg-labor-cost-region.component.html',
+  standalone: true,
+  imports: [CommonModule, FormsModule, HttpClientModule, HighchartsChartModule, LiftPopoverComponent],
+  styleUrls: ['./avg-labor-cost-region.component.scss']
+})
+export class AvgLaborCostRegionComponent implements AfterViewInit, OnDestroy {
+  @ViewChild('globeContainer', { static: true }) globeContainer!: ElementRef;
+  
+  laborData: CountryCost[] = [];
+  regionGroups: { region: string; total: number; countries: CountryCost[]; expanded?: boolean }[] = [];
+  countryList: CountryCost[] = [];
+  
+  private svg: any;
+  private projection: any;
+  private path: any;
+  private countries!: FeatureCollection<Geometry, any>;
+  private currentRotation = [0, 0];
+  private isRotating = true;
+  private tooltip: any;
+  private isDragging = false;
+  private resizeObserver?: ResizeObserver;
+  
+  currentZoom: number = ZOOM.initial;
+  isFullscreen = false;
+  selectedView: string = 'By Region';
+  showMenu: boolean = false;
+  
+  // Responsive properties
+  private currentRadius = 300;
+  private isMobile = false;
+  private isTablet = false;
+  
+  private countryColorScale = d3.scaleLinear<string>()
+    .domain([0, 1])
+    .range(COUNTRY_COLOR_RANGE);
+
+  constructor(private http: HttpClient) {
+    this.checkScreenSize();
+  }
+
+  @HostListener('window:resize', ['$event'])
+  onResize(event: any) {
+    this.checkScreenSize();
+    this.handleResize();
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: any) {
+    // Close dropdown when clicking outside
+    if (!event.target.closest('.custom-dropdown')) {
+      this.showMenu = false;
     }
   }
-}
 
-// Focus styles for accessibility
-.budget-card-box {
-  .header-icons div:focus,
-  .viewmore:focus {
-    outline: 2px solid #0071bc;
-    outline-offset: 2px;
+  private checkScreenSize() {
+    const width = window.innerWidth;
+    this.isMobile = width <= 767;
+    this.isTablet = width >= 768 && width <= 1024;
   }
-}
 
-// Container queries support (if available)
-@container (max-width: 400px) {
-  .budget-card-box .widget-heading {
-    font-size: 11px;
+  private getResponsiveRadius(): number {
+    const container = this.globeContainer?.nativeElement;
+    if (!container) return 300;
+    
+    const width = container.offsetWidth;
+    const height = container.offsetHeight;
+    const minDimension = Math.min(width, height);
+    
+    if (this.isMobile) {
+      return Math.min(minDimension * 0.35, 150);
+    } else if (this.isTablet) {
+      return Math.min(minDimension * 0.4, 200);
+    } else {
+      return Math.min(minDimension * 0.45, 300);
+    }
   }
-}
 
+  private latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
+    const phi = (90 - lat) * (Math.PI / 180);
+    const theta = (lng + 180) * (Math.PI / 180);
+    const x = -radius * Math.sin(phi) * Math.cos(theta);
+    const y = radius * Math.cos(phi);
+    const z = radius * Math.sin(phi) * Math.sin(theta);
+    const v = new THREE.Vector3(x, y, z);
+    v.applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
+    return v;
+  }
 
-<div class="budget-card-box" #chartsection>
-  <div class="budget-box-chart">
+  ngAfterViewInit() {
+    this.setupResizeObserver();
+    this.initializeGlobe();
+    this.loadData();
+  }
 
-    <!-- Header -->
-    <div class="card-box-header-sec">
-      <!-- Title -->
-      <div class="widget-heading pointer mt-1">
-        <span class="d-inline-flex align-items-center">
-          <span class="widget-title">Workforce Supply (FTE) by FCV Status</span>
-          <ng-template [ngTemplateOutlet]="infotemp"></ng-template>
-        </span>
-      </div>
+  ngOnDestroy() {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
+  }
 
-      <!-- Icons -->
-      <div class="header-icons">
-        <div class="lft-toggle" 
-             [class.lft-toggle-active]="widgetType == 'th'" 
-             (click)="loadWidget('th')"
-             tabindex="0"
-             role="button"
-             aria-label="Switch to bar chart view"
-             (keydown.enter)="loadWidget('th')"
-             (keydown.space)="loadWidget('th')">
-          <i class="fas fa-chart-bar" aria-hidden="true"></i>
-        </div>
-        <div class="rgt-toggle" 
-             [class.rgt-toggle-active]="widgetType == 'ch'" 
-             (click)="loadWidget('ch')"
-             tabindex="0"
-             role="button"
-             aria-label="Switch to pie chart view"
-             (keydown.enter)="loadWidget('ch')"
-             (keydown.space)="loadWidget('ch')">
-          <i class="far fa-chart-pie" aria-hidden="true"></i>
-        </div>
-        <div class="ellipsis"
-             tabindex="0"
-             role="button"
-             aria-label="More options">
-          <i class="fas fa-ellipsis-v" aria-hidden="true"></i>
-        </div>
-      </div>
-    </div>
+  private setupResizeObserver() {
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(() => {
+        this.handleResize();
+      });
+      this.resizeObserver.observe(this.globeContainer.nativeElement);
+    }
+  }
 
-    <!-- Body -->
-    <div class="chart-container">
-      <!-- Loading State -->
-      <ng-container *ngIf="!ResponseFlag">
-        <div class="loader-img" role="status" aria-label="Loading chart data">
-          <lift-section-loader></lift-section-loader>
-        </div>
-      </ng-container>
+  private initializeGlobe() {
+    const globeDiv = this.globeContainer.nativeElement;
+    const width = globeDiv.offsetWidth;
+    const height = globeDiv.offsetHeight;
+    
+    this.currentRadius = this.getResponsiveRadius();
+    
+    this.projection = d3.geoOrthographic()
+      .scale(this.currentRadius)
+      .translate([width / 2, height / 2])
+      .clipAngle(90);
+      
+    this.path = d3.geoPath().projection(this.projection);
+    
+    // Clear any existing SVG
+    d3.select(globeDiv).selectAll('svg').remove();
+    
+    this.svg = d3.select(globeDiv)
+      .append('svg')
+      .attr('width', '100%')
+      .attr('height', '100%')
+      .attr('viewBox', `0 0 ${width} ${height}`)
+      .attr('preserveAspectRatio', 'xMidYMid meet');
 
-      <!-- Chart View -->
-      <ng-container *ngIf="ResponseFlag">
-        <ng-container *ngIf="widgetType == 'ch' || widgetType == 'th'">
-          <div class="inner-card-box">
-            <highcharts-chart
-              [Highcharts]="Highcharts"
-              [options]="chartOptions"
-              [constructorType]="'chart'"
-              role="img"
-              [attr.aria-label]="'Pie chart showing workforce supply by FCV status. FCV: ' + (fcvData[0]?.value || 0) + ', Non-FCV: ' + (fcvData[1]?.value || 0)">
-            </highcharts-chart>
+    this.svg.append('circle')
+      .attr('cx', width / 2)
+      .attr('cy', height / 2)
+      .attr('r', this.currentRadius)
+      .attr('fill', CUSTOM_GLOBE_COLOR)
+      .attr('stroke', '#ccc')
+      .attr('stroke-width', 1);
+
+    this.countries = topojson.feature(
+      worldData as any,
+      (worldData as any).objects.countries
+    ) as unknown as FeatureCollection<Geometry, any>;
+
+    // Clear any existing tooltip
+    d3.select(globeDiv).selectAll('.tooltip-card').remove();
+    
+    this.tooltip = d3.select(globeDiv)
+      .append('div')
+      .attr('class', 'tooltip-card')
+      .style('position', 'absolute')
+      .style('pointer-events', 'none')
+      .style('display', 'none');
+
+    this.setupInteractions();
+  }
+
+  private handleResize() {
+    if (!this.svg || !this.globeContainer) return;
+    
+    const globeDiv = this.globeContainer.nativeElement;
+    const width = globeDiv.offsetWidth;
+    const height = globeDiv.offsetHeight;
+    
+    this.currentRadius = this.getResponsiveRadius();
+    
+    // Update projection
+    this.projection
+      .scale(this.currentRadius * this.currentZoom)
+      .translate([width / 2, height / 2]);
+    
+    // Update SVG viewBox
+    this.svg.attr('viewBox', `0 0 ${width} ${height}`);
+    
+    // Update globe circle
+    this.svg.select('circle')
+      .attr('cx', width / 2)
+      .attr('cy', height / 2)
+      .attr('r', this.currentRadius * this.currentZoom);
+    
+    // Redraw countries
+    this.updateCountries();
+  }
+
+  private setupInteractions() {
+    const zoom = d3.zoom()
+      .scaleExtent([ZOOM.min, ZOOM.max])
+      .filter((event: any) => {
+        return event.type === 'wheel';
+      })
+      .on('zoom', (event: any) => {
+        this.currentZoom = event.transform.k;
+        this.projection.scale(this.currentRadius * event.transform.k);
+        this.updateCountries();
+      });
+
+    const drag = d3.drag()
+      .filter((event: any) => {
+        return event.type !== 'wheel';
+      })
+      .on('start', (event: any) => {
+        this.isDragging = true;
+        this.isRotating = false;
+      })
+      .on('drag', (event: any) => {
+        const sensitivity = this.isMobile ? 0.4 : 0.25;
+        this.currentRotation[0] += event.dx * sensitivity;
+        this.currentRotation[1] -= event.dy * sensitivity;
+        this.currentRotation[1] = Math.max(-90, Math.min(90, this.currentRotation[1]));
+        this.projection.rotate(this.currentRotation);
+        this.updateCountries();
+      })
+      .on('end', (event: any) => {
+        this.isDragging = false;
+        setTimeout(() => {
+          if (!this.isDragging) {
+            this.isRotating = true;
+          }
+        }, 2000);
+      });
+
+    this.svg.call(zoom);
+    this.svg.select('circle').call(drag);
+  }
+
+  private loadData() {
+    this.http.get<any>('assets/json/world-globe-data.json').subscribe(data => {
+      this.laborData = data.countries.map((c: any) => ({
+        country: c.name,
+        region: c.region,
+        cost: c.cost ?? Math.floor(Math.random() * 2),
+        code: c.code,
+        lat: c.lat,
+        lng: c.lng,
+        position: this.latLngToVector3(c.lat, c.lng, this.currentRadius)
+      }));
+
+      const minCost = d3.min(this.laborData, (d: any) => d.cost) || 0;
+      const maxCost = d3.max(this.laborData, (d: any) => d.cost) || 1;
+
+      this.countryColorScale = d3.scaleLinear<string>()
+        .domain([minCost, maxCost])
+        .range(COUNTRY_COLOR_RANGE);
+
+      this.showRegionData();
+      this.drawCountries();
+      this.startRotation();
+    });
+  }
+
+  private drawCountries() {
+    this.svg.selectAll('.country').remove();
+
+    this.svg.selectAll('.country')
+      .data(this.countries.features)
+      .enter()
+      .append('path')
+      .attr('class', 'country')
+      .attr('d', this.path)
+      .attr('fill', (d: any) => this.getCountryColor(d))
+      .attr('stroke', this.selectedView === 'By Country' ? STROKE_COLOR_COUNTRY : 'none')
+      .attr('stroke-width', 0.5)
+      .style('cursor', 'pointer')
+      .on('mouseover', (event: any, d: any) => this.showTooltip(event, d))
+      .on('mousemove', (event: any) => this.moveTooltip(event))
+      .on('mouseout', () => this.hideTooltip());
+  }
+
+  private showTooltip(event: any, d: any) {
+    const entry = this.laborData.find(c => c.country === d.properties.name);
+    
+    if (entry) {
+      let tooltipContent = '';
+      
+      if (this.selectedView === 'By Region') {
+        const regionGroup = this.regionGroups.find(r => r.region === entry.region);
+        const regionTotal = regionGroup ? regionGroup.total : entry.cost;
+        
+        tooltipContent = `
+          <div class="tooltip-row tooltip-header">${entry.region}</div>
+          <div class="tooltip-row tooltip-body">
+            <span>Average Cost</span>
+            <span><b>$${regionTotal}</b></span>
           </div>
-        </ng-container>
-
-        <!-- Mobile Legend (when chart legend is hidden) -->
-        <div class="mobile-legend d-block d-sm-none" *ngIf="fcvData.length > 0">
-          <div class="legend-items d-flex justify-content-center flex-wrap gap-3 mt-2">
-            <div class="legend-item d-flex align-items-center" *ngFor="let item of fcvData">
-              <div class="legend-color" 
-                   [style.background-color]="item.color"
-                   style="width: 12px; height: 12px; margin-right: 6px; border-radius: 2px;"></div>
-              <span class="legend-text" style="font-size: 11px;">
-                {{item.name}}: {{item.value}} ({{((item.value / (fcvData.reduce((acc, cur) => acc + cur.value, 0))) * 100).toFixed(0)}}%)
-              </span>
-            </div>
+        `;
+      } else {
+        const flagUrl = `https://flagcdn.com/w20/${entry.code.toLowerCase()}.png`;
+        tooltipContent = `
+          <div class="tooltip-row tooltip-header">
+            <img src="${flagUrl}" />
+            <span>${entry.country}</span>
           </div>
-        </div>
+          <div class="tooltip-row tooltip-body">
+            <span>Average Cost</span>
+            <span><b>$${entry.cost}</b></span>
+          </div>
+        `;
+      }
+      
+      this.tooltip.html(tooltipContent).style('display', 'block');
+      this.moveTooltip(event);
+    }
+  }
 
-        <!-- View More -->
-        <div class="viewmore pointer mt-3 pt-3" 
-             (click)="getDetailPage()"
-             tabindex="0"
-             role="button"
-             aria-label="View more details about FCV status"
-             (keydown.enter)="getDetailPage()"
-             (keydown.space)="getDetailPage()">
-          <span>View More&nbsp;&nbsp;</span>
-          <i class="fa fa-angle-right" aria-hidden="true"></i>
-        </div>
-      </ng-container>
-    </div>
-  </div>
-</div>
+  private moveTooltip(event: any) {
+    const rect = this.globeContainer.nativeElement.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    const offsetX = this.isMobile ? 10 : 15;
+    const offsetY = this.isMobile ? 10 : 15;
+    
+    this.tooltip
+      .style('left', (x + offsetX) + 'px')
+      .style('top', (y + offsetY) + 'px');
+  }
 
-<!-- Info Popover Template -->
-<ng-template #infotemp>
-  <lift-popover popoverTitle="Workforce Supply (FTE) by FCV Status" 
-                popoverText="This chart displays the distribution of full-time equivalent workforce by FCV (Fragile, Conflict, and Violence) status classification." 
-                [config]="config1">
-    <span role="button" 
-          tabindex="0"
-          aria-label="Information about this chart"
-          (keydown.enter)="$event.target.click()"
-          (keydown.space)="$event.target.click()">
-      <i class="far fa-info-circle" aria-hidden="true"></i>
-    </span>
-  </lift-popover>
-</ng-template>
+  private hideTooltip() {
+    this.tooltip.style('display', 'none');
+  }
+
+  private updateCountries() {
+    this.svg.selectAll('.country')
+      .attr('d', this.path)
+      .attr('fill', (d: any) => this.getCountryColor(d));
+
+    this.svg.select('circle')
+      .attr('r', this.currentRadius * this.currentZoom);
+  }
+
+  private getCountryColor(d: any): string {
+    const countryName = d.properties.name;
+    const entry = this.laborData.find(c => c.country === countryName);
+
+    if (this.selectedView === 'By Region') {
+      return entry ? REGION_COLORS[entry.region] || REGION_COLORS['Other'] : REGION_COLORS['Other'];
+    } else {
+      return entry ? this.countryColorScale(entry.cost) : FALLBACK_COLOR;
+    }
+  }
+
+  private startRotation() {
+    const rotate = () => {
+      if (this.isRotating) {
+        this.currentRotation[0] += ROTATION_SPEED;
+        this.projection.rotate(this.currentRotation);
+        this.updateCountries();
+      }
+      requestAnimationFrame(rotate);
+    };
+    rotate();
+  }
+
+  expandRow(region: any) {
+    region.expanded = !region.expanded;
+  }
+
+  zoomIn() {
+    this.currentZoom = Math.min(this.currentZoom + ZOOM.step, ZOOM.max);
+    this.projection.scale(this.currentRadius * this.currentZoom);
+    this.updateCountries();
+  }
+
+  zoomOut() {
+    this.currentZoom = Math.max(this.currentZoom - ZOOM.step, ZOOM.min);
+    this.projection.scale(this.currentRadius * this.currentZoom);
+    this.updateCountries();
+  }
+
+  setView(view: string) {
+    this.selectedView = view;
+    if (view === 'By Region') {
+      this.showRegionData();
+    } else {
+      this.showCountryData();
+    }
+    this.drawCountries();
+  }
+
+  private showRegionData() {
+    const grouped = this.laborData.reduce((acc, c) => {
+      (acc[c.region] ||= []).push(c);
+      return acc;
+    }, {} as Record<string, CountryCost[]>);
+
+    this.regionGroups = Object.entries(grouped).map(([region, arr]) => ({
+      region,
+      total: arr.reduce((s, x) => s + x.cost, 0),
+      countries: arr,
+      expanded: false
+    }));
+
+    this.countryList = [];
+  }
+
+  private showCountryData() {
+    this.countryList = [...this.laborData].sort((a, b) => a.country.localeCompare(b.country));
+    this.regionGroups = [];
+  }
+
+  focusOnCountry(country: CountryCost) {
+    if (!country) return;
+
+    this.isRotating = false;
+    const targetRotation = [-country.lng, -country.lat];
+    this.currentRotation = targetRotation;
+    this.projection.rotate(this.currentRotation);
+    this.updateCountries();
+
+    this.svg.selectAll('.country-marker').remove();
+    const [x, y] = this.projection([country.lng, country.lat]) || [0, 0];
+
+    const markerSize = this.isMobile ? 4 : 6;
+    const marker = this.svg.append('circle')
+      .attr('class', 'country-marker')
+      .attr('cx', x)
+      .attr('cy', y)
+      .attr('r', markerSize)
+      .attr('fill',
