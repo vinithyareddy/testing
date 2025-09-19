@@ -284,12 +284,13 @@ export class SsByLocationComponent implements AfterViewInit {
           const point = intersects[0].point;
           let closest: CountrySkill | null = null;
           let minDist = Infinity;
+          const maxHoverDistance = 15; // Same distance check for clicks
 
           for (const c of this.countriesList) {
             if (!c.position) continue;
             const rotatedPos = c.position.clone().applyMatrix4(this.globeGroup.matrixWorld);
             const dist = point.distanceTo(rotatedPos);
-            if (dist < minDist) {
+            if (dist < minDist && dist < maxHoverDistance) {
               minDist = dist;
               closest = { ...c, position: rotatedPos };
             }
@@ -324,17 +325,73 @@ export class SsByLocationComponent implements AfterViewInit {
         tooltip.style.display = 'none';
       };
 
-      // Add hover event listeners for pause/resume rotation
-      this.renderer.domElement.addEventListener('mouseenter', () => {
-        this.isHovering = true;
-      });
+      const handleMouseMove = (event: MouseEvent) => {
+        const mouse = new THREE.Vector2(
+          (event.offsetX / this.renderer.domElement.clientWidth) * 2 - 1,
+          -(event.offsetY / this.renderer.domElement.clientHeight) * 2 + 1
+        );
+
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, this.camera);
+        const intersects = raycaster.intersectObject(earth);
+
+        if (intersects.length > 0) {
+          const point = intersects[0].point;
+          let closest: CountrySkill | null = null;
+          let minDist = Infinity;
+          const maxHoverDistance = 15; // Adjust this value to control hover sensitivity
+
+          for (const c of this.countriesList) {
+            if (!c.position) continue;
+            const rotatedPos = c.position.clone().applyMatrix4(this.globeGroup.matrixWorld);
+            const dist = point.distanceTo(rotatedPos);
+            if (dist < minDist && dist < maxHoverDistance) {
+              minDist = dist;
+              closest = { ...c, position: rotatedPos };
+            }
+          }
+
+          if (closest) {
+            // Pause rotation when hovering over a country
+            this.isHovering = true;
+            
+            const vector = closest.position!.clone().project(this.camera);
+            const x = (vector.x * 0.5 + 0.5) * this.renderer.domElement.clientWidth;
+            const y = (-vector.y * 0.5 + 0.5) * this.renderer.domElement.clientHeight;
+
+            tooltip.innerHTML = `
+              <div class="tooltip-header">
+                <img src="https://flagcdn.com/24x18/${closest.code.toLowerCase()}.png" />
+                <span>${closest.country}</span>
+              </div>
+              <div class="tooltip-row">
+                <span class="label">Unique Skills</span>
+                <span class="value">${closest.uniqueSkills}</span>
+              </div>
+              <div class="tooltip-row">
+                <span class="label">Skill Supply (FTE)</span>
+                <span class="value">${closest.skillSupply}</span>
+              </div>
+            `;
+
+            tooltip.style.left = `${x + 15}px`;
+            tooltip.style.top = `${y + 15}px`;
+            tooltip.style.display = 'block';
+            return;
+          }
+        }
+        
+        // Resume rotation when not hovering over any country
+        this.isHovering = false;
+        tooltip.style.display = 'none';
+      };
 
       this.renderer.domElement.addEventListener('mouseleave', () => {
         this.isHovering = false;
         tooltip.style.display = 'none';
       });
 
-      this.renderer.domElement.addEventListener('mousemove', handleHover);
+      this.renderer.domElement.addEventListener('mousemove', handleMouseMove);
       this.renderer.domElement.addEventListener('click', handleHover);
     });
 
