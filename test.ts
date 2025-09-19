@@ -1,33 +1,33 @@
-private createIconSprite(
-  color: string = '#0071bc',
-  scaleX: number = 8,
-  scaleY: number = 12
-): THREE.Sprite {
-  const size = 128; // hi-res canvas so icon is sharp
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d')!;
+focusOnCountry(country: CountryCost) {
+  if (!country) return;
 
-  canvas.width = size;
-  canvas.height = size;
+  this.isRotating = false;
+  const targetRotation = [-country.lng, -country.lat];
+  this.currentRotation = targetRotation;
+  this.projection.rotate(this.currentRotation);
+  this.updateCountries();
 
-  // Draw icon directly in the given color
-  ctx.font = `900 ${size - 16}px "Font Awesome 6 Pro"`;
-  ctx.fillStyle = color;  // ✅ use passed color here
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('\uf3c5', size / 2, size / 2); // fa-location-dot / fa-map-marker-alt
+  this.svg.selectAll('.country-marker').remove();
 
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.minFilter = THREE.LinearFilter;
-  texture.magFilter = THREE.LinearFilter;
+  const [x, y] = this.projection([country.lng, country.lat]) || [0, 0];
 
-  // No need to re-tint in material
-  const material = new THREE.SpriteMaterial({
-    map: texture,
-    transparent: true
-  });
+  const pin = this.svg.append('text')
+    .attr('class', 'country-marker')
+    .attr('x', x)
+    .attr('y', y)
+    .attr('text-anchor', 'middle')
+    .attr('alignment-baseline', 'middle')
+    .attr('font-family', 'Font Awesome 6 Pro')
+    .attr('font-weight', '900')
+    .attr('font-size', this.isMobile ? 18 : 24)
+    .attr('fill', '#1a73e8')
+    .text('\uf3c5'); // fa-map-marker-alt
 
-  const sprite = new THREE.Sprite(material);
-  sprite.scale.set(scaleX, scaleY, 1); // final size on globe
-  return sprite;
+  pin.style('opacity', 0)
+    .transition().duration(400).style('opacity', 1);
+
+  setTimeout(() => {
+    pin.transition().duration(600).style('opacity', 0).remove();
+    this.isRotating = true;
+  }, 3000);
 }
