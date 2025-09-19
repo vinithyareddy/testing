@@ -456,14 +456,20 @@ export class AvgLaborCostRegionComponent implements AfterViewInit, OnDestroy {
     const pinGroup = this.svg.append('g')
       .attr('class', 'country-marker');
 
-    // Create perfect teardrop/pin shape like Google Maps
+    // Create perfect teardrop/pin shape with rounded top like Google Maps
     const pinPath = `
       M ${x} ${y}
-      C ${x - pinSize/2} ${y - pinSize/2} 
-        ${x - pinSize/2} ${y - pinSize} 
-        ${x} ${y - pinSize * 1.2}
-      C ${x + pinSize/2} ${y - pinSize} 
-        ${x + pinSize/2} ${y - pinSize/2} 
+      C ${x - pinSize/2} ${y - pinSize/3} 
+        ${x - pinSize/2} ${y - pinSize * 0.7} 
+        ${x - pinSize/2} ${y - pinSize}
+      C ${x - pinSize/2} ${y - pinSize * 1.3} 
+        ${x - pinSize/4} ${y - pinSize * 1.4} 
+        ${x} ${y - pinSize * 1.4}
+      C ${x + pinSize/4} ${y - pinSize * 1.4} 
+        ${x + pinSize/2} ${y - pinSize * 1.3} 
+        ${x + pinSize/2} ${y - pinSize}
+      C ${x + pinSize/2} ${y - pinSize * 0.7} 
+        ${x + pinSize/2} ${y - pinSize/3} 
         ${x} ${y}
       Z
     `;
@@ -472,11 +478,17 @@ export class AvgLaborCostRegionComponent implements AfterViewInit, OnDestroy {
     pinGroup.append('path')
       .attr('d', `
         M ${x + 3} ${y + 3}
-        C ${x - pinSize/2 + 3} ${y - pinSize/2 + 3} 
-          ${x - pinSize/2 + 3} ${y - pinSize + 3} 
-          ${x + 3} ${y - pinSize * 1.2 + 3}
-        C ${x + pinSize/2 + 3} ${y - pinSize + 3} 
-          ${x + pinSize/2 + 3} ${y - pinSize/2 + 3} 
+        C ${x - pinSize/2 + 3} ${y - pinSize/3 + 3} 
+          ${x - pinSize/2 + 3} ${y - pinSize * 0.7 + 3} 
+          ${x - pinSize/2 + 3} ${y - pinSize + 3}
+        C ${x - pinSize/2 + 3} ${y - pinSize * 1.3 + 3} 
+          ${x - pinSize/4 + 3} ${y - pinSize * 1.4 + 3} 
+          ${x + 3} ${y - pinSize * 1.4 + 3}
+        C ${x + pinSize/4 + 3} ${y - pinSize * 1.4 + 3} 
+          ${x + pinSize/2 + 3} ${y - pinSize * 1.3 + 3} 
+          ${x + pinSize/2 + 3} ${y - pinSize + 3}
+        C ${x + pinSize/2 + 3} ${y - pinSize * 0.7 + 3} 
+          ${x + pinSize/2 + 3} ${y - pinSize/3 + 3} 
           ${x + 3} ${y + 3}
         Z
       `)
