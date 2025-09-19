@@ -452,76 +452,63 @@ export class AvgLaborCostRegionComponent implements AfterViewInit, OnDestroy {
     const [x, y] = this.projection([country.lng, country.lat]) || [0, 0];
 
     // Create location pin group
-    const pinSize = this.isMobile ? 24 : 30;
+    const pinSize = this.isMobile ? 20 : 25;
     const pinGroup = this.svg.append('g')
-      .attr('class', 'country-marker')
-      .attr('transform', `translate(${x}, ${y - pinSize})`); // Offset so pin points to location
+      .attr('class', 'country-marker');
 
-    // Create Google Maps style location pin path
-    const pinRadius = pinSize / 2;
-    const pinPath = `M ${pinRadius} 0
-                     C ${pinRadius * 1.5} 0 ${pinSize} ${pinRadius * 0.5} ${pinSize} ${pinRadius}
-                     C ${pinSize} ${pinRadius * 1.5} ${pinRadius * 1.5} ${pinSize} ${pinRadius} ${pinSize}
-                     L 0 ${pinSize * 1.6}
-                     L ${pinRadius} ${pinSize}
-                     C ${pinRadius * 0.5} ${pinSize} 0 ${pinRadius * 1.5} 0 ${pinRadius}
-                     C 0 ${pinRadius * 0.5} ${pinRadius * 0.5} 0 ${pinRadius} 0 Z`;
-
-    // Add pin shadow
-    pinGroup.append('path')
-      .attr('d', pinPath)
+    // Simple Google Maps style pin using basic shapes
+    
+    // Pin shadow
+    pinGroup.append('ellipse')
+      .attr('cx', x + 2)
+      .attr('cy', y + pinSize + 3)
+      .attr('rx', pinSize * 0.4)
+      .attr('ry', 6)
       .attr('fill', '#000')
-      .attr('opacity', 0.2)
-      .attr('transform', 'translate(3, 3)'); // Shadow offset
+      .attr('opacity', 0.2);
 
-    // Add main pin body (blue like in your image)
-    pinGroup.append('path')
-      .attr('d', pinPath)
-      .attr('fill', '#1a73e8') // Google blue color
+    // Main pin circle (top part)
+    pinGroup.append('circle')
+      .attr('cx', x)
+      .attr('cy', y - pinSize * 0.3)
+      .attr('r', pinSize * 0.5)
+      .attr('fill', '#1a73e8')
       .attr('stroke', '#fff')
       .attr('stroke-width', 2);
 
-    // Add inner white circle
+    // Pin pointer (bottom triangle)
+    pinGroup.append('path')
+      .attr('d', `M ${x} ${y + pinSize * 0.2} L ${x - pinSize * 0.3} ${y - pinSize * 0.1} L ${x + pinSize * 0.3} ${y - pinSize * 0.1} Z`)
+      .attr('fill', '#1a73e8')
+      .attr('stroke', '#fff')
+      .attr('stroke-width', 2);
+
+    // Inner white dot
     pinGroup.append('circle')
-      .attr('cx', pinRadius)
-      .attr('cy', pinRadius)
-      .attr('r', pinRadius * 0.4)
+      .attr('cx', x)
+      .attr('cy', y - pinSize * 0.3)
+      .attr('r', pinSize * 0.2)
       .attr('fill', '#fff');
 
-    // Add subtle inner shadow to the white circle for depth
-    pinGroup.append('circle')
-      .attr('cx', pinRadius)
-      .attr('cy', pinRadius)
-      .attr('r', pinRadius * 0.4)
-      .attr('fill', 'none')
-      .attr('stroke', '#e8f0fe')
-      .attr('stroke-width', 1);
-
-    // Add bounce animation
+    // Bounce animation
     pinGroup
       .style('opacity', 0)
-      .attr('transform', `translate(${x}, ${y - pinSize - 10}) scale(0.5)`)
+      .transition()
+      .duration(300)
+      .style('opacity', 1)
       .transition()
       .duration(200)
-      .style('opacity', 1)
-      .attr('transform', `translate(${x}, ${y - pinSize + 5}) scale(1.1)`)
+      .style('transform', 'scale(1.1)')
       .transition()
-      .duration(150)
-      .attr('transform', `translate(${x}, ${y - pinSize}) scale(1)`)
-      .transition()
-      .duration(100)
-      .attr('transform', `translate(${x}, ${y - pinSize + 2}) scale(1.05)`)
-      .transition()
-      .duration(100)
-      .attr('transform', `translate(${x}, ${y - pinSize}) scale(1)`);
+      .duration(200)
+      .style('transform', 'scale(1)');
 
-    // Remove marker after 3 seconds with fade out animation
+    // Remove marker after 3 seconds
     setTimeout(() => {
       pinGroup
         .transition()
         .duration(500)
         .style('opacity', 0)
-        .attr('transform', `translate(${x}, ${y - pinSize}) scale(0.8)`)
         .on('end', () => pinGroup.remove());
       
       this.isRotating = true;
