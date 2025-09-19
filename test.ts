@@ -108,39 +108,34 @@ export class SsByLocationComponent implements AfterViewInit {
   private createLocationPin(): THREE.Group {
     const pinGroup = new THREE.Group();
     
-    // Create the main pin body (teardrop shape)
-    const pinGeometry = new THREE.SphereGeometry(1.5, 16, 16);
+    // Create the main pin body (circular top part)
+    const pinBodyGeometry = new THREE.SphereGeometry(2, 20, 20);
     const pinMaterial = new THREE.MeshBasicMaterial({ 
-      color: 0x1565C0, // Blue color similar to your image
-      transparent: true,
-      opacity: 0.9
+      color: 0x1976D2, // Blue color like your reference image
+      transparent: false
     });
     
-    const pinBody = new THREE.Mesh(pinGeometry, pinMaterial);
-    pinBody.scale.set(1, 1.3, 1); // Make it slightly taller
-    pinBody.position.y = 0.5;
+    const pinBody = new THREE.Mesh(pinBodyGeometry, pinMaterial);
+    pinBody.position.y = 2; // Position above the tip
     
-    // Create the pin tip (bottom point)
-    const tipGeometry = new THREE.ConeGeometry(0.8, 2, 8);
+    // Create the pin tip (pointed bottom)
+    const tipGeometry = new THREE.ConeGeometry(1.2, 3, 8);
     const tipMaterial = new THREE.MeshBasicMaterial({ 
-      color: 0x1565C0,
-      transparent: true,
-      opacity: 0.9
+      color: 0x1976D2
     });
     
     const pinTip = new THREE.Mesh(tipGeometry, tipMaterial);
-    pinTip.position.y = -1;
+    pinTip.position.y = 0; // At the base
     
-    // Create the inner white circle
-    const innerCircleGeometry = new THREE.CircleGeometry(0.7, 16);
+    // Create the inner white circle (hole in the pin)
+    const innerCircleGeometry = new THREE.CircleGeometry(1.2, 32);
     const innerCircleMaterial = new THREE.MeshBasicMaterial({ 
       color: 0xFFFFFF,
-      transparent: true,
-      opacity: 0.95
+      side: THREE.DoubleSide
     });
     
     const innerCircle = new THREE.Mesh(innerCircleGeometry, innerCircleMaterial);
-    innerCircle.position.set(0, 0.5, 0.01); // Slightly in front of the pin body
+    innerCircle.position.set(0, 2, 0.1); // Same height as pin body, slightly forward
     
     // Add all parts to the pin group
     pinGroup.add(pinBody);
@@ -148,7 +143,7 @@ export class SsByLocationComponent implements AfterViewInit {
     pinGroup.add(innerCircle);
     
     // Scale the entire pin
-    pinGroup.scale.set(1.5, 1.5, 1.5);
+    pinGroup.scale.set(1.2, 1.2, 1.2);
     
     return pinGroup;
   }
@@ -401,12 +396,13 @@ export class SsByLocationComponent implements AfterViewInit {
     // Create a pin instead of red dot
     const pin = this.createLocationPin();
     
-    // Position the pin slightly above the surface
-    const pinPosition = basePos.clone().normalize().multiplyScalar(RADIUS + 2);
-    pin.position.copy(pinPosition);
+    // Position the pin on the surface with proper orientation
+    const surfacePosition = basePos.clone().normalize().multiplyScalar(RADIUS);
+    pin.position.copy(surfacePosition);
     
-    // Make the pin always face the camera
-    pin.lookAt(this.camera.position);
+    // Orient the pin to point outward from the globe surface
+    const upVector = surfacePosition.clone().normalize();
+    pin.lookAt(surfacePosition.clone().add(upVector));
     
     this.globeGroup.add(pin);
 
