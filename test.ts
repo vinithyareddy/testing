@@ -25,6 +25,15 @@ const ROTATION_SPEED = 0.002;
 const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
 const RADIUS = 100;
 
+// Pin configuration
+const PIN_CONFIG = {
+  COLOR: 0x1a73e8, // Google blue
+  SIZE: 2.5,
+  HEIGHT: 5,
+  DISPLAY_TIME: 3000,
+  ANIMATION_DURATION: 500
+};
+
 @Component({
   selector: 'app-ss-by-location',
   templateUrl: './ss-by-location.component.html',
@@ -34,12 +43,13 @@ const RADIUS = 100;
 })
 export class SsByLocationComponent implements AfterViewInit {
   @ViewChild('globeContainer', { static: true }) globeContainer!: ElementRef;
-  fullview = false;
 
+  fullview = false;
   countriesList: CountrySkill[] = [];
   filteredList: CountrySkill[] = [];
   searchTerm = '';
   legendCollapsed = false;
+
   private controls!: OrbitControls;
   private globe: any;
   private countries!: FeatureCollection<Geometry, any>;
@@ -75,8 +85,10 @@ export class SsByLocationComponent implements AfterViewInit {
     const textWidth = textMetrics.width;
     const textHeight = fontSize;
     const padding = 4;
+
     canvas.width = textWidth + (padding * 2);
     canvas.height = textHeight + (padding * 2);
+
     context.clearRect(0, 0, canvas.width, canvas.height);
     context.font = `bold ${fontSize}px Arial, sans-serif`;
     context.textAlign = 'center';
@@ -87,6 +99,7 @@ export class SsByLocationComponent implements AfterViewInit {
     context.shadowOffsetY = 1;
     context.fillStyle = color;
     context.fillText(text, canvas.width / 2, canvas.height / 2);
+
     const texture = new THREE.CanvasTexture(canvas);
     const spriteMaterial = new THREE.SpriteMaterial({
       map: texture,
@@ -101,6 +114,7 @@ export class SsByLocationComponent implements AfterViewInit {
     const scaleX = Math.max(baseScale, textWidth * 0.015);
     const scaleY = baseScale * 0.8;
     sprite.scale.set(scaleX, scaleY, 1);
+
     return sprite;
   }
 
@@ -108,6 +122,7 @@ export class SsByLocationComponent implements AfterViewInit {
     if (this.labelGroup) this.globeGroup.remove(this.labelGroup);
     this.labelGroup = new THREE.Group();
     this.globeGroup.add(this.labelGroup);
+
     this.countriesList.forEach(country => {
       if (country.position) {
         const label = this.createTextSprite(country.code, '#ffffff', 26);
@@ -122,16 +137,21 @@ export class SsByLocationComponent implements AfterViewInit {
 
   private updateLabelVisibility() {
     if (!this.labelGroup || !this.camera) return;
+
     const cameraPosition = this.camera.position.clone().normalize();
     const minDistance = 8;
+
     this.labelGroup.children.forEach((label: any, i: number) => {
       const sprite = label as THREE.Sprite;
       const labelDirection = label.position.clone().normalize();
       const dot = labelDirection.dot(cameraPosition);
+
       sprite.visible = true;
+
       if (sprite.visible) {
         const opacity = Math.max(0.3, Math.min(1.0, dot));
         (sprite.material as THREE.SpriteMaterial).opacity = opacity;
+
         for (let j = 0; j < i; j++) {
           const other = this.labelGroup.children[j] as THREE.Sprite;
           if (other.visible && label.position.distanceTo(other.position) < minDistance) {
@@ -167,19 +187,10 @@ export class SsByLocationComponent implements AfterViewInit {
     );
     this.camera.position.z = this.currentZoom;
 
-    // MODIFIED: OrbitControls configuration to disable zoom
     this.controls = new OrbitControls(this.camera, renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.rotateSpeed = 0.5;
-    
-    // DISABLE ZOOM: Comment out or set to false/0 to disable mouse zoom
-    this.controls.enableZoom = false;  // Disables all zoom (mouse wheel and pinch)
-    // Alternative: Keep zoom enabled but set zoomSpeed to 0
-    // this.controls.zoomSpeed = 0;
-    
-    // Optional: Disable other interactions if needed
-    // this.controls.enablePan = false;  // Disables panning (right-click drag)
-    // this.controls.enableRotate = false;  // Disables rotation (left-click drag)
+    this.controls.zoomSpeed = 0.8;
 
     this.globe = new Globe().showGraticules(true).showAtmosphere(true);
     this.globe.atmosphereColor('#9ec2ff').atmosphereAltitude(0.25);
@@ -194,6 +205,7 @@ export class SsByLocationComponent implements AfterViewInit {
     const earthTex = texLoader.load(
       'https://unpkg.com/three-globe@2.30.0/example/img/earth-blue-marble.jpg'
     );
+
     const earth = new THREE.Mesh(
       new THREE.SphereGeometry(RADIUS, 75, 75),
       new THREE.MeshPhongMaterial({
@@ -207,6 +219,7 @@ export class SsByLocationComponent implements AfterViewInit {
     this.globeGroup.add(this.globe);
     this.globeGroup.add(earth);
     this.scene.add(this.globeGroup);
+
     this.labelGroup = new THREE.Group();
     this.globeGroup.add(this.labelGroup);
 
@@ -274,7 +287,7 @@ export class SsByLocationComponent implements AfterViewInit {
 
             tooltip.innerHTML = `
               <div class="tooltip-header">
-                <img src="https://flagcdn.com/24x18/${closest.code.toLowerCase()}.png" />
+                <span class="fi fi-${closest.code.toLowerCase()}" title="${closest.country}"></span>
                 <span>${closest.country}</span>
               </div>
               <div class="tooltip-row">
@@ -293,6 +306,7 @@ export class SsByLocationComponent implements AfterViewInit {
             return;
           }
         }
+
         tooltip.style.display = 'none';
       };
 
@@ -305,22 +319,24 @@ export class SsByLocationComponent implements AfterViewInit {
 
     const animate = () => {
       requestAnimationFrame(animate);
+
       if (!this.isFocusing) {
         this.globeGroup.rotation.y += ROTATION_SPEED;
       }
+
       this.controls.update();
-      
-      // MODIFIED: Removed zoom change detection since zoom is disabled
-      // const currentZ = this.camera.position.z;
-      // if (Math.abs(currentZ - this.lastZoom) > 5) {
-      //   this.currentZoom = currentZ;
-      //   this.addCountryLabels();
-      //   this.lastZoom = currentZ;
-      // }
-      
+
+      const currentZ = this.camera.position.z;
+      if (Math.abs(currentZ - this.lastZoom) > 5) {
+        this.currentZoom = currentZ;
+        this.addCountryLabels();
+        this.lastZoom = currentZ;
+      }
+
       this.updateLabelVisibility();
       renderer.render(this.scene, this.camera);
     };
+
     animate();
   }
 
@@ -352,87 +368,184 @@ export class SsByLocationComponent implements AfterViewInit {
     if (this.controls.object) this.controls.object.position.z = this.currentZoom;
   }
 
-  private createMapPinMarker(): THREE.Group {
-    const pinGroup = new THREE.Group();
-    
-    // Create the classic map pin shape using a 2D shape and extrude it
-    const pinShape = new THREE.Shape();
-    
-    // Start from the top center and create the pin outline
-    pinShape.moveTo(0, 3);
-    
-    // Create the circular top part using arc
-    pinShape.arc(-3, 0, 3, Math.PI / 2, -Math.PI / 2, false);
-    
-    // Create the bottom point
-    pinShape.lineTo(0, -4);
-    
-    // Complete the other side
-    pinShape.arc(3, 0, 3, -Math.PI / 2, Math.PI / 2, false);
-    
-    pinShape.closePath();
-    
-    // Create the white inner circle hole
-    const hole = new THREE.Path();
-    hole.arc(0, 0, 1.5, 0, Math.PI * 2, false);
-    pinShape.holes.push(hole);
-    
-    // Extrude the shape to give it depth
-    const extrudeSettings = {
-      depth: 0.5,
-      bevelEnabled: false
-    };
-    
-    const pinGeometry = new THREE.ExtrudeGeometry(pinShape, extrudeSettings);
-    const pinMaterial = new THREE.MeshBasicMaterial({ color: 0x4285F4 }); // Google blue
-    const pin = new THREE.Mesh(pinGeometry, pinMaterial);
-    
-    // Create the white inner circle separately
-    const innerCircleGeometry = new THREE.CircleGeometry(1.5, 32);
-    const innerCircleMaterial = new THREE.MeshBasicMaterial({ 
-      color: 0xFFFFFF,
-      side: THREE.DoubleSide
-    });
-    const innerCircle = new THREE.Mesh(innerCircleGeometry, innerCircleMaterial);
-    innerCircle.position.z = 0.26; // Place slightly in front
-    
-    pinGroup.add(pin);
-    pinGroup.add(innerCircle);
-    
-    return pinGroup;
-  }
-
   focusOnCountry(country: CountrySkill) {
     if (!country) return;
+
     this.isFocusing = true;
+
     const basePos = this.latLngToVector3(country.lat, country.lng, RADIUS);
     const worldPos = basePos.clone().applyMatrix4(this.globeGroup.matrixWorld);
+
     const distance = this.camera.position.length();
     const dir = worldPos.clone().normalize();
+
     this.camera.position.copy(dir.multiplyScalar(distance));
     this.controls.target.set(0, 0, 0);
     this.controls.update();
 
-    // Create and position the map pin marker
-    const highlight = this.createMapPinMarker();
-    
-    // Position the pin on the surface
-    const surfacePosition = basePos.clone().normalize().multiplyScalar(RADIUS + 2);
-    highlight.position.copy(surfacePosition);
-    
-    // Orient the pin to point toward the center of the globe
-    const centerDirection = new THREE.Vector3(0, 0, 0).sub(surfacePosition).normalize();
-    highlight.lookAt(surfacePosition.clone().add(centerDirection));
-    
-    // Scale the pin for better visibility
-    highlight.scale.set(1.5, 1.5, 1.5);
-    
-    this.globeGroup.add(highlight);
+    // Create location pin instead of red sphere
+    const pinGroup = this.createLocationPin(basePos);
+    this.globeGroup.add(pinGroup);
+
+    // Animate pin appearance
+    this.animatePin(pinGroup);
 
     setTimeout(() => {
-      this.globeGroup.remove(highlight);
+      // Fade out and remove pin
+      this.fadeOutPin(pinGroup, () => {
+        this.globeGroup.remove(pinGroup);
+      });
       this.isFocusing = false;
-    }, 2000);
+    }, PIN_CONFIG.DISPLAY_TIME);
+  }
+
+  private createLocationPin(position: THREE.Vector3): THREE.Group {
+    const pinGroup = new THREE.Group();
+
+    // Create teardrop shape for the pin
+    const pinGeometry = this.createPinGeometry();
+    const pinMaterial = new THREE.MeshLambertMaterial({ 
+      color: PIN_CONFIG.COLOR,
+      transparent: true
+    });
+    const pin = new THREE.Mesh(pinGeometry, pinMaterial);
+
+    // Create white center circle
+    const centerGeometry = new THREE.SphereGeometry(0.8, 16, 16);
+    const centerMaterial = new THREE.MeshLambertMaterial({ 
+      color: 0xffffff,
+      transparent: true
+    });
+    const center = new THREE.Mesh(centerGeometry, centerMaterial);
+    center.position.set(0, PIN_CONFIG.HEIGHT * 0.6, 0);
+
+    // Create pin shadow
+    const shadowGeometry = this.createPinGeometry();
+    const shadowMaterial = new THREE.MeshLambertMaterial({ 
+      color: 0x000000,
+      transparent: true,
+      opacity: 0.3
+    });
+    const shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
+    shadow.position.set(0.3, -0.2, 0.3); // Offset for shadow effect
+    shadow.scale.set(1.1, 0.3, 1.1); // Flatten and slightly enlarge for shadow
+
+    pinGroup.add(shadow);
+    pinGroup.add(pin);
+    pinGroup.add(center);
+
+    // Position the pin at the country location
+    pinGroup.position.copy(position);
+    
+    // Make pin point outward from globe center
+    const direction = position.clone().normalize();
+    pinGroup.lookAt(direction.multiplyScalar(1000));
+    pinGroup.rotateX(Math.PI); // Flip to point outward
+
+    return pinGroup;
+  }
+
+  private createPinGeometry(): THREE.BufferGeometry {
+    // Create teardrop/pin shape using LatheGeometry
+    const points = [];
+    
+    // Create the profile curve for the teardrop shape
+    for (let i = 0; i <= 20; i++) {
+      const t = i / 20;
+      let x, y;
+      
+      if (t <= 0.6) {
+        // Circular top part
+        const angle = (t / 0.6) * Math.PI;
+        x = Math.sin(angle) * PIN_CONFIG.SIZE;
+        y = PIN_CONFIG.HEIGHT - (1 - Math.cos(angle)) * PIN_CONFIG.SIZE;
+      } else {
+        // Tapered bottom part
+        const tapeFactor = (t - 0.6) / 0.4;
+        x = PIN_CONFIG.SIZE * (1 - tapeFactor);
+        y = PIN_CONFIG.HEIGHT - PIN_CONFIG.SIZE - tapeFactor * (PIN_CONFIG.HEIGHT - PIN_CONFIG.SIZE);
+      }
+      
+      points.push(new THREE.Vector2(x, y));
+    }
+    
+    // Add the very tip point
+    points.push(new THREE.Vector2(0, 0));
+    
+    return new THREE.LatheGeometry(points, 16);
+  }
+
+  private animatePin(pinGroup: THREE.Group) {
+    // Start small and fade in
+    pinGroup.scale.set(0.1, 0.1, 0.1);
+    pinGroup.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.material instanceof THREE.Material) {
+        child.material.opacity = 0;
+      }
+    });
+
+    // Animate scale and opacity
+    const startTime = Date.now();
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / PIN_CONFIG.ANIMATION_DURATION, 1);
+      
+      // Ease out animation
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
+      
+      pinGroup.scale.setScalar(easeProgress);
+      pinGroup.traverse((child) => {
+        if (child instanceof THREE.Mesh && child.material instanceof THREE.Material) {
+          if (child.material.color.getHex() === 0x000000) {
+            // Shadow
+            child.material.opacity = 0.3 * easeProgress;
+          } else {
+            // Pin body and center
+            child.material.opacity = easeProgress;
+          }
+        }
+      });
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    animate();
+  }
+
+  private fadeOutPin(pinGroup: THREE.Group, onComplete: () => void) {
+    const startTime = Date.now();
+    const fadeOutDuration = PIN_CONFIG.ANIMATION_DURATION;
+    
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / fadeOutDuration, 1);
+      
+      const opacity = 1 - progress;
+      const scale = 1 - progress * 0.2; // Slightly shrink while fading
+      
+      pinGroup.scale.setScalar(scale);
+      pinGroup.traverse((child) => {
+        if (child instanceof THREE.Mesh && child.material instanceof THREE.Material) {
+          if (child.material.color.getHex() === 0x000000) {
+            // Shadow
+            child.material.opacity = 0.3 * opacity;
+          } else {
+            // Pin body and center
+            child.material.opacity = opacity;
+          }
+        }
+      });
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        onComplete();
+      }
+    };
+    
+    animate();
   }
 
   fullPageView() {
