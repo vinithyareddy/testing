@@ -408,11 +408,12 @@ export class AvgLaborCostRegionComponent implements AfterViewInit, OnDestroy {
 
   private startRotation() {
     const rotate = () => {
-      if (this.isRotating) {
+      if (this.isRotating && !this.isDragging) {
         this.currentRotation[0] += ROTATION_SPEED;
         this.projection.rotate(this.currentRotation);
         this.updateCountries();
       }
+      // Always continue the animation loop, but only rotate when conditions are met
       requestAnimationFrame(rotate);
     };
     rotate();
