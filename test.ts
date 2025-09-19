@@ -402,19 +402,35 @@ export class SsByLocationComponent implements AfterViewInit {
   private createSimplePin(position: THREE.Vector3): THREE.Group {
     const pinGroup = new THREE.Group();
 
-    // Create pin shadow (flattened ellipse)
-    const shadowGeometry = new THREE.SphereGeometry(1.8, 16, 8);
-    const shadowMaterial = new THREE.MeshLambertMaterial({ 
-      color: 0x000000,
-      transparent: true,
-      opacity: 0.2
-    });
-    const shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
-    shadow.position.set(0.3, -0.2, 0.3);
-    shadow.scale.set(1.2, 0.1, 1.2); // Very flat for realistic shadow
+    // Create the teardrop shape using ExtrudeGeometry with a proper path
+    const shape = new THREE.Shape();
+    
+    // Create the teardrop outline - same logic as the D3.js version
+    const width = 2;
+    const height = 4;
+    
+    // Start from the bottom point
+    shape.moveTo(0, 0);
+    
+    // Left curve up to top
+    shape.bezierCurveTo(-width/2, height/3, -width/2, height*0.7, -width/2, height);
+    
+    // Top semicircle
+    shape.bezierCurveTo(-width/4, height*1.3, width/4, height*1.3, width/2, height);
+    
+    // Right curve down to bottom point
+    shape.bezierCurveTo(width/2, height*0.7, width/2, height/3, 0, 0);
 
-    // Create the teardrop pin body using custom geometry
-    const pinGeometry = this.createTearDropGeometry();
+    const extrudeSettings = {
+      depth: 0.2,
+      bevelEnabled: true,
+      bevelSegments: 8,
+      steps: 1,
+      bevelSize: 0.1,
+      bevelThickness: 0.1
+    };
+
+    const pinGeometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
     const pinMaterial = new THREE.MeshLambertMaterial({ 
       color: PIN_CONFIG.COLOR,
       transparent: true
@@ -422,13 +438,26 @@ export class SsByLocationComponent implements AfterViewInit {
     const pinBody = new THREE.Mesh(pinGeometry, pinMaterial);
 
     // Create white center circle
-    const centerGeometry = new THREE.SphereGeometry(0.7, 16, 16);
+    const centerGeometry = new THREE.SphereGeometry(0.6, 16, 16);
     const centerMaterial = new THREE.MeshLambertMaterial({ 
       color: 0xffffff,
       transparent: true
     });
     const center = new THREE.Mesh(centerGeometry, centerMaterial);
-    center.position.set(0, 1.5, 0); // Position in the round part of the teardrop
+    center.position.set(0, height * 0.75, 0.1); // Position in the round part
+
+    // Create pin shadow
+    const shadowShape = new THREE.Shape();
+    shadowShape.ellipse(0, 0, width * 0.6, width * 0.3, 0, Math.PI * 2, false, 0);
+    const shadowGeometry = new THREE.ShapeGeometry(shadowShape);
+    const shadowMaterial = new THREE.MeshLambertMaterial({ 
+      color: 0x000000,
+      transparent: true,
+      opacity: 0.3
+    });
+    const shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
+    shadow.position.set(0.2, -0.5, -0.1);
+    shadow.rotation.x = -Math.PI / 2; // Lay flat on ground
 
     pinGroup.add(shadow);
     pinGroup.add(pinBody);
@@ -437,88 +466,14 @@ export class SsByLocationComponent implements AfterViewInit {
     // Position the pin at the country location
     pinGroup.position.copy(position);
     
-    // Make pin point outward from globe center
+    // Make pin point outward from globe center and orient correctly
     const direction = position.clone().normalize();
     pinGroup.lookAt(direction.multiplyScalar(1000));
+    
+    // Rotate to make the pin point toward the surface
+    pinGroup.rotateX(Math.PI);
 
     return pinGroup;
-  }
-
-  private createTearDropGeometry(): THREE.BufferGeometry {
-    const segments = 32;
-    const rings = 16;
-    const radius = 2.0;
-    const height = 4.0;
-    
-    const geometry = new THREE.BufferGeometry();
-    const vertices = [];
-    const normals = [];
-    const uvs = [];
-    const indices = [];
-
-    // Generate vertices for teardrop shape
-    for (let ring = 0; ring <= rings; ring++) {
-      const v = ring / rings;
-      let y, radiusAtV;
-      
-      if (v <= 0.7) {
-        // Round top part (sphere-like)
-        const angle = (v / 0.7) * Math.PI * 0.5;
-        y = height - radius + Math.cos(angle) * radius;
-        radiusAtV = Math.sin(angle) * radius;
-      } else {
-        // Tapered bottom part (cone-like)
-        const t = (v - 0.7) / 0.3;
-        y = height - radius - t * (height - radius);
-        radiusAtV = radius * (1 - t);
-      }
-
-      for (let segment = 0; segment <= segments; segment++) {
-        const u = segment / segments;
-        const theta = u * Math.PI * 2;
-
-        const x = Math.cos(theta) * radiusAtV;
-        const z = Math.sin(theta) * radiusAtV;
-
-        vertices.push(x, y, z);
-
-        // Calculate normals
-        const normal = new THREE.Vector3(x, 0, z).normalize();
-        if (v <= 0.7) {
-          // For the round part, normal points outward from the sphere center
-          const sphereCenter = new THREE.Vector3(0, height - radius, 0);
-          normal.subVectors(new THREE.Vector3(x, y, z), sphereCenter).normalize();
-        } else {
-          // For the tapered part, blend between radial and upward
-          const tipInfluence = (v - 0.7) / 0.3;
-          normal.y = tipInfluence;
-          normal.normalize();
-        }
-        
-        normals.push(normal.x, normal.y, normal.z);
-        uvs.push(u, v);
-      }
-    }
-
-    // Generate indices
-    for (let ring = 0; ring < rings; ring++) {
-      for (let segment = 0; segment < segments; segment++) {
-        const a = ring * (segments + 1) + segment;
-        const b = ring * (segments + 1) + segment + 1;
-        const c = (ring + 1) * (segments + 1) + segment;
-        const d = (ring + 1) * (segments + 1) + segment + 1;
-
-        indices.push(a, b, c);
-        indices.push(b, d, c);
-      }
-    }
-
-    geometry.setIndex(indices);
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-    geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
-    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-
-    return geometry;
   }
 
   private animateSimplePin(pinGroup: THREE.Group) {
