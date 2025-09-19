@@ -1,35 +1,38 @@
-focusOnCountry(country: CountrySkill) {
-  if (!country) return;
-  this.isFocusing = true;
+private createMarkerIcon(
+  icon: string = '\uf041', // fa-map-marker unicode
+  color: string = '#0071bc', // custom blue
+  fontSize: number = 64
+): THREE.Sprite {
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d')!;
 
-  const basePos = this.latLngToVector3(country.lat, country.lng, RADIUS);
+  canvas.width = fontSize * 2;
+  canvas.height = fontSize * 2;
 
-  // Create pin sprite instead of red dot
-  const textureLoader = new THREE.TextureLoader();
-  const pinTexture = textureLoader.load('assets/icons/pin.png');
+  // Font Awesome 5 Free (needs CSS loaded in index.html)
+  context.font = `${fontSize}px "Font Awesome 5 Free"`;
+  context.fillStyle = color;
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
 
-  const material = new THREE.SpriteMaterial({
-    map: pinTexture,
-    transparent: true
-  });
+  // draw icon (\uf041 is fa-map-marker)
+  context.fillText(icon, canvas.width / 2, canvas.height / 2);
 
-  const pin = new THREE.Sprite(material);
-  pin.scale.set(10, 15, 1); // adjust size to look like your image
-  pin.position.copy(basePos.clone().normalize().multiplyScalar(RADIUS + 2));
+  const texture = new THREE.CanvasTexture(canvas);
+  const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
 
-  this.globeGroup.add(pin);
-
-  // Focus camera
-  const worldPos = basePos.clone().applyMatrix4(this.globeGroup.matrixWorld);
-  const distance = this.camera.position.length();
-  const dir = worldPos.clone().normalize();
-  this.camera.position.copy(dir.multiplyScalar(distance));
-  this.controls.target.set(0, 0, 0);
-  this.controls.update();
-
-  // Remove pin after 2 seconds
-  setTimeout(() => {
-    this.globeGroup.remove(pin);
-    this.isFocusing = false;
-  }, 2000);
+  const sprite = new THREE.Sprite(material);
+  sprite.scale.set(10, 15, 1); // adjust size
+  return sprite;
 }
+
+
+
+const marker = this.createMarkerIcon('\uf041', '#0071bc', 80); 
+marker.position.copy(basePos.clone().normalize().multiplyScalar(RADIUS + 2));
+this.globeGroup.add(marker);
+
+setTimeout(() => {
+  this.globeGroup.remove(marker);
+  this.isFocusing = false;
+}, 2000);
