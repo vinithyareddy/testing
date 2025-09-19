@@ -352,6 +352,33 @@ export class SsByLocationComponent implements AfterViewInit {
     if (this.controls.object) this.controls.object.position.z = this.currentZoom;
   }
 
+  private createMapPinMarker(): THREE.Group {
+    const pinGroup = new THREE.Group();
+    
+    // Create the main pin body (teardrop shape using two parts)
+    const pinBodyGeometry = new THREE.SphereGeometry(1.5, 16, 16);
+    const pinBodyMaterial = new THREE.MeshBasicMaterial({ color: 0x1E88E5 }); // Blue color
+    const pinBody = new THREE.Mesh(pinBodyGeometry, pinBodyMaterial);
+    
+    // Create the pin point (bottom part)
+    const pinPointGeometry = new THREE.ConeGeometry(1.5, 2.5, 8);
+    const pinPointMaterial = new THREE.MeshBasicMaterial({ color: 0x1E88E5 });
+    const pinPoint = new THREE.Mesh(pinPointGeometry, pinPointMaterial);
+    pinPoint.position.y = -2.5;
+    
+    // Create the inner white circle
+    const innerCircleGeometry = new THREE.SphereGeometry(0.8, 16, 16);
+    const innerCircleMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+    const innerCircle = new THREE.Mesh(innerCircleGeometry, innerCircleMaterial);
+    innerCircle.position.y = 0.1; // Slightly forward to avoid z-fighting
+    
+    pinGroup.add(pinBody);
+    pinGroup.add(pinPoint);
+    pinGroup.add(innerCircle);
+    
+    return pinGroup;
+  }
+
   focusOnCountry(country: CountrySkill) {
     if (!country) return;
     this.isFocusing = true;
@@ -363,11 +390,20 @@ export class SsByLocationComponent implements AfterViewInit {
     this.controls.target.set(0, 0, 0);
     this.controls.update();
 
-    const highlight = new THREE.Mesh(
-      new THREE.SphereGeometry(2.5, 16, 16),
-      new THREE.MeshBasicMaterial({ color: 0xff0000 })
-    );
-    highlight.position.copy(basePos);
+    // Create and position the map pin marker
+    const highlight = this.createMapPinMarker();
+    
+    // Position the pin on the surface
+    const surfacePosition = basePos.clone().normalize().multiplyScalar(RADIUS + 2);
+    highlight.position.copy(surfacePosition);
+    
+    // Orient the pin to point toward the center of the globe
+    const centerDirection = new THREE.Vector3(0, 0, 0).sub(surfacePosition).normalize();
+    highlight.lookAt(surfacePosition.clone().add(centerDirection));
+    
+    // Scale the pin for better visibility
+    highlight.scale.set(1.5, 1.5, 1.5);
+    
     this.globeGroup.add(highlight);
 
     setTimeout(() => {
