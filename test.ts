@@ -1,5 +1,4 @@
 private createIconSprite(
-  iconClass: string = 'fas fa-map-marker-alt',
   color: string = '#0071bc',
   size: number = 48
 ): THREE.Sprite {
@@ -9,13 +8,13 @@ private createIconSprite(
   canvas.width = size;
   canvas.height = size;
 
-  // Use FontAwesome font
-  ctx.font = `${size - 8}px "Font Awesome 5 Free"`;
+  // Solid weight (900) to render fas icons
+  ctx.font = `900 ${size - 8}px "Font Awesome 5 Free"`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = color;
 
-  // Unicode for map-marker-alt = \uf3c5
+  // Unicode for map-marker-alt (fa-map-marker-alt = \uf3c5)
   ctx.fillText('\uf3c5', size / 2, size / 2);
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -25,16 +24,6 @@ private createIconSprite(
   });
 
   const sprite = new THREE.Sprite(material);
-  sprite.scale.set(8, 12, 1); // adjust size on globe
+  sprite.scale.set(8, 12, 1); // tweak to size properly
   return sprite;
 }
-
-
-const pin = this.createIconSprite('fas fa-map-marker-alt', '#0071bc', 64);
-pin.position.copy(basePos.clone().normalize().multiplyScalar(RADIUS + 2));
-this.globeGroup.add(pin);
-
-setTimeout(() => {
-  this.globeGroup.remove(pin);
-  this.isFocusing = false;
-}, 2000);
