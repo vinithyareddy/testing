@@ -251,13 +251,25 @@ export class AvgLaborCostRegionComponent implements AfterViewInit, OnDestroy {
         }, 2000);
       });
 
-    // Apply drag only to the globe circle and countries, not the entire SVG
+    // Apply drag to the globe circle
     this.svg.select('circle').call(drag);
     
+    // Add hover listeners to the entire globe container for immediate response
+    const globeContainer = this.globeContainer.nativeElement;
+    
+    globeContainer.addEventListener('mouseenter', () => {
+      this.isRotating = false;
+    });
+    
+    globeContainer.addEventListener('mouseleave', () => {
+      if (!this.isDragging) {
+        this.isRotating = true;
+      }
+    });
+    
     // Prevent default wheel behavior on the globe container to allow page scrolling
-    this.globeContainer.nativeElement.addEventListener('wheel', (event: WheelEvent) => {
+    globeContainer.addEventListener('wheel', (event: WheelEvent) => {
       // Don't prevent default - this allows normal page scrolling
-      // event.preventDefault(); // <- Remove this line
     }, { passive: true });
   }
 
@@ -299,38 +311,9 @@ export class AvgLaborCostRegionComponent implements AfterViewInit, OnDestroy {
       .attr('stroke', this.selectedView === 'By Country' ? STROKE_COLOR_COUNTRY : 'none')
       .attr('stroke-width', 0.5)
       .style('cursor', 'pointer')
-      .on('mouseover', (event: any, d: any) => {
-        // Pause rotation when hovering over a country
-        this.isRotating = false;
-        this.showTooltip(event, d);
-      })
+      .on('mouseover', (event: any, d: any) => this.showTooltip(event, d))
       .on('mousemove', (event: any) => this.moveTooltip(event))
-      .on('mouseout', (event: any, d: any) => {
-        // Resume rotation when mouse leaves country
-        if (!this.isDragging) {
-          this.isRotating = true;
-        }
-        this.hideTooltip();
-      });
-
-    // Add hover listeners to the globe background as well
-    this.svg.select('circle')
-      .on('mouseover', () => {
-        // Pause rotation when hovering over globe background
-        if (!this.isDragging) {
-          this.isRotating = false;
-        }
-      })
-      .on('mouseout', () => {
-        // Resume rotation when leaving globe area
-        if (!this.isDragging) {
-          setTimeout(() => {
-            if (!this.isDragging) {
-              this.isRotating = true;
-            }
-          }, 500); // Small delay to prevent flickering
-        }
-      });
+      .on('mouseout', () => this.hideTooltip());
   }
 
   private showTooltip(event: any, d: any) {
