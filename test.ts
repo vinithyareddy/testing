@@ -25,15 +25,6 @@ const ROTATION_SPEED = 0.002;
 const ZOOM = { initial: 170, step: 20, min: 50, max: 400 };
 const RADIUS = 100;
 
-// Pin configuration
-const PIN_CONFIG = {
-  COLOR: 0x1a73e8, // Google blue
-  SIZE: 2.5,
-  HEIGHT: 5,
-  DISPLAY_TIME: 3000,
-  ANIMATION_DURATION: 500
-};
-
 @Component({
   selector: 'app-ss-by-location',
   templateUrl: './ss-by-location.component.html',
@@ -43,13 +34,12 @@ const PIN_CONFIG = {
 })
 export class SsByLocationComponent implements AfterViewInit {
   @ViewChild('globeContainer', { static: true }) globeContainer!: ElementRef;
-
   fullview = false;
+
   countriesList: CountrySkill[] = [];
   filteredList: CountrySkill[] = [];
   searchTerm = '';
   legendCollapsed = false;
-
   private controls!: OrbitControls;
   private globe: any;
   private countries!: FeatureCollection<Geometry, any>;
@@ -85,10 +75,8 @@ export class SsByLocationComponent implements AfterViewInit {
     const textWidth = textMetrics.width;
     const textHeight = fontSize;
     const padding = 4;
-
     canvas.width = textWidth + (padding * 2);
     canvas.height = textHeight + (padding * 2);
-
     context.clearRect(0, 0, canvas.width, canvas.height);
     context.font = `bold ${fontSize}px Arial, sans-serif`;
     context.textAlign = 'center';
@@ -99,7 +87,6 @@ export class SsByLocationComponent implements AfterViewInit {
     context.shadowOffsetY = 1;
     context.fillStyle = color;
     context.fillText(text, canvas.width / 2, canvas.height / 2);
-
     const texture = new THREE.CanvasTexture(canvas);
     const spriteMaterial = new THREE.SpriteMaterial({
       map: texture,
@@ -114,15 +101,62 @@ export class SsByLocationComponent implements AfterViewInit {
     const scaleX = Math.max(baseScale, textWidth * 0.015);
     const scaleY = baseScale * 0.8;
     sprite.scale.set(scaleX, scaleY, 1);
-
     return sprite;
+  }
+
+  // ADD THIS NEW METHOD HERE - Location pin creation
+  private createLocationPin(): THREE.Group {
+    const pinGroup = new THREE.Group();
+    
+    // Create the main pin body (teardrop shape)
+    const pinGeometry = new THREE.SphereGeometry(1.5, 16, 16);
+    const pinMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0x1565C0, // Blue color similar to your image
+      transparent: true,
+      opacity: 0.9
+    });
+    
+    const pinBody = new THREE.Mesh(pinGeometry, pinMaterial);
+    pinBody.scale.set(1, 1.3, 1); // Make it slightly taller
+    pinBody.position.y = 0.5;
+    
+    // Create the pin tip (bottom point)
+    const tipGeometry = new THREE.ConeGeometry(0.8, 2, 8);
+    const tipMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0x1565C0,
+      transparent: true,
+      opacity: 0.9
+    });
+    
+    const pinTip = new THREE.Mesh(tipGeometry, tipMaterial);
+    pinTip.position.y = -1;
+    
+    // Create the inner white circle
+    const innerCircleGeometry = new THREE.CircleGeometry(0.7, 16);
+    const innerCircleMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0xFFFFFF,
+      transparent: true,
+      opacity: 0.95
+    });
+    
+    const innerCircle = new THREE.Mesh(innerCircleGeometry, innerCircleMaterial);
+    innerCircle.position.set(0, 0.5, 0.01); // Slightly in front of the pin body
+    
+    // Add all parts to the pin group
+    pinGroup.add(pinBody);
+    pinGroup.add(pinTip);
+    pinGroup.add(innerCircle);
+    
+    // Scale the entire pin
+    pinGroup.scale.set(1.5, 1.5, 1.5);
+    
+    return pinGroup;
   }
 
   private addCountryLabels() {
     if (this.labelGroup) this.globeGroup.remove(this.labelGroup);
     this.labelGroup = new THREE.Group();
     this.globeGroup.add(this.labelGroup);
-
     this.countriesList.forEach(country => {
       if (country.position) {
         const label = this.createTextSprite(country.code, '#ffffff', 26);
@@ -137,21 +171,16 @@ export class SsByLocationComponent implements AfterViewInit {
 
   private updateLabelVisibility() {
     if (!this.labelGroup || !this.camera) return;
-
     const cameraPosition = this.camera.position.clone().normalize();
     const minDistance = 8;
-
     this.labelGroup.children.forEach((label: any, i: number) => {
       const sprite = label as THREE.Sprite;
       const labelDirection = label.position.clone().normalize();
       const dot = labelDirection.dot(cameraPosition);
-
       sprite.visible = true;
-
       if (sprite.visible) {
         const opacity = Math.max(0.3, Math.min(1.0, dot));
         (sprite.material as THREE.SpriteMaterial).opacity = opacity;
-
         for (let j = 0; j < i; j++) {
           const other = this.labelGroup.children[j] as THREE.Sprite;
           if (other.visible && label.position.distanceTo(other.position) < minDistance) {
@@ -190,7 +219,7 @@ export class SsByLocationComponent implements AfterViewInit {
     this.controls = new OrbitControls(this.camera, renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.rotateSpeed = 0.5;
-    this.controls.zoomSpeed = 0.8;
+    this.controls.enableZoom = false;
 
     this.globe = new Globe().showGraticules(true).showAtmosphere(true);
     this.globe.atmosphereColor('#9ec2ff').atmosphereAltitude(0.25);
@@ -205,7 +234,6 @@ export class SsByLocationComponent implements AfterViewInit {
     const earthTex = texLoader.load(
       'https://unpkg.com/three-globe@2.30.0/example/img/earth-blue-marble.jpg'
     );
-
     const earth = new THREE.Mesh(
       new THREE.SphereGeometry(RADIUS, 75, 75),
       new THREE.MeshPhongMaterial({
@@ -219,7 +247,6 @@ export class SsByLocationComponent implements AfterViewInit {
     this.globeGroup.add(this.globe);
     this.globeGroup.add(earth);
     this.scene.add(this.globeGroup);
-
     this.labelGroup = new THREE.Group();
     this.globeGroup.add(this.labelGroup);
 
@@ -287,7 +314,7 @@ export class SsByLocationComponent implements AfterViewInit {
 
             tooltip.innerHTML = `
               <div class="tooltip-header">
-                <span class="fi fi-${closest.code.toLowerCase()}" title="${closest.country}"></span>
+                <img src="https://flagcdn.com/24x18/${closest.code.toLowerCase()}.png" />
                 <span>${closest.country}</span>
               </div>
               <div class="tooltip-row">
@@ -306,7 +333,6 @@ export class SsByLocationComponent implements AfterViewInit {
             return;
           }
         }
-
         tooltip.style.display = 'none';
       };
 
@@ -319,24 +345,13 @@ export class SsByLocationComponent implements AfterViewInit {
 
     const animate = () => {
       requestAnimationFrame(animate);
-
       if (!this.isFocusing) {
         this.globeGroup.rotation.y += ROTATION_SPEED;
       }
-
       this.controls.update();
-
-      const currentZ = this.camera.position.z;
-      if (Math.abs(currentZ - this.lastZoom) > 5) {
-        this.currentZoom = currentZ;
-        this.addCountryLabels();
-        this.lastZoom = currentZ;
-      }
-
       this.updateLabelVisibility();
       renderer.render(this.scene, this.camera);
     };
-
     animate();
   }
 
@@ -368,191 +383,37 @@ export class SsByLocationComponent implements AfterViewInit {
     if (this.controls.object) this.controls.object.position.z = this.currentZoom;
   }
 
+  // REPLACE THIS METHOD - Updated focusOnCountry with pin instead of red dot
   focusOnCountry(country: CountrySkill) {
     if (!country) return;
 
     this.isFocusing = true;
-
     const basePos = this.latLngToVector3(country.lat, country.lng, RADIUS);
     const worldPos = basePos.clone().applyMatrix4(this.globeGroup.matrixWorld);
 
     const distance = this.camera.position.length();
     const dir = worldPos.clone().normalize();
-
     this.camera.position.copy(dir.multiplyScalar(distance));
+
     this.controls.target.set(0, 0, 0);
     this.controls.update();
 
-    // Create simple pin marker like the D3.js widget
-    const pinGroup = this.createSimplePin(basePos);
-    this.globeGroup.add(pinGroup);
-
-    // Animate pin appearance
-    this.animateSimplePin(pinGroup);
+    // Create a pin instead of red dot
+    const pin = this.createLocationPin();
+    
+    // Position the pin slightly above the surface
+    const pinPosition = basePos.clone().normalize().multiplyScalar(RADIUS + 2);
+    pin.position.copy(pinPosition);
+    
+    // Make the pin always face the camera
+    pin.lookAt(this.camera.position);
+    
+    this.globeGroup.add(pin);
 
     setTimeout(() => {
-      // Fade out and remove pin
-      this.fadeOutSimplePin(pinGroup, () => {
-        this.globeGroup.remove(pinGroup);
-      });
+      this.globeGroup.remove(pin);
       this.isFocusing = false;
-    }, PIN_CONFIG.DISPLAY_TIME);
-  }
-
-  private createSimplePin(position: THREE.Vector3): THREE.Group {
-    const pinGroup = new THREE.Group();
-
-    // Create the teardrop shape using ExtrudeGeometry with a proper path
-    const shape = new THREE.Shape();
-    
-    // Create the teardrop outline - same logic as the D3.js version
-    const width = 2;
-    const height = 4;
-    
-    // Start from the bottom point
-    shape.moveTo(0, 0);
-    
-    // Left curve up to top
-    shape.bezierCurveTo(-width/2, height/3, -width/2, height*0.7, -width/2, height);
-    
-    // Top semicircle
-    shape.bezierCurveTo(-width/4, height*1.3, width/4, height*1.3, width/2, height);
-    
-    // Right curve down to bottom point
-    shape.bezierCurveTo(width/2, height*0.7, width/2, height/3, 0, 0);
-
-    const extrudeSettings = {
-      depth: 0.2,
-      bevelEnabled: true,
-      bevelSegments: 8,
-      steps: 1,
-      bevelSize: 0.1,
-      bevelThickness: 0.1
-    };
-
-    const pinGeometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-    const pinMaterial = new THREE.MeshLambertMaterial({ 
-      color: PIN_CONFIG.COLOR,
-      transparent: true
-    });
-    const pinBody = new THREE.Mesh(pinGeometry, pinMaterial);
-
-    // Create white center circle
-    const centerGeometry = new THREE.SphereGeometry(0.6, 16, 16);
-    const centerMaterial = new THREE.MeshLambertMaterial({ 
-      color: 0xffffff,
-      transparent: true
-    });
-    const center = new THREE.Mesh(centerGeometry, centerMaterial);
-    center.position.set(0, height * 0.75, 0.1); // Position in the round part
-
-    // Create pin shadow
-    const shadowShape = new THREE.Shape();
-    shadowShape.ellipse(0, 0, width * 0.6, width * 0.3, 0, Math.PI * 2, false, 0);
-    const shadowGeometry = new THREE.ShapeGeometry(shadowShape);
-    const shadowMaterial = new THREE.MeshLambertMaterial({ 
-      color: 0x000000,
-      transparent: true,
-      opacity: 0.3
-    });
-    const shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
-    shadow.position.set(0.2, -0.5, -0.1);
-    shadow.rotation.x = -Math.PI / 2; // Lay flat on ground
-
-    pinGroup.add(shadow);
-    pinGroup.add(pinBody);
-    pinGroup.add(center);
-
-    // Position the pin at the country location
-    pinGroup.position.copy(position);
-    
-    // Make pin point outward from globe center and orient correctly
-    const direction = position.clone().normalize();
-    pinGroup.lookAt(direction.multiplyScalar(1000));
-    
-    // Rotate to make the pin point toward the surface
-    pinGroup.rotateX(Math.PI);
-
-    return pinGroup;
-  }
-
-  private animateSimplePin(pinGroup: THREE.Group) {
-    // Start small and fade in
-    pinGroup.scale.set(0.1, 0.1, 0.1);
-    pinGroup.traverse((child) => {
-      if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshLambertMaterial) {
-        child.material.opacity = 0;
-      }
-    });
-
-    // Animate scale and opacity
-    const startTime = Date.now();
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / PIN_CONFIG.ANIMATION_DURATION, 1);
-      
-      // Ease out animation
-      const easeProgress = 1 - Math.pow(1 - progress, 3);
-      
-      pinGroup.scale.setScalar(easeProgress);
-      pinGroup.traverse((child) => {
-        if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshLambertMaterial) {
-          if (child.material.color.getHex() === 0x000000) {
-            // Shadow
-            child.material.opacity = 0.3 * easeProgress;
-          } else if (child.material.color.getHex() === 0xffffff) {
-            // White center
-            child.material.opacity = easeProgress;
-          } else {
-            // Pin body (blue)
-            child.material.opacity = easeProgress;
-          }
-        }
-      });
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-    
-    animate();
-  }
-
-  private fadeOutSimplePin(pinGroup: THREE.Group, onComplete: () => void) {
-    const startTime = Date.now();
-    const fadeOutDuration = PIN_CONFIG.ANIMATION_DURATION;
-    
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / fadeOutDuration, 1);
-      
-      const opacity = 1 - progress;
-      const scale = 1 - progress * 0.2; // Slightly shrink while fading
-      
-      pinGroup.scale.setScalar(scale);
-      pinGroup.traverse((child) => {
-        if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshLambertMaterial) {
-          if (child.material.color.getHex() === 0x000000) {
-            // Shadow
-            child.material.opacity = 0.3 * opacity;
-          } else if (child.material.color.getHex() === 0xffffff) {
-            // White center
-            child.material.opacity = opacity;
-          } else {
-            // Pin body (blue)
-            child.material.opacity = opacity;
-          }
-        }
-      });
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        onComplete();
-      }
-    };
-    
-    animate();
+    }, 2000);
   }
 
   fullPageView() {
