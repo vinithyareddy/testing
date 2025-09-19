@@ -1,35 +1,13 @@
-private createIconSprite(
-  color: string = '#0071bc',
-  size: number = 48
-): THREE.Sprite {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d')!;
+private createSvgIconSprite(path: string, scale: number = 10): THREE.Sprite {
+  const loader = new THREE.TextureLoader();
+  const texture = loader.load(path);
 
-  canvas.width = size;
-  canvas.height = size;
-
-  // Solid weight for FontAwesome solid icons
-  ctx.font = `900 ${size - 8}px "Font Awesome 5 Free"`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = color;
-
-  // Unicode for fa-map-marker-alt = \uf3c5
-  ctx.fillText('\uf3c5', size / 2, size / 2);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  const material = new THREE.SpriteMaterial({
-    map: texture,
-    transparent: true
-  });
-
+  const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
   const sprite = new THREE.Sprite(material);
-  sprite.scale.set(8, 12, 1); // adjust on globe
+  sprite.scale.set(scale, scale, 1);
   return sprite;
 }
 
-
-
-const pin = this.createIconSprite('#0071bc', 64);
+const pin = this.createSvgIconSprite('assets/icons/map-marker-alt.svg', 15);
 pin.position.copy(basePos.clone().normalize().multiplyScalar(RADIUS + 2));
 this.globeGroup.add(pin);
