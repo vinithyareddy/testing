@@ -452,62 +452,66 @@ export class AvgLaborCostRegionComponent implements AfterViewInit, OnDestroy {
     const [x, y] = this.projection([country.lng, country.lat]) || [0, 0];
 
     // Create location pin group
-    const pinSize = this.isMobile ? 20 : 25;
+    const pinSize = this.isMobile ? 24 : 30;
     const pinGroup = this.svg.append('g')
       .attr('class', 'country-marker');
 
-    // Simple Google Maps style pin using basic shapes
-    
-    // Pin shadow
-    pinGroup.append('ellipse')
-      .attr('cx', x + 2)
-      .attr('cy', y + pinSize + 3)
-      .attr('rx', pinSize * 0.4)
-      .attr('ry', 6)
+    // Create perfect teardrop/pin shape like Google Maps
+    const pinPath = `
+      M ${x} ${y}
+      C ${x - pinSize/2} ${y - pinSize/2} 
+        ${x - pinSize/2} ${y - pinSize} 
+        ${x} ${y - pinSize * 1.2}
+      C ${x + pinSize/2} ${y - pinSize} 
+        ${x + pinSize/2} ${y - pinSize/2} 
+        ${x} ${y}
+      Z
+    `;
+
+    // Add pin shadow (slightly offset)
+    pinGroup.append('path')
+      .attr('d', `
+        M ${x + 3} ${y + 3}
+        C ${x - pinSize/2 + 3} ${y - pinSize/2 + 3} 
+          ${x - pinSize/2 + 3} ${y - pinSize + 3} 
+          ${x + 3} ${y - pinSize * 1.2 + 3}
+        C ${x + pinSize/2 + 3} ${y - pinSize + 3} 
+          ${x + pinSize/2 + 3} ${y - pinSize/2 + 3} 
+          ${x + 3} ${y + 3}
+        Z
+      `)
       .attr('fill', '#000')
       .attr('opacity', 0.2);
 
-    // Main pin circle (top part)
-    pinGroup.append('circle')
-      .attr('cx', x)
-      .attr('cy', y - pinSize * 0.3)
-      .attr('r', pinSize * 0.5)
-      .attr('fill', '#1a73e8')
-      .attr('stroke', '#fff')
-      .attr('stroke-width', 2);
-
-    // Pin pointer (bottom triangle)
+    // Add main pin body (blue teardrop)
     pinGroup.append('path')
-      .attr('d', `M ${x} ${y + pinSize * 0.2} L ${x - pinSize * 0.3} ${y - pinSize * 0.1} L ${x + pinSize * 0.3} ${y - pinSize * 0.1} Z`)
+      .attr('d', pinPath)
       .attr('fill', '#1a73e8')
       .attr('stroke', '#fff')
       .attr('stroke-width', 2);
 
-    // Inner white dot
+    // Add inner white circle (positioned in the round part)
     pinGroup.append('circle')
       .attr('cx', x)
-      .attr('cy', y - pinSize * 0.3)
-      .attr('r', pinSize * 0.2)
+      .attr('cy', y - pinSize * 0.8)
+      .attr('r', pinSize * 0.25)
       .attr('fill', '#fff');
 
-    // Bounce animation
+    // Simple smooth appearance animation (no jerky movement)
     pinGroup
       .style('opacity', 0)
+      .style('transform', `scale(0.5)`)
+      .style('transform-origin', `${x}px ${y}px`)
       .transition()
-      .duration(300)
+      .duration(400)
       .style('opacity', 1)
-      .transition()
-      .duration(200)
-      .style('transform', 'scale(1.1)')
-      .transition()
-      .duration(200)
       .style('transform', 'scale(1)');
 
-    // Remove marker after 3 seconds
+    // Remove marker after 3 seconds with smooth fade
     setTimeout(() => {
       pinGroup
         .transition()
-        .duration(500)
+        .duration(600)
         .style('opacity', 0)
         .on('end', () => pinGroup.remove());
       
