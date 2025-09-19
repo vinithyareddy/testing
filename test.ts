@@ -383,32 +383,53 @@ export class SsByLocationComponent implements AfterViewInit {
     this.controls.target.set(0, 0, 0);
     this.controls.update();
 
-    // Create location pin instead of red sphere
-    const pinGroup = this.createLocationPin(basePos);
+    // Create simple pin marker like the D3.js widget
+    const pinGroup = this.createSimplePin(basePos);
     this.globeGroup.add(pinGroup);
 
     // Animate pin appearance
-    this.animatePin(pinGroup);
+    this.animateSimplePin(pinGroup);
 
     setTimeout(() => {
       // Fade out and remove pin
-      this.fadeOutPin(pinGroup, () => {
+      this.fadeOutSimplePin(pinGroup, () => {
         this.globeGroup.remove(pinGroup);
       });
       this.isFocusing = false;
     }, PIN_CONFIG.DISPLAY_TIME);
   }
 
-  private createLocationPin(position: THREE.Vector3): THREE.Group {
+  private createSimplePin(position: THREE.Vector3): THREE.Group {
     const pinGroup = new THREE.Group();
 
-    // Create teardrop shape for the pin
-    const pinGeometry = this.createPinGeometry();
-    const pinMaterial = new THREE.MeshLambertMaterial({ 
+    // Create pin shadow (flattened sphere)
+    const shadowGeometry = new THREE.SphereGeometry(1.5, 16, 16);
+    const shadowMaterial = new THREE.MeshLambertMaterial({ 
+      color: 0x000000,
+      transparent: true,
+      opacity: 0.3
+    });
+    const shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
+    shadow.position.set(0.2, -0.5, 0.2);
+    shadow.scale.set(1.2, 0.2, 1.2); // Flatten for shadow effect
+
+    // Create main pin body (larger blue sphere)
+    const pinBodyGeometry = new THREE.SphereGeometry(2, 20, 20);
+    const pinBodyMaterial = new THREE.MeshLambertMaterial({ 
       color: PIN_CONFIG.COLOR,
       transparent: true
     });
-    const pin = new THREE.Mesh(pinGeometry, pinMaterial);
+    const pinBody = new THREE.Mesh(pinBodyGeometry, pinBodyMaterial);
+    pinBody.position.set(0, 2, 0);
+
+    // Create pin pointer (cone pointing down)
+    const pointerGeometry = new THREE.ConeGeometry(1.5, 3, 8);
+    const pointerMaterial = new THREE.MeshLambertMaterial({ 
+      color: PIN_CONFIG.COLOR,
+      transparent: true
+    });
+    const pointer = new THREE.Mesh(pointerGeometry, pointerMaterial);
+    pointer.position.set(0, 0.5, 0);
 
     // Create white center circle
     const centerGeometry = new THREE.SphereGeometry(0.8, 16, 16);
@@ -417,21 +438,11 @@ export class SsByLocationComponent implements AfterViewInit {
       transparent: true
     });
     const center = new THREE.Mesh(centerGeometry, centerMaterial);
-    center.position.set(0, PIN_CONFIG.HEIGHT * 0.6, 0);
-
-    // Create pin shadow
-    const shadowGeometry = this.createPinGeometry();
-    const shadowMaterial = new THREE.MeshLambertMaterial({ 
-      color: 0x000000,
-      transparent: true,
-      opacity: 0.3
-    });
-    const shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
-    shadow.position.set(0.3, -0.2, 0.3); // Offset for shadow effect
-    shadow.scale.set(1.1, 0.3, 1.1); // Flatten and slightly enlarge for shadow
+    center.position.set(0, 2, 0);
 
     pinGroup.add(shadow);
-    pinGroup.add(pin);
+    pinGroup.add(pinBody);
+    pinGroup.add(pointer);
     pinGroup.add(center);
 
     // Position the pin at the country location
@@ -440,42 +451,11 @@ export class SsByLocationComponent implements AfterViewInit {
     // Make pin point outward from globe center
     const direction = position.clone().normalize();
     pinGroup.lookAt(direction.multiplyScalar(1000));
-    pinGroup.rotateX(Math.PI); // Flip to point outward
 
     return pinGroup;
   }
 
-  private createPinGeometry(): THREE.BufferGeometry {
-    // Create teardrop/pin shape using LatheGeometry
-    const points = [];
-    
-    // Create the profile curve for the teardrop shape
-    for (let i = 0; i <= 20; i++) {
-      const t = i / 20;
-      let x, y;
-      
-      if (t <= 0.6) {
-        // Circular top part
-        const angle = (t / 0.6) * Math.PI;
-        x = Math.sin(angle) * PIN_CONFIG.SIZE;
-        y = PIN_CONFIG.HEIGHT - (1 - Math.cos(angle)) * PIN_CONFIG.SIZE;
-      } else {
-        // Tapered bottom part
-        const tapeFactor = (t - 0.6) / 0.4;
-        x = PIN_CONFIG.SIZE * (1 - tapeFactor);
-        y = PIN_CONFIG.HEIGHT - PIN_CONFIG.SIZE - tapeFactor * (PIN_CONFIG.HEIGHT - PIN_CONFIG.SIZE);
-      }
-      
-      points.push(new THREE.Vector2(x, y));
-    }
-    
-    // Add the very tip point
-    points.push(new THREE.Vector2(0, 0));
-    
-    return new THREE.LatheGeometry(points, 16);
-  }
-
-  private animatePin(pinGroup: THREE.Group) {
+  private animateSimplePin(pinGroup: THREE.Group) {
     // Start small and fade in
     pinGroup.scale.set(0.1, 0.1, 0.1);
     pinGroup.traverse((child) => {
@@ -499,8 +479,11 @@ export class SsByLocationComponent implements AfterViewInit {
           if (child.material.color.getHex() === 0x000000) {
             // Shadow
             child.material.opacity = 0.3 * easeProgress;
+          } else if (child.material.color.getHex() === 0xffffff) {
+            // White center
+            child.material.opacity = easeProgress;
           } else {
-            // Pin body and center
+            // Pin body (blue)
             child.material.opacity = easeProgress;
           }
         }
@@ -514,7 +497,7 @@ export class SsByLocationComponent implements AfterViewInit {
     animate();
   }
 
-  private fadeOutPin(pinGroup: THREE.Group, onComplete: () => void) {
+  private fadeOutSimplePin(pinGroup: THREE.Group, onComplete: () => void) {
     const startTime = Date.now();
     const fadeOutDuration = PIN_CONFIG.ANIMATION_DURATION;
     
@@ -531,8 +514,11 @@ export class SsByLocationComponent implements AfterViewInit {
           if (child.material.color.getHex() === 0x000000) {
             // Shadow
             child.material.opacity = 0.3 * opacity;
+          } else if (child.material.color.getHex() === 0xffffff) {
+            // White center
+            child.material.opacity = opacity;
           } else {
-            // Pin body and center
+            // Pin body (blue)
             child.material.opacity = opacity;
           }
         }
