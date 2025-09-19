@@ -8,13 +8,13 @@ private createIconSprite(
   canvas.width = size;
   canvas.height = size;
 
-  // Solid weight (900) to render fas icons
+  // Solid weight for FontAwesome solid icons
   ctx.font = `900 ${size - 8}px "Font Awesome 5 Free"`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = color;
 
-  // Unicode for map-marker-alt (fa-map-marker-alt = \uf3c5)
+  // Unicode for fa-map-marker-alt = \uf3c5
   ctx.fillText('\uf3c5', size / 2, size / 2);
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -24,6 +24,12 @@ private createIconSprite(
   });
 
   const sprite = new THREE.Sprite(material);
-  sprite.scale.set(8, 12, 1); // tweak to size properly
+  sprite.scale.set(8, 12, 1); // adjust on globe
   return sprite;
 }
+
+
+
+const pin = this.createIconSprite('#0071bc', 64);
+pin.position.copy(basePos.clone().normalize().multiplyScalar(RADIUS + 2));
+this.globeGroup.add(pin);
