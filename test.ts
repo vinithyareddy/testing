@@ -445,23 +445,68 @@ export class AvgLaborCostRegionComponent implements AfterViewInit, OnDestroy {
     this.projection.rotate(this.currentRotation);
     this.updateCountries();
 
+    // Remove any existing markers
     this.svg.selectAll('.country-marker').remove();
+    
+    // Get the projected coordinates
     const [x, y] = this.projection([country.lng, country.lat]) || [0, 0];
 
-    const markerSize = this.isMobile ? 4 : 6;
-    const marker = this.svg.append('circle')
+    // Create location pin group
+    const pinSize = this.isMobile ? 20 : 24;
+    const pinGroup = this.svg.append('g')
       .attr('class', 'country-marker')
-      .attr('cx', x)
-      .attr('cy', y)
-      .attr('r', markerSize)
-      .attr('fill', 'red')
+      .attr('transform', `translate(${x}, ${y})`);
+
+    // Create location pin path (SVG path for a pin shape)
+    const pinPath = `M 0 0 
+                     C -${pinSize/4} 0 -${pinSize/2} -${pinSize/4} -${pinSize/2} -${pinSize/2}
+                     C -${pinSize/2} -${pinSize*3/4} -${pinSize/4} -${pinSize} 0 -${pinSize}
+                     C ${pinSize/4} -${pinSize} ${pinSize/2} -${pinSize*3/4} ${pinSize/2} -${pinSize/2}
+                     C ${pinSize/2} -${pinSize/4} ${pinSize/4} 0 0 0 Z`;
+
+    // Add pin background/shadow
+    pinGroup.append('path')
+      .attr('d', pinPath)
+      .attr('fill', '#000')
+      .attr('opacity', 0.3)
+      .attr('transform', 'translate(2, 2)'); // Shadow offset
+
+    // Add main pin
+    pinGroup.append('path')
+      .attr('d', pinPath)
+      .attr('fill', '#dc3545') // Bootstrap danger red
       .attr('stroke', '#fff')
       .attr('stroke-width', 2);
 
+    // Add pin dot in the center
+    pinGroup.append('circle')
+      .attr('cx', 0)
+      .attr('cy', -pinSize/2)
+      .attr('r', pinSize/6)
+      .attr('fill', '#fff');
+
+    // Add subtle animation
+    pinGroup
+      .style('opacity', 0)
+      .transition()
+      .duration(300)
+      .style('opacity', 1)
+      .attr('transform', `translate(${x}, ${y}) scale(0.8)`)
+      .transition()
+      .duration(200)
+      .attr('transform', `translate(${x}, ${y}) scale(1)`);
+
+    // Remove marker after 3 seconds with fade out animation
     setTimeout(() => {
-      marker.remove();
+      pinGroup
+        .transition()
+        .duration(500)
+        .style('opacity', 0)
+        .attr('transform', `translate(${x}, ${y}) scale(0.8)`)
+        .on('end', () => pinGroup.remove());
+      
       this.isRotating = true;
-    }, 2000);
+    }, 3000);
   }
 
   toggleFullscreen() {
