@@ -117,6 +117,7 @@ $desktop: 1200px;
   border-radius: 8px;
   overflow: hidden;
   height: 800px;
+  transition: all 0.3s ease;
 
   @include mobile {
     flex-direction: column;
@@ -126,6 +127,25 @@ $desktop: 1200px;
 
   @include tablet {
     height: 600px;
+  }
+
+  &.mobile-layout {
+    flex-direction: column;
+    height: auto;
+    min-height: 500px;
+
+    .legend-wrapper {
+      width: 100% !important;
+      max-height: 300px;
+      order: 2;
+      box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .globe-wrapper {
+      order: 1;
+      min-height: 400px;
+      height: 50vh;
+    }
   }
 }
 
@@ -137,6 +157,7 @@ $desktop: 1200px;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
+  transition: all 0.3s ease;
 
   @include mobile {
     width: 100%;
@@ -149,6 +170,15 @@ $desktop: 1200px;
   @include tablet {
     width: 280px;
     padding: 12px;
+  }
+
+  &.mobile-legend {
+    width: 100% !important;
+    max-height: 300px;
+    opacity: 1 !important;
+    overflow: visible !important;
+    order: 2;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
   }
 }
 
@@ -262,10 +292,31 @@ $desktop: 1200px;
   flex: 1;
   overflow-y: auto;
   padding-right: 5px;
+  transition: max-height 0.3s ease;
 
   @include mobile {
     max-height: 200px;
     padding-right: 0;
+  }
+
+  @include tablet {
+    max-height: 300px;
+  }
+
+  // Dynamic height adjustments
+  &.mobile-scroll {
+    max-height: 200px !important;
+    overflow-y: auto !important;
+  }
+
+  &.tablet-scroll {
+    max-height: 300px !important;
+    overflow-y: auto !important;
+  }
+
+  &.desktop-scroll {
+    max-height: none !important;
+    overflow-y: auto !important;
   }
 }
 
@@ -700,126 +751,7 @@ canvas {
 }
 
 
-<div [ngClass]="{ 'full-view' : fullview }">
-  <div class="budget-card-box-lg" #cartboxchartsection>
-    <div class="budget-box-chart-lg">
-      
-      <!-- Responsive Header -->
-      <div class="d-flex justify-content-between align-items-center flex-wrap">
-        
-        <!-- Left Section - Responsive title -->
-        <div class="widget-heading pointer mt-1 col-md-8 d-flex align-items-center" 
-             [ngClass]="{'text-center w-100': isMobile}">
-          <span class="d-inline-flex">
-            Skill Supply by Location
-            <ng-template [ngTemplateOutlet]="infotemp"></ng-template>
-          </span>
-        </div>
-
-        <!-- Right Section - Responsive controls -->
-        <div class="col-md-4 d-flex justify-content-end align-items-center header-icons"
-             [ngClass]="{'justify-content-center w-100': isMobile}">
-          
-          <!-- Toggle Buttons -->
-          <div class="d-flex gap-3">
-            <span (click)="fullPageView()" class="view">
-              @if (!fullview) {
-                <i class="fas fa-expand" title="Expand View" alt="Expand"></i>
-              }
-              @if (fullview) {
-                <i class="fas fa-compress" title="Collapse View" alt="Collapse"></i>
-              }
-            </span>
-            <div class="ellipsis ml-2">
-              <i class="fas fa-ellipsis-v"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Main Widget Container -->
-      <div class="ss-widget" [ngClass]="{'mobile-layout': isMobile}">
-        
-        <!-- Legend Section with Responsive Toggle -->
-        <div class="legend-toggle" 
-             [class.collapsed]="legendCollapsed && !isMobile"
-             [class.mobile-always-visible]="isMobile">
-          
-          <div class="legend-wrapper">
-            <!-- Search Box -->
-            <div class="search-box">
-              <input type="text" 
-                     [placeholder]="isMobile ? 'Search countries...' : 'Search by country'" 
-                     [(ngModel)]="searchTerm" 
-                     (input)="filterList()" />
-              <i class="fas fa-search"></i>
-            </div>
-            
-            <!-- Country List -->
-            <div class="country-list">
-              <div *ngFor="let c of filteredList" 
-                   class="country-card" 
-                   (click)="focusOnCountry(c)"
-                   [attr.aria-label]="'Focus on ' + c.country">
-                
-                <div class="country-header">
-                  <img [src]="'assets/images/flags/' + c.code.toLowerCase() + '.svg'" 
-                       class="flag-icon" 
-                       [alt]="c.country + ' flag'" />
-                  <div class="country-name">{{ c.country }}</div>
-                </div>
-                
-                <div class="metrics">
-                  <div class="metric-labels">
-                    <span>{{ isMobile ? 'Skills' : 'Unique Skills' }}</span>
-                    <span>{{ isMobile ? 'Supply' : 'Skill Supply (FTE)' }}</span>
-                  </div>
-                  <div class="metric-values">
-                    <span>{{ c.uniqueSkills }}</span>
-                    <span>{{ c.skillSupply }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Toggle button - Hidden on mobile -->
-          <button class="toggle-btn" 
-                  (click)="toggleLegend()"
-                  [style.display]="isMobile ? 'none' : 'flex'"
-                  [attr.aria-label]="legendCollapsed ? 'Show legend' : 'Hide legend'">
-            <i class="fas" [ngClass]="legendCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
-          </button>
-        </div>
-
-        <!-- Globe Container -->
-        <div #globeContainer class="globe-wrapper">
-          <!-- Responsive Zoom Controls -->
-          <div class="zoom-container">
-            <button (click)="zoomIn()" 
-                    [attr.aria-label]="'Zoom in'"
-                    [style.font-size]="isMobile ? '32px' : '30px'">+</button>
-            <button (click)="zoomOut()" 
-                    [attr.aria-label]="'Zoom out'"
-                    [style.font-size]="isMobile ? '32px' : '30px'">-</button>
-          </div>
-        </div>
-        
-        <!-- Tooltip -->
-        <div #tooltip class="globe-tooltip"></div>
-      </div>
-
-      <!-- View More Section -->
-      <div class="viewmore pointer mt-3 pt-3">
-        <span>{{ isMobile ? 'More' : 'View More' }}&nbsp;&nbsp;</span>
-        <i class="fa fa-angle-right"></i>
-      </div>
-    </div>
-  </div>
-
-
-
-  import { CommonModule } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { AfterViewInit, Component, ElementRef, Renderer2, ViewChild, OnDestroy, HostListener } from '@angular/core';
@@ -923,6 +855,9 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       this.legendCollapsed = false;
     }
     
+    // Update legend layout when screen size changes
+    this.updateLegendLayout();
+    
     // Trigger globe resize if needed
     if (this.renderer && this.camera) {
       setTimeout(() => {
@@ -950,6 +885,9 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
     // Update label scaling for different screen sizes
     this.updateLabelScaling();
+
+    // Update legend layout for responsive behavior
+    this.updateLegendLayout();
   }
 
   private adjustZoomForScreenSize() {
@@ -997,6 +935,51 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         currentScale.z
       );
     });
+  }
+
+  private updateLegendLayout() {
+    // Force legend to be responsive by triggering a re-render of the country list
+    setTimeout(() => {
+      // This will trigger Angular's change detection and apply responsive CSS
+      this.addCountryLabels();
+      
+      // Force CSS classes update for responsive behavior
+      const legendElement = document.querySelector('.legend-wrapper');
+      const ssWidgetElement = document.querySelector('.ss-widget');
+      
+      if (legendElement && ssWidgetElement) {
+        // Remove and re-add classes to trigger CSS updates
+        if (this.isMobile) {
+          ssWidgetElement.classList.add('mobile-layout');
+          legendElement.classList.add('mobile-legend');
+        } else {
+          ssWidgetElement.classList.remove('mobile-layout');
+          legendElement.classList.remove('mobile-legend');
+        }
+      }
+      
+      // Update legend scroll behavior
+      this.updateLegendScrollBehavior();
+    }, 50);
+  }
+
+  private updateLegendScrollBehavior() {
+    const countryListElement = document.querySelector('.country-list') as HTMLElement;
+    if (countryListElement) {
+      if (this.isMobile) {
+        // On mobile, limit height and enable scrolling
+        countryListElement.style.maxHeight = '200px';
+        countryListElement.style.overflowY = 'auto';
+      } else if (this.isTablet) {
+        // On tablet, slightly more height
+        countryListElement.style.maxHeight = '300px';
+        countryListElement.style.overflowY = 'auto';
+      } else {
+        // On desktop, use flex behavior
+        countryListElement.style.maxHeight = 'none';
+        countryListElement.style.overflowY = 'auto';
+      }
+    }
   }
 
   private setupResizeObserver() {
@@ -1448,6 +1431,11 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
           c.code.toLowerCase().includes(q)
       );
     this.addCountryLabels();
+    
+    // Update legend layout after filtering
+    setTimeout(() => {
+      this.updateLegendScrollBehavior();
+    }, 100);
   }
 
   // Enhanced zoom methods with responsive considerations
