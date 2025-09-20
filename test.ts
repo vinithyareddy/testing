@@ -338,10 +338,9 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     this.globe = new Globe().showGraticules(!this.isMobile).showAtmosphere(true); // Hide graticules on mobile for performance
     this.globe.atmosphereColor('#9ec2ff').atmosphereAltitude(0.25);
 
+    // Keep the globe visible - don't hide it
     if (typeof (this.globe as any).showGlobe === 'function') {
-      this.globe.showGlobe(false);
-    } else if (typeof (this.globe as any).globeMaterial === 'function') {
-      this.globe.globeMaterial(new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 }));
+      this.globe.showGlobe(true);
     }
 
     const texLoader = new THREE.TextureLoader();
