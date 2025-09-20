@@ -1,4 +1,825 @@
-import { CommonModule } from '@angular/common';
+// Responsive breakpoints
+$mobile: 768px;
+$tablet: 1024px;
+$desktop: 1200px;
+
+// Mixins for consistent responsive design
+@mixin mobile {
+  @media (max-width: #{$mobile - 1px}) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (min-width: #{$mobile}) and (max-width: #{$tablet - 1px}) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (min-width: #{$desktop}) {
+    @content;
+  }
+}
+
+@mixin mobile-tablet {
+  @media (max-width: #{$tablet - 1px}) {
+    @content;
+  }
+}
+
+// Header Icons - Responsive
+.ellipsis {
+  cursor: pointer;
+  font-size: 18px;
+  margin-left: 12px;
+  margin-top: 1px;
+
+  @include mobile {
+    font-size: 16px;
+    margin-left: 8px;
+  }
+}
+
+.header-icons {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  color: #0071bc;
+
+  @include mobile {
+    gap: 8px;
+    margin-bottom: 8px;
+    justify-content: center;
+  }
+
+  i {
+    font-size: 16px;
+    cursor: pointer;
+
+    @include mobile {
+      font-size: 14px;
+    }
+  }
+
+  .fa-expand {
+    margin-top: 7px;
+
+    @include mobile {
+      margin-top: 5px;
+    }
+  }
+}
+
+// Widget Header - Responsive Layout
+.d-flex.justify-content-between.align-items-center.flex-wrap {
+  @include mobile {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch !important;
+  }
+
+  .widget-heading {
+    @include mobile {
+      text-align: center;
+      font-size: 1.1rem;
+      margin-bottom: 0;
+    }
+
+    @include tablet {
+      font-size: 1.2rem;
+    }
+  }
+
+  .col-md-8 {
+    @include mobile {
+      flex: none;
+      max-width: 100%;
+    }
+  }
+
+  .col-md-4 {
+    @include mobile {
+      flex: none;
+      max-width: 100%;
+      justify-content: center !important;
+    }
+  }
+}
+
+// Main Widget Container - Responsive
+.ss-widget {
+  display: flex;
+  justify-content: space-between;
+  background: #f8fafc;
+  border-radius: 8px;
+  overflow: hidden;
+  height: 800px;
+
+  @include mobile {
+    flex-direction: column;
+    height: auto;
+    min-height: 500px;
+  }
+
+  @include tablet {
+    height: 600px;
+  }
+}
+
+// Legend Section - Responsive
+.legend-wrapper {
+  width: 350px;
+  padding: 15px;
+  background: #ffffff;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+
+  @include mobile {
+    width: 100%;
+    max-height: 300px;
+    order: 2;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+    padding: 12px;
+  }
+
+  @include tablet {
+    width: 280px;
+    padding: 12px;
+  }
+}
+
+.legend-toggle {
+  position: relative;
+  display: flex;
+  transition: width 0.3s ease;
+
+  @include mobile {
+    width: 100% !important;
+    position: static;
+    
+    .toggle-btn {
+      display: none; // Hide toggle button on mobile
+    }
+  }
+
+  .legend-wrapper {
+    width: 400px;
+    transition: width 0.3s ease, opacity 0.3s ease;
+
+    @include mobile {
+      width: 100% !important;
+      opacity: 1 !important;
+      overflow: visible !important;
+    }
+  }
+
+  &.collapsed .legend-wrapper {
+    width: 0;
+    opacity: 0;
+    overflow: hidden;
+
+    @include mobile {
+      width: 100% !important;
+      opacity: 1 !important;
+      overflow: visible !important;
+    }
+  }
+
+  .toggle-btn {
+    position: absolute;
+    top: 50%;
+    right: -6%;
+    transform: translateY(-50%);
+    background: #fff;
+    border: 1px solid #ddd;
+    border-left: none;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    width: 23px;
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    z-index: 10;
+
+    @include tablet {
+      width: 20px;
+      height: 50px;
+    }
+
+    i {
+      font-size: 14px;
+      color: #374151;
+
+      @include tablet {
+        font-size: 12px;
+      }
+    }
+  }
+}
+
+// Search Box - Responsive
+.search-box {
+  display: flex;
+  align-items: center;
+  background: #f3f4f6;
+  padding: 6px 10px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+
+  @include mobile {
+    padding: 8px 12px;
+    margin-bottom: 10px;
+  }
+
+  input {
+    border: none;
+    background: transparent;
+    outline: none;
+    flex: 1;
+    font-size: 14px;
+    color: #111827;
+
+    @include mobile {
+      font-size: 16px; // Larger for mobile usability
+    }
+  }
+
+  i {
+    color: #6b7280;
+  }
+}
+
+// Country List - Responsive
+.country-list {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 5px;
+
+  @include mobile {
+    max-height: 200px;
+    padding-right: 0;
+  }
+}
+
+.country-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 5px;
+  cursor: default;
+  transition: background 0.2s ease;
+
+  @include mobile {
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+
+  @include tablet {
+    padding: 8px 10px;
+  }
+
+  &:hover {
+    background: #f9fafb;
+  }
+}
+
+.country-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+  width: 100%;
+
+  .flag-icon {
+    width: 22px;
+    height: auto;
+    margin-right: 8px;
+    border-radius: 3px;
+
+    @include mobile {
+      width: 24px;
+      margin-right: 10px;
+    }
+  }
+
+  .country-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: #111827;
+
+    @include mobile {
+      font-size: 15px;
+    }
+
+    @include tablet {
+      font-size: 13px;
+    }
+  }
+}
+
+.metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  color: #374151;
+  width: 100%;
+
+  @include mobile {
+    gap: 4px;
+  }
+
+  .metric-labels,
+  .metric-values {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+
+    @include mobile {
+      gap: 10px;
+    }
+  }
+
+  .metric-labels {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 500;
+
+    @include mobile {
+      font-size: 13px;
+    }
+  }
+
+  .metric-values {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+
+    @include mobile {
+      font-size: 15px;
+    }
+
+    @include tablet {
+      font-size: 13px;
+    }
+  }
+}
+
+// Globe Wrapper - Responsive
+.globe-wrapper {
+  background: linear-gradient(90deg, #c9d4f0 0%, #b5d6ec 50%, #c9d4f0 100%);
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  top: 0;
+  position: relative;
+  overflow: hidden;
+
+  @include mobile {
+    order: 1;
+    min-height: 400px;
+    height: 50vh;
+  }
+
+  @include tablet {
+    min-height: 450px;
+  }
+
+  .zoom-container {
+    position: absolute;
+    bottom: 20px;
+    right: 50px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+
+    @include mobile {
+      bottom: 15px;
+      right: 15px;
+      transform: scale(0.9);
+    }
+
+    @include tablet {
+      bottom: 15px;
+      right: 30px;
+      transform: scale(0.95);
+    }
+
+    button {
+      border: none;
+      width: 35px;
+      height: 35px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 30px;
+      cursor: pointer;
+      color: #214bcc;
+
+      @include mobile {
+        width: 40px;
+        height: 40px;
+        font-size: 28px;
+      }
+
+      @include tablet {
+        width: 32px;
+        height: 32px;
+        font-size: 26px;
+      }
+
+      &:hover {
+        background-color: #f0f0f0;
+      }
+    }
+  }
+}
+
+// Tooltip - Responsive
+:host ::ng-deep .globe-tooltip {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 250px;
+  pointer-events: none;
+  overflow: hidden;
+  padding: 0;
+
+  @include mobile {
+    max-width: 200px;
+    font-size: 12px;
+  }
+
+  .tooltip-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f3f4f6;
+    padding: 8px 12px;
+    font-weight: 600;
+    font-size: 14px;
+    color: #1f2937;
+
+    @include mobile {
+      padding: 6px 10px;
+      font-size: 13px;
+      gap: 6px;
+    }
+
+    .flag-icon {
+      width: 24px;
+      height: 18px;
+      object-fit: contain;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 6px;
+
+      @include mobile {
+        width: 20px;
+        height: 15px;
+        margin-right: 4px;
+      }
+    }
+  }
+
+  .tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 12px;
+
+    @include mobile {
+      padding: 5px 10px;
+    }
+
+    .label {
+      font-size: 13px;
+      color: #374151;
+
+      @include mobile {
+        font-size: 12px;
+      }
+    }
+
+    .value {
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+
+      @include mobile {
+        font-size: 12px;
+      }
+    }
+  }
+}
+
+// Canvas - Responsive
+canvas {
+  border-radius: 12px;
+  cursor: default;
+
+  @include mobile {
+    border-radius: 8px;
+  }
+}
+
+// Host styling
+:host {
+  display: block;
+  margin: 16px 0;
+
+  @include mobile {
+    margin: 12px 0;
+  }
+}
+
+// View button
+.view {
+  font-size: 18px;
+  color: #0071bc;
+  cursor: pointer;
+  padding-right: 10px;
+
+  @include mobile {
+    font-size: 16px;
+    padding-right: 8px;
+  }
+}
+
+// Info icon
+.lift-popover-icon {
+  margin-top: -5px;
+}
+
+.far.fa-info-circle {
+  font-size: 12px;
+  margin-left: 4px;
+
+  @include mobile {
+    font-size: 11px;
+  }
+}
+
+// Full View Mode - Responsive
+.full-view {
+  position: fixed;
+  overflow-y: auto;
+  overflow-x: hidden;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 99999;
+  background-color: #fff;
+  padding: 20px;
+
+  @include mobile {
+    padding: 10px;
+  }
+
+  @include tablet {
+    padding: 15px;
+  }
+
+  .budget-card-box-lg {
+    height: 820px !important;
+
+    @include mobile {
+      height: calc(100vh - 20px) !important;
+    }
+
+    @include tablet {
+      height: calc(100vh - 30px) !important;
+    }
+
+    .budget-box-chart-lg {
+      height: 800px !important;
+
+      @include mobile {
+        height: calc(100vh - 40px) !important;
+      }
+
+      @include tablet {
+        height: calc(100vh - 50px) !important;
+      }
+    }
+
+    .TableView {
+      height: 650px !important;
+      max-height: 680px;
+      width: 100%;
+
+      @include mobile {
+        height: calc(100vh - 150px) !important;
+        max-height: calc(100vh - 120px);
+      }
+
+      @include tablet {
+        height: calc(100vh - 180px) !important;
+        max-height: calc(100vh - 150px);
+      }
+    }
+  }
+
+  // Adjust widget in full view mode
+  .ss-widget {
+    @include mobile {
+      height: calc(100vh - 120px);
+      min-height: auto;
+    }
+
+    @include tablet {
+      height: calc(100vh - 150px);
+    }
+  }
+}
+
+// View More Section - Responsive
+.viewmore {
+  @include mobile {
+    text-align: center;
+    margin-top: 15px !important;
+    padding-top: 15px !important;
+    font-size: 14px;
+  }
+
+  @include tablet {
+    font-size: 15px;
+  }
+}
+
+// Additional responsive utilities
+@include mobile {
+  .d-flex.gap-3 {
+    gap: 8px !important;
+  }
+  
+  .mt-1 {
+    margin-top: 0.5rem !important;
+  }
+  
+  .mt-3 {
+    margin-top: 1rem !important;
+  }
+  
+  .pt-3 {
+    padding-top: 1rem !important;
+  }
+}
+
+// Touch-friendly improvements
+@include mobile {
+  .country-card,
+  .toggle-btn,
+  .view,
+  .ellipsis,
+  .zoom-container button {
+    min-height: 44px; // Apple's recommended touch target size
+    display: flex;
+    align-items: center;
+  }
+  
+  .country-card {
+    min-height: auto;
+    padding: 15px 12px;
+  }
+}
+
+
+<div [ngClass]="{ 'full-view' : fullview }">
+  <div class="budget-card-box-lg" #cartboxchartsection>
+    <div class="budget-box-chart-lg">
+      
+      <!-- Responsive Header -->
+      <div class="d-flex justify-content-between align-items-center flex-wrap">
+        
+        <!-- Left Section - Responsive title -->
+        <div class="widget-heading pointer mt-1 col-md-8 d-flex align-items-center" 
+             [ngClass]="{'text-center w-100': isMobile}">
+          <span class="d-inline-flex">
+            Skill Supply by Location
+            <ng-template [ngTemplateOutlet]="infotemp"></ng-template>
+          </span>
+        </div>
+
+        <!-- Right Section - Responsive controls -->
+        <div class="col-md-4 d-flex justify-content-end align-items-center header-icons"
+             [ngClass]="{'justify-content-center w-100': isMobile}">
+          
+          <!-- Toggle Buttons -->
+          <div class="d-flex gap-3">
+            <span (click)="fullPageView()" class="view">
+              @if (!fullview) {
+                <i class="fas fa-expand" title="Expand View" alt="Expand"></i>
+              }
+              @if (fullview) {
+                <i class="fas fa-compress" title="Collapse View" alt="Collapse"></i>
+              }
+            </span>
+            <div class="ellipsis ml-2">
+              <i class="fas fa-ellipsis-v"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Widget Container -->
+      <div class="ss-widget" [ngClass]="{'mobile-layout': isMobile}">
+        
+        <!-- Legend Section with Responsive Toggle -->
+        <div class="legend-toggle" 
+             [class.collapsed]="legendCollapsed && !isMobile"
+             [class.mobile-always-visible]="isMobile">
+          
+          <div class="legend-wrapper">
+            <!-- Search Box -->
+            <div class="search-box">
+              <input type="text" 
+                     [placeholder]="isMobile ? 'Search countries...' : 'Search by country'" 
+                     [(ngModel)]="searchTerm" 
+                     (input)="filterList()" />
+              <i class="fas fa-search"></i>
+            </div>
+            
+            <!-- Country List -->
+            <div class="country-list">
+              <div *ngFor="let c of filteredList" 
+                   class="country-card" 
+                   (click)="focusOnCountry(c)"
+                   [attr.aria-label]="'Focus on ' + c.country">
+                
+                <div class="country-header">
+                  <img [src]="'assets/images/flags/' + c.code.toLowerCase() + '.svg'" 
+                       class="flag-icon" 
+                       [alt]="c.country + ' flag'" />
+                  <div class="country-name">{{ c.country }}</div>
+                </div>
+                
+                <div class="metrics">
+                  <div class="metric-labels">
+                    <span>{{ isMobile ? 'Skills' : 'Unique Skills' }}</span>
+                    <span>{{ isMobile ? 'Supply' : 'Skill Supply (FTE)' }}</span>
+                  </div>
+                  <div class="metric-values">
+                    <span>{{ c.uniqueSkills }}</span>
+                    <span>{{ c.skillSupply }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Toggle button - Hidden on mobile -->
+          <button class="toggle-btn" 
+                  (click)="toggleLegend()"
+                  [style.display]="isMobile ? 'none' : 'flex'"
+                  [attr.aria-label]="legendCollapsed ? 'Show legend' : 'Hide legend'">
+            <i class="fas" [ngClass]="legendCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
+          </button>
+        </div>
+
+        <!-- Globe Container -->
+        <div #globeContainer class="globe-wrapper">
+          <!-- Responsive Zoom Controls -->
+          <div class="zoom-container">
+            <button (click)="zoomIn()" 
+                    [attr.aria-label]="'Zoom in'"
+                    [style.font-size]="isMobile ? '32px' : '30px'">+</button>
+            <button (click)="zoomOut()" 
+                    [attr.aria-label]="'Zoom out'"
+                    [style.font-size]="isMobile ? '32px' : '30px'">-</button>
+          </div>
+        </div>
+        
+        <!-- Tooltip -->
+        <div #tooltip class="globe-tooltip"></div>
+      </div>
+
+      <!-- View More Section -->
+      <div class="viewmore pointer mt-3 pt-3">
+        <span>{{ isMobile ? 'More' : 'View More' }}&nbsp;&nbsp;</span>
+        <i class="fa fa-angle-right"></i>
+      </div>
+    </div>
+  </div>
+
+
+
+  import { CommonModule } from '@angular/common';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { AfterViewInit, Component, ElementRef, Renderer2, ViewChild, OnDestroy, HostListener } from '@angular/core';
@@ -55,6 +876,12 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   private animationId!: number;
   private resizeObserver!: ResizeObserver;
 
+  // Responsive state management
+  isMobile = false;
+  isTablet = false;
+  private mediaQueryMobile!: MediaQueryList;
+  private mediaQueryTablet!: MediaQueryList;
+
   // Responsive breakpoints
   private readonly breakpoints = {
     mobile: 768,
@@ -62,12 +889,46 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     desktop: 1200
   };
 
-  constructor(private http: HttpClient, private render: Renderer2) {}
+  constructor(private http: HttpClient, private render: Renderer2) {
+    // Initialize media queries
+    this.setupMediaQueries();
+  }
 
   // Handle window resize events
   @HostListener('window:resize', ['$event'])
   onWindowResize(event: Event) {
     this.handleResize();
+  }
+
+  private setupMediaQueries() {
+    if (typeof window !== 'undefined') {
+      this.mediaQueryMobile = window.matchMedia('(max-width: 767px)');
+      this.mediaQueryTablet = window.matchMedia('(min-width: 768px) and (max-width: 1023px)');
+      
+      // Initial check
+      this.updateResponsiveState();
+      
+      // Listen for changes
+      this.mediaQueryMobile.addEventListener('change', () => this.updateResponsiveState());
+      this.mediaQueryTablet.addEventListener('change', () => this.updateResponsiveState());
+    }
+  }
+
+  private updateResponsiveState() {
+    this.isMobile = this.mediaQueryMobile?.matches || false;
+    this.isTablet = this.mediaQueryTablet?.matches || false;
+    
+    // Force legend to be visible on mobile
+    if (this.isMobile) {
+      this.legendCollapsed = false;
+    }
+    
+    // Trigger globe resize if needed
+    if (this.renderer && this.camera) {
+      setTimeout(() => {
+        this.handleResize();
+      }, 100);
+    }
   }
 
   private handleResize() {
@@ -97,12 +958,12 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     
     let zoomMultiplier = 1;
     
-    if (width <= this.breakpoints.mobile) {
+    if (this.isMobile) {
       // Mobile devices - zoom out more to show more of the globe
-      zoomMultiplier = 1.3;
-    } else if (width <= this.breakpoints.tablet) {
+      zoomMultiplier = 1.4;
+    } else if (this.isTablet) {
       // Tablets - slight zoom adjustment
-      zoomMultiplier = 1.1;
+      zoomMultiplier = 1.15;
     }
 
     const adjustedZoom = this.currentZoom * zoomMultiplier;
@@ -321,6 +1182,148 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     });
   }
 
+  private createResponsiveTooltip(host: HTMLDivElement): HTMLDivElement {
+    const tooltip = document.createElement('div');
+    tooltip.style.position = 'absolute';
+    tooltip.style.pointerEvents = 'none';
+    tooltip.className = 'globe-tooltip';
+    tooltip.style.zIndex = '2000';
+    tooltip.style.display = 'none';
+    
+    // Add responsive styles
+    tooltip.style.fontSize = 'clamp(12px, 2vw, 14px)';
+    tooltip.style.maxWidth = '250px';
+    tooltip.style.wordWrap = 'break-word';
+    
+    host.appendChild(tooltip);
+    return tooltip;
+  }
+
+  private createResponsiveMouseHandler(tooltip: HTMLDivElement, earth: THREE.Mesh) {
+    return (event: MouseEvent | TouchEvent) => {
+      let clientX: number, clientY: number;
+      
+      // Handle both mouse and touch events
+      if (event instanceof TouchEvent) {
+        if (event.touches.length > 0) {
+          clientX = event.touches[0].clientX;
+          clientY = event.touches[0].clientY;
+        } else {
+          return;
+        }
+      } else {
+        clientX = event.clientX;
+        clientY = event.clientY;
+      }
+      
+      const rect = this.renderer.domElement.getBoundingClientRect();
+      const mouse = new THREE.Vector2(
+        ((clientX - rect.left) / rect.width) * 2 - 1,
+        -((clientY - rect.top) / rect.height) * 2 + 1
+      );
+
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(mouse, this.camera);
+      const intersects = raycaster.intersectObject(earth);
+
+      if (intersects.length > 0) {
+        const point = intersects[0].point;
+        let closest: CountrySkill | null = null;
+        let minDist = Infinity;
+        
+        // Adjust hover sensitivity based on screen size and device type
+        let maxHoverDistance = 15;
+        
+        if (this.isMobile) {
+          maxHoverDistance = 25; // Larger touch area on mobile
+        } else if (this.isTablet) {
+          maxHoverDistance = 20;
+        }
+
+        for (const c of this.countriesList) {
+          if (!c.position) continue;
+          const rotatedPos = c.position.clone().applyMatrix4(this.globeGroup.matrixWorld);
+          const dist = point.distanceTo(rotatedPos);
+          if (dist < minDist && dist < maxHoverDistance) {
+            minDist = dist;
+            closest = { ...c, position: rotatedPos };
+          }
+        }
+
+        if (closest) {
+          this.isHovering = true;
+          this.positionTooltip(tooltip, closest, { clientX, clientY } as MouseEvent);
+          return;
+        }
+      }
+
+      this.isHovering = false;
+      tooltip.style.display = 'none';
+    };
+  }
+
+  private positionTooltip(tooltip: HTMLDivElement, country: CountrySkill, event: MouseEvent) {
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    const host = this.globeContainer.nativeElement as HTMLDivElement;
+    const width = host.offsetWidth;
+    
+    tooltip.innerHTML = `
+      <div class="tooltip-header">
+        <img class="flag-icon" src="assets/images/flags/${country.code.toLowerCase()}.svg"/>
+        <span>${country.country}</span>
+      </div>
+      <div class="tooltip-row">
+        <span class="label">Unique Skills</span>
+        <span class="value">${country.uniqueSkills}</span>
+      </div>
+      <div class="tooltip-row">
+        <span class="label">Skill Supply (FTE)</span>
+        <span class="value">${country.skillSupply}</span>
+      </div>
+    `;
+
+    // Responsive tooltip positioning
+    let x = event.clientX - rect.left + 15;
+    let y = event.clientY - rect.top + 15;
+    
+    // Prevent tooltip from going off-screen
+    const tooltipRect = tooltip.getBoundingClientRect();
+    if (x + tooltipRect.width > width) {
+      x = event.clientX - rect.left - tooltipRect.width - 15;
+    }
+    if (y + tooltipRect.height > host.offsetHeight) {
+      y = event.clientY - rect.top - tooltipRect.height - 15;
+    }
+
+    tooltip.style.left = `${Math.max(5, x)}px`;
+    tooltip.style.top = `${Math.max(5, y)}px`;
+    tooltip.style.display = 'block';
+  }
+
+  private updateRendererSize() {
+    const host = this.globeContainer.nativeElement as HTMLDivElement;
+    if (host && this.renderer) {
+      this.renderer.setSize(host.offsetWidth, host.offsetHeight);
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio for performance
+    }
+  }
+
+  private startAnimation() {
+    const animate = () => {
+      this.animationId = requestAnimationFrame(animate);
+
+      // Only rotate if not hovering and not focusing
+      if (!this.isFocusing && !this.isHovering) {
+        this.globeGroup.rotation.y += ROTATION_SPEED;
+      }
+
+      this.controls.update();
+      this.updateLabelVisibility();
+      this.renderer.render(this.scene, this.camera);
+    };
+    animate();
+  }
+
   ngAfterViewInit() {
     const host = this.globeContainer.nativeElement as HTMLDivElement;
     
@@ -413,145 +1416,26 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
       const handleMouseMove = this.createResponsiveMouseHandler(tooltip, earth);
       
+      // Add both mouse and touch event listeners
+      this.renderer.domElement.addEventListener('mousemove', handleMouseMove);
+      this.renderer.domElement.addEventListener('touchstart', handleMouseMove);
+      this.renderer.domElement.addEventListener('touchmove', handleMouseMove);
+      
       this.renderer.domElement.addEventListener('mouseleave', () => {
         this.isHovering = false;
         tooltip.style.display = 'none';
       });
-
-      this.renderer.domElement.addEventListener('mousemove', handleMouseMove);
+      
+      this.renderer.domElement.addEventListener('touchend', () => {
+        this.isHovering = false;
+        tooltip.style.display = 'none';
+      });
     });
 
     this.startAnimation();
 
     // Initial responsive adjustments
     this.adjustZoomForScreenSize();
-  }
-
-  private createResponsiveTooltip(host: HTMLDivElement): HTMLDivElement {
-    const tooltip = document.createElement('div');
-    tooltip.style.position = 'absolute';
-    tooltip.style.pointerEvents = 'none';
-    tooltip.className = 'globe-tooltip';
-    tooltip.style.zIndex = '2000';
-    tooltip.style.display = 'none';
-    
-    // Add responsive styles
-    tooltip.style.fontSize = 'clamp(12px, 2vw, 14px)';
-    tooltip.style.maxWidth = '250px';
-    tooltip.style.wordWrap = 'break-word';
-    
-    host.appendChild(tooltip);
-    return tooltip;
-  }
-
-  private createResponsiveMouseHandler(tooltip: HTMLDivElement, earth: THREE.Mesh) {
-    return (event: MouseEvent) => {
-      const rect = this.renderer.domElement.getBoundingClientRect();
-      const mouse = new THREE.Vector2(
-        ((event.clientX - rect.left) / rect.width) * 2 - 1,
-        -((event.clientY - rect.top) / rect.height) * 2 + 1
-      );
-
-      const raycaster = new THREE.Raycaster();
-      raycaster.setFromCamera(mouse, this.camera);
-      const intersects = raycaster.intersectObject(earth);
-
-      if (intersects.length > 0) {
-        const point = intersects[0].point;
-        let closest: CountrySkill | null = null;
-        let minDist = Infinity;
-        
-        // Adjust hover sensitivity based on screen size
-        const host = this.globeContainer.nativeElement as HTMLDivElement;
-        const width = host.offsetWidth;
-        let maxHoverDistance = 15;
-        
-        if (width <= this.breakpoints.mobile) {
-          maxHoverDistance = 20; // Increase hover area on mobile
-        }
-
-        for (const c of this.countriesList) {
-          if (!c.position) continue;
-          const rotatedPos = c.position.clone().applyMatrix4(this.globeGroup.matrixWorld);
-          const dist = point.distanceTo(rotatedPos);
-          if (dist < minDist && dist < maxHoverDistance) {
-            minDist = dist;
-            closest = { ...c, position: rotatedPos };
-          }
-        }
-
-        if (closest) {
-          this.isHovering = true;
-          this.positionTooltip(tooltip, closest, event);
-          return;
-        }
-      }
-
-      this.isHovering = false;
-      tooltip.style.display = 'none';
-    };
-  }
-
-  private positionTooltip(tooltip: HTMLDivElement, country: CountrySkill, event: MouseEvent) {
-    const rect = this.renderer.domElement.getBoundingClientRect();
-    const host = this.globeContainer.nativeElement as HTMLDivElement;
-    const width = host.offsetWidth;
-    
-    tooltip.innerHTML = `
-      <div class="tooltip-header">
-        <img class="flag-icon" src="assets/images/flags/${country.code.toLowerCase()}.svg"/>
-        <span>${country.country}</span>
-      </div>
-      <div class="tooltip-row">
-        <span class="label">Unique Skills</span>
-        <span class="value">${country.uniqueSkills}</span>
-      </div>
-      <div class="tooltip-row">
-        <span class="label">Skill Supply (FTE)</span>
-        <span class="value">${country.skillSupply}</span>
-      </div>
-    `;
-
-    // Responsive tooltip positioning
-    let x = event.clientX - rect.left + 15;
-    let y = event.clientY - rect.top + 15;
-    
-    // Prevent tooltip from going off-screen
-    const tooltipRect = tooltip.getBoundingClientRect();
-    if (x + tooltipRect.width > width) {
-      x = event.clientX - rect.left - tooltipRect.width - 15;
-    }
-    if (y + tooltipRect.height > host.offsetHeight) {
-      y = event.clientY - rect.top - tooltipRect.height - 15;
-    }
-
-    tooltip.style.left = `${Math.max(5, x)}px`;
-    tooltip.style.top = `${Math.max(5, y)}px`;
-    tooltip.style.display = 'block';
-  }
-
-  private updateRendererSize() {
-    const host = this.globeContainer.nativeElement as HTMLDivElement;
-    if (host && this.renderer) {
-      this.renderer.setSize(host.offsetWidth, host.offsetHeight);
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio for performance
-    }
-  }
-
-  private startAnimation() {
-    const animate = () => {
-      this.animationId = requestAnimationFrame(animate);
-
-      // Only rotate if not hovering and not focusing
-      if (!this.isFocusing && !this.isHovering) {
-        this.globeGroup.rotation.y += ROTATION_SPEED;
-      }
-
-      this.controls.update();
-      this.updateLabelVisibility();
-      this.renderer.render(this.scene, this.camera);
-    };
-    animate();
   }
 
   filterList() {
@@ -566,20 +1450,31 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     this.addCountryLabels();
   }
 
+  // Enhanced zoom methods with responsive considerations
   zoomIn() {
-    this.currentZoom = Math.max(this.currentZoom - ZOOM.step, ZOOM.min);
+    const zoomStep = this.isMobile ? ZOOM.step * 0.8 : ZOOM.step; // Smaller steps on mobile
+    this.currentZoom = Math.max(this.currentZoom - zoomStep, ZOOM.min);
     this.updateCameraZoom();
     this.addCountryLabels();
   }
 
   zoomOut() {
-    this.currentZoom = Math.min(this.currentZoom + ZOOM.step, ZOOM.max);
+    const zoomStep = this.isMobile ? ZOOM.step * 0.8 : ZOOM.step; // Smaller steps on mobile
+    this.currentZoom = Math.min(this.currentZoom + zoomStep, ZOOM.max);
     this.updateCameraZoom();
     this.addCountryLabels();
   }
 
   private updateCameraZoom() {
     if (this.controls.object) this.controls.object.position.z = this.currentZoom;
+  }
+
+  // Enhanced legend toggle for responsive behavior
+  toggleLegend() {
+    if (!this.isMobile) {
+      this.legendCollapsed = !this.legendCollapsed;
+    }
+    // On mobile, legend is always visible
   }
 
   focusOnCountry(country: CountrySkill) {
@@ -606,6 +1501,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     }, 2000);
   }
 
+  // Enhanced fullPageView method
   fullPageView() {
     this.fullview = !this.fullview;
     if (this.fullview === true) {
@@ -614,10 +1510,14 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       this.render.removeClass(document.body, 'no-scroll');
     }
     
-    // Trigger resize after fullscreen toggle
+    // Trigger resize after fullscreen toggle with delay for DOM updates
     setTimeout(() => {
       this.handleResize();
-    }, 100);
+      // Adjust legend state based on screen size in fullview
+      if (this.fullview && this.isMobile) {
+        this.legendCollapsed = false;
+      }
+    }, 150);
   }
 
   ngOnDestroy() {
@@ -631,6 +1531,14 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     
     if (this.renderer) {
       this.renderer.dispose();
+    }
+    
+    // Clean up media query listeners
+    if (this.mediaQueryMobile) {
+      this.mediaQueryMobile.removeEventListener('change', () => this.updateResponsiveState());
+    }
+    if (this.mediaQueryTablet) {
+      this.mediaQueryTablet.removeEventListener('change', () => this.updateResponsiveState());
     }
   }
 }
