@@ -1,137 +1,110 @@
-// Add these properties after your existing properties:
-currentDataIndex: number = 0;
-totalDataSets: number = 3; // Change this to however many datasets you have
-
-// Add these getter methods:
-get canNavigateLeft(): boolean {
-  return this.currentDataIndex > 0;
-}
-
-get canNavigateRight(): boolean {
-  return this.currentDataIndex < this.totalDataSets - 1;
-}
-
-// Replace your existing navigateLeft and navigateRight methods with these:
-navigateLeft() {
-  if (this.canNavigateLeft) {
-    this.currentDataIndex--;
-    // Add your logic here to load previous dataset
-    console.log('Navigate left - Current index:', this.currentDataIndex);
-  }
-}
-
-navigateRight() {
-  if (this.canNavigateRight) {
-    this.currentDataIndex++;
-    // Add your logic here to load next dataset
-    console.log('Navigate right - Current index:', this.currentDataIndex);
-  }
-}
-
-
-<!-- Replace the column chart section (widgetType == 'ch') with this: -->
+<!-- Column Chart View -->
 <ng-container *ngIf="widgetType == 'ch'">
     <div class="inner-card-box">
-        <div class="row">
-            <div class="col-md-12 col-lg-12" #cartboxchartsection>
-                <div class="content-area">
-                    <button class="nav-arrow left-arrow" 
-                            (click)="navigateLeft()" 
-                            [disabled]="!canNavigateLeft">
-                        <i class="fa fa-chevron-left"></i>
-                    </button>
-                    
-                    <div class="chart-container">
-                        <ng-container *ngFor="let columnChart of swfpColumnChart">
-                            <highcharts-chart [Highcharts]="columnChart.Highcharts"
-                                [options]="columnChart.chartOptions"
-                                [constructorType]="columnChart.chartConstructor">
-                            </highcharts-chart>
-                        </ng-container>
-                    </div>
-                    
-                    <button class="nav-arrow right-arrow" 
-                            (click)="navigateRight()" 
-                            [disabled]="!canNavigateRight">
-                        <i class="fa fa-chevron-right"></i>
-                    </button>
-                </div>
+      <div class="content-area">
+        <!-- Left Arrow -->
+        <button *ngIf="canNavigateLeft" class="nav-arrow left-arrow" (click)="navigateLeft()">
+          <i class="fa fa-chevron-left"></i>
+        </button>
+  
+        <div class="row chart-container">
+          <div class="col-md-12 col-lg-12" #cartboxchartsection>
+            <div>
+              <ng-container *ngFor="let columnChart of swfpColumnChart">
+                <highcharts-chart [Highcharts]="columnChart.Highcharts"
+                                  [options]="columnChart.chartOptions"
+                                  [constructorType]="columnChart.chartConstructor">
+                </highcharts-chart>
+              </ng-container>
             </div>
+          </div>
         </div>
-        <div class="pl-4 legend-bottom" *ngIf="legends.length > 0">
-            <ul class="listLegend">
-                <ng-container *ngFor="let data of legends">
-                    <li><span class="dot" [ngStyle]="{'background-color': data.color}"></span>
-                        &nbsp;&nbsp;{{data.name}}
-                    </li>
-                </ng-container>
-            </ul>
-        </div>
+  
+        <!-- Right Arrow -->
+        <button *ngIf="canNavigateRight" class="nav-arrow right-arrow" (click)="navigateRight()">
+          <i class="fa fa-chevron-right"></i>
+        </button>
+      </div>
+  
+      <!-- Legend -->
+      <div class="pl-4 legend-bottom" *ngIf="legends.length > 0">
+        <ul class="listLegend">
+          <ng-container *ngFor="let data of legends">
+            <li><span class="dot" [ngStyle]="{'background-color': data.color}"></span>
+                &nbsp;&nbsp;{{data.name}}
+            </li>
+          </ng-container>
+        </ul>
+      </div>
     </div>
-</ng-container>
-
-<!-- Replace the pie chart section (widgetType == 'pi') with this: -->
-<ng-container *ngIf="widgetType == 'pi'">
+  </ng-container>
+  
+  
+  <!-- Pie Chart View -->
+  <ng-container *ngIf="widgetType == 'pi'">
     <div class="inner-card-box">
-        <div class="row">
-            <div class="col-md-12 col-lg-12" #cartboxchartsection>
-                <div class="content-area">
-                    <button class="nav-arrow left-arrow" 
-                            (click)="navigateLeft()" 
-                            [disabled]="!canNavigateLeft">
-                        <i class="fa fa-chevron-left"></i>
-                    </button>
-                    
-                    <div class="chart-grid">
-                        <ng-container *ngFor="let trendchart of swfpPieChartByGH">
-                            <div class="donut-cell">
-                                <highcharts-chart class="donut-chart" [Highcharts]="trendchart.Highcharts"
+      <div class="content-area">
+        <!-- Left Arrow -->
+        <button *ngIf="canNavigateLeft" class="nav-arrow left-arrow" (click)="navigateLeft()">
+          <i class="fa fa-chevron-left"></i>
+        </button>
+  
+        <div class="row chart-grid">
+          <div class="col-md-12 col-lg-12" #cartboxchartsection>
+            <div class="chart-grid">
+              <ng-container *ngFor="let trendchart of swfpPieChartByGH">
+                <div class="donut-cell">
+                  <highcharts-chart class="donut-chart"
+                                    [Highcharts]="trendchart.Highcharts"
                                     [options]="trendchart.chartOptions"
                                     [constructorType]="trendchart.chartConstructor">
-                                </highcharts-chart>
-                            </div>
-                        </ng-container>
-                        <ng-container *ngFor="let trendchart of swfpPieChartByGI">
-                            <div class="donut-cell">
-                                <highcharts-chart class="donut-chart" [Highcharts]="trendchart.Highcharts"
-                                    [options]="trendchart.chartOptions"
-                                    [constructorType]="trendchart.chartConstructor">
-                                </highcharts-chart>
-                            </div>
-                        </ng-container>
-                    </div>
-                    
-                    <button class="nav-arrow right-arrow" 
-                            (click)="navigateRight()" 
-                            [disabled]="!canNavigateRight">
-                        <i class="fa fa-chevron-right"></i>
-                    </button>
+                  </highcharts-chart>
                 </div>
+              </ng-container>
+  
+              <ng-container *ngFor="let trendchart of swfpPieChartByGI">
+                <div class="donut-cell">
+                  <highcharts-chart class="donut-chart"
+                                    [Highcharts]="trendchart.Highcharts"
+                                    [options]="trendchart.chartOptions"
+                                    [constructorType]="trendchart.chartConstructor">
+                  </highcharts-chart>
+                </div>
+              </ng-container>
             </div>
+          </div>
         </div>
-        <div class="pl-4 legend-bottom" *ngIf="legends.length > 0">
-            <ul class="listLegend">
-                <ng-container *ngFor="let data of legends">
-                    <li><span class="dot" [ngStyle]="{'background-color': data.color}"></span>
-                        &nbsp;&nbsp;{{data.name}}
-                    </li>
-                </ng-container>
-            </ul>
-        </div>
+  
+        <!-- Right Arrow -->
+        <button *ngIf="canNavigateRight" class="nav-arrow right-arrow" (click)="navigateRight()">
+          <i class="fa fa-chevron-right"></i>
+        </button>
+      </div>
+  
+      <!-- Legend -->
+      <div class="pl-4 legend-bottom" *ngIf="legends.length > 0">
+        <ul class="listLegend">
+          <ng-container *ngFor="let data of legends">
+            <li><span class="dot" [ngStyle]="{'background-color': data.color}"></span>
+                &nbsp;&nbsp;{{data.name}}
+            </li>
+          </ng-container>
+        </ul>
+      </div>
     </div>
-</ng-container>
+  </ng-container>
+  
 
-// Add these styles to your existing SCSS file:
 
-.content-area {
+  .content-area {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 16px;
     position: relative;
-}
-
-.nav-arrow {
+  }
+  
+  .nav-arrow {
     background: #f8f9fa;
     border: 1px solid #dee2e6;
     border-radius: 50%;
@@ -144,96 +117,55 @@ navigateRight() {
     transition: all 0.2s ease;
     z-index: 10;
     flex-shrink: 0;
-    
+  
     i {
-        font-size: 14px;
-        color: #495057;
+      font-size: 14px;
+      color: #495057;
     }
-    
+  
     &:hover {
-        background: #e9ecef;
-        border-color: #adb5bd;
-        transform: scale(1.05);
-        
-        i {
-            color: #212529;
-        }
+      background: #e9ecef;
+      border-color: #adb5bd;
+      transform: scale(1.05);
+  
+      i {
+        color: #212529;
+      }
     }
-    
+  
     &:active {
-        transform: scale(0.95);
+      transform: scale(0.95);
     }
-    
-    &:disabled {
-        background: #f8f9fa;
-        border-color: #e9ecef;
-        cursor: not-allowed;
-        opacity: 0.6;
-        
-        i {
-            color: #adb5bd;
-        }
-        
-        &:hover {
-            transform: none;
-        }
-    }
+  }
+  
+  .left-arrow { order: 1; }
+  .right-arrow { order: 3; }
+  
+  .chart-grid, .chart-container { order: 2; flex: 1; }
+
+  
+
+  currentDataIndex: number = 0;
+totalDataSets: number = 3; // adjust dynamically if needed
+
+get canNavigateLeft(): boolean {
+  return this.currentDataIndex > 0;
 }
 
-.left-arrow {
-    order: 1;
+get canNavigateRight(): boolean {
+  return this.currentDataIndex < this.totalDataSets - 1;
 }
 
-.right-arrow {
-    order: 3;
+navigateLeft() {
+  if (this.canNavigateLeft) {
+    this.currentDataIndex--;
+    this.onInitLoad(); // reload chart with new dataset
+  }
 }
 
-.chart-grid {
-    order: 2;
-    flex: 1;
-}
-
-.chart-container {
-    order: 2;
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-@media (max-width: 768px) {
-    .content-area {
-        flex-direction: column;
-        gap: 12px;
-        position: relative;
-    }
-    
-    .nav-arrow {
-        position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
-        z-index: 20;
-        width: 35px;
-        height: 35px;
-        
-        i {
-            font-size: 12px;
-        }
-    }
-    
-    .left-arrow {
-        left: -15px;
-        order: unset;
-    }
-    
-    .right-arrow {
-        right: -15px;
-        order: unset;
-    }
-    
-    .chart-grid,
-    .chart-container {
-        order: unset;
-        margin: 0 30px;
-    }
+navigateRight() {
+  if (this.canNavigateRight) {
+    this.currentDataIndex++;
+    this.onInitLoad(); // reload chart with new dataset
+  }
 }
