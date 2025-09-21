@@ -1,29 +1,87 @@
-<div class="content-area">
-
-    <!-- Left Arrow -->
-    <button class="nav-arrow left-arrow"
-            (click)="navigateLeft()"
-            [disabled]="!canNavigateLeft">
-      <i class="fa fa-chevron-left"></i>
-    </button>
+.content-area {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* pushes arrows apart */
+    position: relative;
+    width: 100%;
+    gap: 16px;
+  }
   
-    <!-- Chart in Center -->
-    <div class="chart-container">
-      <div class="donut-cell">
-        <highcharts-chart class="donut-chart"
-                          [Highcharts]="swfpPieChartByGH[0]?.Highcharts"
-                          [options]="swfpPieChartByGH[0]?.chartOptions"
-                          [constructorType]="swfpPieChartByGH[0]?.chartConstructor">
-        </highcharts-chart>
-      </div>
-    </div>
+  /* Navigation Arrows */
+  .nav-arrow {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
   
-    <!-- Right Arrow -->
-    <button class="nav-arrow right-arrow"
-            (click)="navigateRight()"
-            [disabled]="!canNavigateRight">
-      <i class="fa fa-chevron-right"></i>
-    </button>
+    /* 🔑 fixed width arrows so donut stays centered */
+    flex: 0 0 40px;
   
-  </div>
+    i {
+      font-size: 14px;
+      color: #495057;
+    }
+  
+    &:hover {
+      background: #e9ecef;
+      border-color: #adb5bd;
+      transform: scale(1.05);
+  
+      i {
+        color: #212529;
+      }
+    }
+  
+    &:active {
+      transform: scale(0.95);
+    }
+  
+    &:disabled {
+      background: #f8f9fa;
+      border-color: #e9ecef;
+      cursor: not-allowed;
+      opacity: 0.6;
+  
+      i {
+        color: #adb5bd;
+      }
+  
+      &:hover {
+        transform: none;
+      }
+    }
+  }
+  
+  .left-arrow {
+    order: 1;
+  }
+  
+  .right-arrow {
+    order: 3;
+  }
+  
+  /* Chart container takes all space between arrows */
+  .chart-container {
+    flex: 1;
+    display: flex;
+    justify-content: center; /* centers donut horizontally */
+    align-items: center;     /* centers vertically */
+    order: 2;
+  }
+  
+  /* Donut chart sizing */
+  .donut-cell {
+    width: 380px;   /* adjust if needed */
+    height: 320px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
   
