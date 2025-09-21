@@ -1,0 +1,439 @@
+<div [ngClass]="{ 'full-view' : fullview }">
+
+    <div class="budget-card-box-lg">
+    
+        <div class="budget-box-chart-lg">
+    
+     
+    
+            <!-- Header -->
+    
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+    
+                <div class="widget-heading pointer mt-1 d-flex align-items-center">
+    
+                    <span class="d-inline-flex">
+    
+                       Work Force Supply (FTE) by Manager Flag & Grade
+    
+                        <ng-template [ngTemplateOutlet]="infotemp"></ng-template>
+    
+                    </span>
+    
+                </div>
+    
+     
+    
+                <div class="d-flex justify-content-end align-items-center header-icons">
+    
+                    <div class="togglebtn d-flex">
+    
+                        <!-- <div class="lft-toggle" [class.lft-toggle-active]="widgetType === 'th'" (click)="loadWidget('th')">
+    
+                            <i class="fa fa-table fnticon" aria-hidden="true"></i>
+    
+                        </div>
+    
+                        <div class="rgt-toggle" [class.rgt-toggle-active]="widgetType === 'ch'" (click)="loadWidget('ch')">
+    
+                            <i class="fas fa-chart-bar fnticon" aria-hidden="true"></i>
+    
+                        </div> -->
+    
+     
+    
+                        <div class="lft-toggle" [class.lft-toggle-active]="widgetType == 'th'" (click)="loadWidget('th')"><i
+    
+                                class="fa fa-table fnticon" aria-hidden="true"></i></div>
+    
+                        <div class="rgt-toggle" [class.rgt-toggle-active]="widgetType == 'ch'" (click)="loadWidget('ch')"><i
+    
+                                class="fas fa-chart-bar" aria-hidden="true"></i></div>
+    
+                        <div class="rgt-toggle" [class.rgt-toggle-active]="widgetType == 'pi'" (click)="loadWidget('pi')"><i
+    
+                                class="fa fa-chart-pie fnticon" aria-hidden="true"></i></div>
+    
+                    </div>
+    
+                    <div class="d-flex gap-3">
+    
+                        <span (click)="fullPageView()" class="view">
+    
+                            @if (!fullview) {
+    
+                            <i class="fas fa-expand" title="Zoom" alt="Zoom"></i>
+    
+                            }
+    
+                            @if (fullview) {
+    
+                            <i class="fas fa-expand" title="Zoom" alt="Zoom"></i>
+    
+                            }
+    
+                        </span>                     <div class="ellipsis ml-2"><i class="fas fa-ellipsis-v"></i></div>
+    
+                    </div>
+    
+                </div>
+    
+            </div>
+    
+              <!-- Chart -->
+    
+    <div>
+    
+        <ng-container *ngIf="!responseFlag">
+    
+                    <div class="loader-img">
+    
+                        <div class="col-md-12">
+    
+                            <div #cartboxchartsection></div>
+    
+                        </div>
+    
+                        <lift-section-loader></lift-section-loader>
+    
+                    </div>
+    
+                </ng-container>
+    
+                <ng-container *ngIf="responseFlag == true">
+    
+                    <!-- Column Chart View -->
+    
+                    <ng-container *ngIf="widgetType == 'ch'">
+    
+                        <div class="inner-card-box">
+    
+                            <div class="row">
+    
+     
+    
+                                <div class="col-md-12 col-lg-12" #cartboxchartsection>
+    
+                                    <!-- Content area with navigation arrows for column chart -->
+    
+                                    <div class="content-area">
+    
+                                        
+    
+                                        <!-- Left Arrow Button -->
+    
+                                        <button class="nav-arrow left-arrow" (click)="navigateLeft()">
+    
+                                            <i class="fa fa-chevron-left"></i>
+    
+                                        </button>
+    
+                                        
+    
+                                        <!-- Column Chart -->
+    
+                                        <div class="chart-container">
+    
+                                            <ng-container *ngFor="let columnChart of swfpColumnChart">
+    
+                                                <highcharts-chart [Highcharts]="columnChart.Highcharts"
+    
+                                                    [options]="columnChart.chartOptions"
+    
+                                                    [constructorType]="columnChart.chartConstructor">
+    
+                                                </highcharts-chart>
+    
+                                            </ng-container>
+    
+                                        </div>
+    
+                                        
+    
+                                        <!-- Right Arrow Button -->
+    
+                                        <button class="nav-arrow right-arrow" (click)="navigateRight()">
+    
+                                            <i class="fa fa-chevron-right"></i>
+    
+                                        </button>
+    
+                                        
+    
+                                    </div>
+    
+                                </div>
+    
+     
+    
+                            </div>
+    
+                            <div class="pl-4 legend-bottom" *ngIf="legends.length > 0">
+    
+                                <ul class="listLegend">
+    
+                                    <ng-container *ngFor="let data of legends">
+    
+                                        <li><span class="dot" [ngStyle]="{'background-color': data.color}"></span>
+    
+                                            &nbsp;&nbsp;{{data.name}}
+    
+                                        </li>
+    
+                                    </ng-container>
+    
+                                </ul>
+    
+                            </div>
+    
+                        </div>
+    
+     
+    
+                    </ng-container>
+    
+                    
+    
+                    <!-- Pie Chart View -->
+    
+                    <ng-container *ngIf="widgetType == 'pi'">
+    
+                        <div class="inner-card-box">
+    
+                            <div class="row">
+    
+     
+    
+                                <div class="col-md-12 col-lg-12" #cartboxchartsection>
+    
+                                    
+    
+                                    <!-- Content area with navigation arrows for pie chart -->
+    
+                                    <div class="content-area">
+    
+                                        
+    
+                                        <!-- Left Arrow Button -->
+    
+                                        <button class="nav-arrow left-arrow" (click)="navigateLeft()">
+    
+                                            <i class="fa fa-chevron-left"></i>
+    
+                                        </button>
+    
+                                        
+    
+                                        <!-- Pie Charts Grid -->
+    
+                                        <div class="chart-grid">
+    
+                                            <ng-container *ngFor="let trendchart of swfpPieChartByGH">
+    
+                                                <div class="donut-cell">
+    
+                                                    <highcharts-chart class="donut-chart" [Highcharts]="trendchart.Highcharts"
+    
+                                                        [options]="trendchart.chartOptions"
+    
+                                                        [constructorType]="trendchart.chartConstructor">
+    
+                                                    </highcharts-chart>
+    
+                                                </div>
+    
+                                            </ng-container>
+    
+     
+    
+                                            <ng-container *ngFor="let trendchart of swfpPieChartByGI">
+    
+                                                <div class="donut-cell">
+    
+                                                    <highcharts-chart class="donut-chart" [Highcharts]="trendchart.Highcharts"
+    
+                                                        [options]="trendchart.chartOptions"
+    
+                                                        [constructorType]="trendchart.chartConstructor">
+    
+                                                    </highcharts-chart>
+    
+                                                </div>
+    
+                                            </ng-container>
+    
+                                        </div>
+    
+                                        
+    
+                                        <!-- Right Arrow Button -->
+    
+                                        <button class="nav-arrow right-arrow" (click)="navigateRight()">
+    
+                                            <i class="fa fa-chevron-right"></i>
+    
+                                        </button>
+    
+                                        
+    
+                                    </div>
+    
+                                </div>
+    
+                            </div>
+    
+     
+    
+                            <div class="pl-4 legend-bottom" *ngIf="legends.length > 0">
+    
+                                <ul class="listLegend">
+    
+                                    <ng-container *ngFor="let data of legends">
+    
+                                        <li><span class="dot" [ngStyle]="{'background-color': data.color}"></span>
+    
+                                            &nbsp;&nbsp;{{data.name}}
+    
+                                        </li>
+    
+                                    </ng-container>
+    
+                                </ul>
+    
+                            </div>
+    
+                        </div>
+    
+                    </ng-container>
+    
+                    
+    
+                    <!-- Table View (No navigation arrows) -->
+    
+                    <ng-container *ngIf="widgetType == 'th'">
+    
+     
+    
+    <div class="grade-table" *ngIf="groups().length">
+    
+                        <div class="row table-row">
+    
+     
+    
+                            <div class="table-container">
+    
+     
+    
+                                <table>
+    
+                                    <thead>
+    
+                                        <tr>
+    
+                                            <th class="">Grade</th>
+    
+                                            <th class="">Category</th>
+    
+                                            <th class="right" style="text-align: right !important;">Units</th>
+    
+                                        </tr>
+    
+                                    </thead>
+    
+                                    <tbody>
+    
+          <ng-container *ngFor="let g of groups(); trackBy: trackGroup">
+    
+            <!-- Group header -->
+    
+            <tr class="group" (click)="toggle(g)">
+    
+              <td>
+    
+                <button class="toggle"
+    
+                        [attr.aria-expanded]="g.expanded"
+    
+                        (click)="$event.stopPropagation(); toggle(g)">
+    
+                  {{ g.expanded ? '▾' : '▸' }}
+    
+                </button>
+    
+                <strong>{{ g.name }}</strong>
+    
+              </td>
+    
+              <td></td>
+    
+              <td class="right">
+    
+                <strong>(100%)</strong>           
+    
+              </td>
+    
+            </tr>
+    
+     
+    
+            <!-- Children -->
+    
+            <tr class="child" *ngFor="let it of g.items; trackBy: trackItem" [class.hidden]="!g.expanded">
+    
+              <td></td>
+    
+              <td class="indent">{{ it.category }}</td>
+    
+              <td class="right">
+    
+                {{ it.unit | number:'1.0-0' }}
+    
+                ({{ pct(it.unit, groupTotal(g)) | number:'1.0-1' }}%)
+    
+              </td>
+    
+            </tr>
+    
+          </ng-container>
+    
+        </tbody>
+    
+                                    
+    
+                                </table>
+    
+                            </div>
+    
+                        </div>
+    
+                        </div>
+    
+                    </ng-container>
+    
+                    <div class="viewmore pointer mt-3 pt-3">
+    
+                        <span>View More&nbsp;&nbsp;</span>
+    
+                        <i class="fa fa-angle-right"></i>
+    
+                    </div>
+    
+                </ng-container>
+    
+    </div>
+    
+            </div>
+    
+            </div>
+    
+            <ng-template #infotemp>
+    
+        <lift-popover class="lift-popover-icon" popoverTitle="" popoverText="">
+    
+            <span><i class="far fa-info-circle"></i></span>
+    
+        </lift-popover>
+    
+    </ng-template>
+    
+    </div>
