@@ -1,91 +1,30 @@
-<ng-container *ngIf="widgetType == 'pi'">
-    <div class="inner-card-box">
-      <div class="content-area">
-        
-        <!-- Left Arrow -->
-        <button *ngIf="canNavigateLeft" class="nav-arrow left-arrow" (click)="navigateLeft()">
-          <i class="fa fa-chevron-left"></i>
-        </button>
-  
-        <!-- Chart -->
-        <div class="donut-cell">
-          <highcharts-chart class="donut-chart"
-                            [Highcharts]="swfpPieChartByGH[0]?.Highcharts"
-                            [options]="swfpPieChartByGH[0]?.chartOptions"
-                            [constructorType]="swfpPieChartByGH[0]?.chartConstructor">
-          </highcharts-chart>
-        </div>
-  
-        <!-- Right Arrow -->
-        <button *ngIf="canNavigateRight" class="nav-arrow right-arrow" (click)="navigateRight()">
-          <i class="fa fa-chevron-right"></i>
-        </button>
-  
-      </div>
-  
-      <!-- Legend -->
-      <div class="pl-4 legend-bottom" *ngIf="legends.length > 0">
-        <ul class="listLegend">
-          <ng-container *ngFor="let data of legends">
-            <li><span class="dot" [ngStyle]="{'background-color': data.color}"></span>
-                &nbsp;&nbsp;{{data.name}}
-            </li>
-          </ng-container>
-        </ul>
-      </div>
-    </div>
-  </ng-container>
-  
+<!-- Left Arrow -->
+<button class="nav-arrow left-arrow" 
+        (click)="navigateLeft()" 
+        [disabled]="!canNavigateLeft">
+  <i class="fa fa-chevron-left"></i>
+</button>
+
+<!-- Right Arrow -->
+<button class="nav-arrow right-arrow" 
+        (click)="navigateRight()" 
+        [disabled]="!canNavigateRight">
+  <i class="fa fa-chevron-right"></i>
+</button>
 
 
-  onLoadPieChart() {
-    const allPieData = [
-      { 
-        title: 'BY GH Grade', 
-        centerVal: 115, 
-        centerTxt: 'BY GH Grade',
-        data: [
-          { name: 'Managerial', color: '#71cecd', y: 5 }, 
-          { name: 'Technical', color: '#6b70af', y: 110 }
-        ]
-      },
-      { 
-        title: 'BY GI Grade', 
-        centerVal: 210, 
-        centerTxt: 'BY GI Grade',
-        data: [
-          { name: 'Managerial', color: '#71cecd', y: 10 }, 
-          { name: 'Technical', color: '#6b70af', y: 200 }
-        ]
-      }
-    ];
+.nav-arrow:disabled {
+    background: #f8f9fa;
+    border-color: #e9ecef;
+    cursor: not-allowed;
+    opacity: 0.6;
   
-    // update total number of pie pages
-    this.totalDataSets = allPieData.length;
+    i {
+      color: #adb5bd;
+    }
   
-    // pick the current pie
-    const selected = allPieData[this.currentDataIndex];
-  
-    // build chart options the same way your old code did
-    const ChartOptions = {
-      chartTitle: selected.title,
-      centerVal: selected.centerVal,
-      centerTxt: selected.centerTxt,
-      chartWidth: 400,
-      chartHight: 330,
-      legendVisible: false,
-      dataseries: [{
-        name: selected.title,
-        colorByPoint: true,
-        innerSize: '85%',
-        data: selected.data
-      }],
-      xAxisVisible: true,
-      yAxisVisible: false,
-      dataLabelEnable: true
-    };
-  
-    // always set as array so HTML can use swfpPieChartByGH[0]
-    this.swfpPieChartByGH = this.service.getPieChart(ChartOptions);
+    &:hover {
+      transform: none;
+    }
   }
   
