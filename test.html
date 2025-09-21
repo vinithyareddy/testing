@@ -36,3 +36,56 @@
     </div>
   </ng-container>
   
+
+
+  onLoadPieChart() {
+    const allPieData = [
+      { 
+        title: 'BY GH Grade', 
+        centerVal: 115, 
+        centerTxt: 'BY GH Grade',
+        data: [
+          { name: 'Managerial', color: '#71cecd', y: 5 }, 
+          { name: 'Technical', color: '#6b70af', y: 110 }
+        ]
+      },
+      { 
+        title: 'BY GI Grade', 
+        centerVal: 210, 
+        centerTxt: 'BY GI Grade',
+        data: [
+          { name: 'Managerial', color: '#71cecd', y: 10 }, 
+          { name: 'Technical', color: '#6b70af', y: 200 }
+        ]
+      }
+    ];
+  
+    // update total number of pie pages
+    this.totalDataSets = allPieData.length;
+  
+    // pick the current pie
+    const selected = allPieData[this.currentDataIndex];
+  
+    // build chart options the same way your old code did
+    const ChartOptions = {
+      chartTitle: selected.title,
+      centerVal: selected.centerVal,
+      centerTxt: selected.centerTxt,
+      chartWidth: 400,
+      chartHight: 330,
+      legendVisible: false,
+      dataseries: [{
+        name: selected.title,
+        colorByPoint: true,
+        innerSize: '85%',
+        data: selected.data
+      }],
+      xAxisVisible: true,
+      yAxisVisible: false,
+      dataLabelEnable: true
+    };
+  
+    // always set as array so HTML can use swfpPieChartByGH[0]
+    this.swfpPieChartByGH = this.service.getPieChart(ChartOptions);
+  }
+  
