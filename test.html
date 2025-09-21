@@ -1,104 +1,38 @@
-pageSize = 4;   // how many items to show per page
-currentDataIndex = 0;
-totalDataSets = 1; // will update dynamically
-
-
-onLoadColumnChart() {
-    const xAxisCategory = ['GA', 'GB', 'GC', 'GD', 'GE', 'GF', 'GG', 'GH'];
+<ng-container *ngIf="widgetType == 'pi'">
+    <div class="inner-card-box">
+      <div class="content-area">
+        
+        <!-- Left Arrow -->
+        <button *ngIf="canNavigateLeft" class="nav-arrow left-arrow" (click)="navigateLeft()">
+          <i class="fa fa-chevron-left"></i>
+        </button>
   
-    const allData = [
-      { name: 'Managerial', data: [10, 20, 40, 50, 60, 70, 30, 80], color: '#71cecd' },
-      { name: 'Technical', data: [20, 10, 50, 40, 70, 60, 50, 90], color: '#6b70af' }
-    ];
+        <!-- Chart -->
+        <div class="donut-cell">
+          <highcharts-chart class="donut-chart"
+                            [Highcharts]="swfpPieChartByGH[0]?.Highcharts"
+                            [options]="swfpPieChartByGH[0]?.chartOptions"
+                            [constructorType]="swfpPieChartByGH[0]?.chartConstructor">
+          </highcharts-chart>
+        </div>
   
-    // figure out which slice to show
-    const start = this.currentDataIndex * this.pageSize;
-    const end = start + this.pageSize;
+        <!-- Right Arrow -->
+        <button *ngIf="canNavigateRight" class="nav-arrow right-arrow" (click)="navigateRight()">
+          <i class="fa fa-chevron-right"></i>
+        </button>
   
-    const slicedCategories = xAxisCategory.slice(start, end);
-    const slicedData = allData.map(series => ({
-      ...series,
-      data: series.data.slice(start, end)
-    }));
+      </div>
   
-    // update number of pages
-    this.totalDataSets = Math.ceil(xAxisCategory.length / this.pageSize);
-  
-    this.swfpColumnChart = this.service.getStackedColumnChart({
-      chartWidth: this.cartboxchartsection.nativeElement.offsetWidth - 40,
-      chartHeight: 330,
-      xAxisCategory: slicedCategories,
-      dataseries: slicedData,
-      legendVisible: false,
-      xAxisVisible: true,
-      yAxisVisible: true,
-      xAxisTitle: 'Grade',
-      yAxisTitle: 'Percentage',
-      dataLabelEnable: true
-    });
-  
-    this.responseFlag = true;
-  }
-
-  
-  onLoadPieChart() {
-    const allPieData = [
-      { title: 'BY GH Grade', data: [{ name: 'Managerial', y: 5 }, { name: 'Technical', y: 110 }] },
-      { title: 'BY GI Grade', data: [{ name: 'Managerial', y: 10 }, { name: 'Technical', y: 200 }] }
-    ];
-  
-    this.totalDataSets = allPieData.length;
-  
-    const selected = allPieData[this.currentDataIndex];
-  
-    this.swfpPieChartByGH = this.service.getPieChart({
-      chartTitle: selected.title,
-      dataseries: [{
-        name: selected.title,
-        colorByPoint: true,
-        innerSize: '85%',
-        data: selected.data
-      }],
-      chartWidth: 400,
-      chartHight: 330,
-      legendVisible: false,
-      xAxisVisible: true,
-      yAxisVisible: false,
-      dataLabelEnable: true
-    });
-  }
-
-  
-  if (this.widgetType === 'ch') { this.onLoadColumnChart(); }
-if (this.widgetType === 'pi') { this.onLoadPieChart(); }
-
-
-loadWidget(chartType: any) {
-    this.widgetType = chartType;
-    this.currentDataIndex = 0; // reset page
-    this.onInitLoad();
-  }
-
-  
-  get canNavigateLeft(): boolean {
-    return this.currentDataIndex > 0;
-  }
-  
-  get canNavigateRight(): boolean {
-    return this.currentDataIndex < this.totalDataSets - 1;
-  }
-  
-  navigateLeft() {
-    if (this.canNavigateLeft) {
-      this.currentDataIndex--;
-      this.onInitLoad();
-    }
-  }
-  
-  navigateRight() {
-    if (this.canNavigateRight) {
-      this.currentDataIndex++;
-      this.onInitLoad();
-    }
-  }
+      <!-- Legend -->
+      <div class="pl-4 legend-bottom" *ngIf="legends.length > 0">
+        <ul class="listLegend">
+          <ng-container *ngFor="let data of legends">
+            <li><span class="dot" [ngStyle]="{'background-color': data.color}"></span>
+                &nbsp;&nbsp;{{data.name}}
+            </li>
+          </ng-container>
+        </ul>
+      </div>
+    </div>
+  </ng-container>
   
