@@ -1,171 +1,104 @@
-<!-- Column Chart View -->
-<ng-container *ngIf="widgetType == 'ch'">
-    <div class="inner-card-box">
-      <div class="content-area">
-        <!-- Left Arrow -->
-        <button *ngIf="canNavigateLeft" class="nav-arrow left-arrow" (click)="navigateLeft()">
-          <i class="fa fa-chevron-left"></i>
-        </button>
-  
-        <div class="row chart-container">
-          <div class="col-md-12 col-lg-12" #cartboxchartsection>
-            <div>
-              <ng-container *ngFor="let columnChart of swfpColumnChart">
-                <highcharts-chart [Highcharts]="columnChart.Highcharts"
-                                  [options]="columnChart.chartOptions"
-                                  [constructorType]="columnChart.chartConstructor">
-                </highcharts-chart>
-              </ng-container>
-            </div>
-          </div>
-        </div>
-  
-        <!-- Right Arrow -->
-        <button *ngIf="canNavigateRight" class="nav-arrow right-arrow" (click)="navigateRight()">
-          <i class="fa fa-chevron-right"></i>
-        </button>
-      </div>
-  
-      <!-- Legend -->
-      <div class="pl-4 legend-bottom" *ngIf="legends.length > 0">
-        <ul class="listLegend">
-          <ng-container *ngFor="let data of legends">
-            <li><span class="dot" [ngStyle]="{'background-color': data.color}"></span>
-                &nbsp;&nbsp;{{data.name}}
-            </li>
-          </ng-container>
-        </ul>
-      </div>
-    </div>
-  </ng-container>
-  
-  
-  <!-- Pie Chart View -->
-  <ng-container *ngIf="widgetType == 'pi'">
-    <div class="inner-card-box">
-      <div class="content-area">
-        <!-- Left Arrow -->
-        <button *ngIf="canNavigateLeft" class="nav-arrow left-arrow" (click)="navigateLeft()">
-          <i class="fa fa-chevron-left"></i>
-        </button>
-  
-        <div class="row chart-grid">
-          <div class="col-md-12 col-lg-12" #cartboxchartsection>
-            <div class="chart-grid">
-              <ng-container *ngFor="let trendchart of swfpPieChartByGH">
-                <div class="donut-cell">
-                  <highcharts-chart class="donut-chart"
-                                    [Highcharts]="trendchart.Highcharts"
-                                    [options]="trendchart.chartOptions"
-                                    [constructorType]="trendchart.chartConstructor">
-                  </highcharts-chart>
-                </div>
-              </ng-container>
-  
-              <ng-container *ngFor="let trendchart of swfpPieChartByGI">
-                <div class="donut-cell">
-                  <highcharts-chart class="donut-chart"
-                                    [Highcharts]="trendchart.Highcharts"
-                                    [options]="trendchart.chartOptions"
-                                    [constructorType]="trendchart.chartConstructor">
-                  </highcharts-chart>
-                </div>
-              </ng-container>
-            </div>
-          </div>
-        </div>
-  
-        <!-- Right Arrow -->
-        <button *ngIf="canNavigateRight" class="nav-arrow right-arrow" (click)="navigateRight()">
-          <i class="fa fa-chevron-right"></i>
-        </button>
-      </div>
-  
-      <!-- Legend -->
-      <div class="pl-4 legend-bottom" *ngIf="legends.length > 0">
-        <ul class="listLegend">
-          <ng-container *ngFor="let data of legends">
-            <li><span class="dot" [ngStyle]="{'background-color': data.color}"></span>
-                &nbsp;&nbsp;{{data.name}}
-            </li>
-          </ng-container>
-        </ul>
-      </div>
-    </div>
-  </ng-container>
-  
+pageSize = 4;   // how many items to show per page
+currentDataIndex = 0;
+totalDataSets = 1; // will update dynamically
 
 
-  .content-area {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    position: relative;
+onLoadColumnChart() {
+    const xAxisCategory = ['GA', 'GB', 'GC', 'GD', 'GE', 'GF', 'GG', 'GH'];
+  
+    const allData = [
+      { name: 'Managerial', data: [10, 20, 40, 50, 60, 70, 30, 80], color: '#71cecd' },
+      { name: 'Technical', data: [20, 10, 50, 40, 70, 60, 50, 90], color: '#6b70af' }
+    ];
+  
+    // figure out which slice to show
+    const start = this.currentDataIndex * this.pageSize;
+    const end = start + this.pageSize;
+  
+    const slicedCategories = xAxisCategory.slice(start, end);
+    const slicedData = allData.map(series => ({
+      ...series,
+      data: series.data.slice(start, end)
+    }));
+  
+    // update number of pages
+    this.totalDataSets = Math.ceil(xAxisCategory.length / this.pageSize);
+  
+    this.swfpColumnChart = this.service.getStackedColumnChart({
+      chartWidth: this.cartboxchartsection.nativeElement.offsetWidth - 40,
+      chartHeight: 330,
+      xAxisCategory: slicedCategories,
+      dataseries: slicedData,
+      legendVisible: false,
+      xAxisVisible: true,
+      yAxisVisible: true,
+      xAxisTitle: 'Grade',
+      yAxisTitle: 'Percentage',
+      dataLabelEnable: true
+    });
+  
+    this.responseFlag = true;
+  }
+
+  
+  onLoadPieChart() {
+    const allPieData = [
+      { title: 'BY GH Grade', data: [{ name: 'Managerial', y: 5 }, { name: 'Technical', y: 110 }] },
+      { title: 'BY GI Grade', data: [{ name: 'Managerial', y: 10 }, { name: 'Technical', y: 200 }] }
+    ];
+  
+    this.totalDataSets = allPieData.length;
+  
+    const selected = allPieData[this.currentDataIndex];
+  
+    this.swfpPieChartByGH = this.service.getPieChart({
+      chartTitle: selected.title,
+      dataseries: [{
+        name: selected.title,
+        colorByPoint: true,
+        innerSize: '85%',
+        data: selected.data
+      }],
+      chartWidth: 400,
+      chartHight: 330,
+      legendVisible: false,
+      xAxisVisible: true,
+      yAxisVisible: false,
+      dataLabelEnable: true
+    });
+  }
+
+  
+  if (this.widgetType === 'ch') { this.onLoadColumnChart(); }
+if (this.widgetType === 'pi') { this.onLoadPieChart(); }
+
+
+loadWidget(chartType: any) {
+    this.widgetType = chartType;
+    this.currentDataIndex = 0; // reset page
+    this.onInitLoad();
+  }
+
+  
+  get canNavigateLeft(): boolean {
+    return this.currentDataIndex > 0;
   }
   
-  .nav-arrow {
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    z-index: 10;
-    flex-shrink: 0;
+  get canNavigateRight(): boolean {
+    return this.currentDataIndex < this.totalDataSets - 1;
+  }
   
-    i {
-      font-size: 14px;
-      color: #495057;
-    }
-  
-    &:hover {
-      background: #e9ecef;
-      border-color: #adb5bd;
-      transform: scale(1.05);
-  
-      i {
-        color: #212529;
-      }
-    }
-  
-    &:active {
-      transform: scale(0.95);
+  navigateLeft() {
+    if (this.canNavigateLeft) {
+      this.currentDataIndex--;
+      this.onInitLoad();
     }
   }
   
-  .left-arrow { order: 1; }
-  .right-arrow { order: 3; }
-  
-  .chart-grid, .chart-container { order: 2; flex: 1; }
-
-  
-
-  currentDataIndex: number = 0;
-totalDataSets: number = 3; // adjust dynamically if needed
-
-get canNavigateLeft(): boolean {
-  return this.currentDataIndex > 0;
-}
-
-get canNavigateRight(): boolean {
-  return this.currentDataIndex < this.totalDataSets - 1;
-}
-
-navigateLeft() {
-  if (this.canNavigateLeft) {
-    this.currentDataIndex--;
-    this.onInitLoad(); // reload chart with new dataset
+  navigateRight() {
+    if (this.canNavigateRight) {
+      this.currentDataIndex++;
+      this.onInitLoad();
+    }
   }
-}
-
-navigateRight() {
-  if (this.canNavigateRight) {
-    this.currentDataIndex++;
-    this.onInitLoad(); // reload chart with new dataset
-  }
-}
+  
