@@ -40,3 +40,18 @@
     background: #f0f0f0;
   }
 }
+
+
+currentIndex = 0;
+
+onPrev() {
+  console.log("Left arrow clicked");
+  this.currentIndex = Math.max(0, this.currentIndex - 1);
+  // you can reload chart data here if needed
+}
+
+onNext() {
+  console.log("Right arrow clicked");
+  this.currentIndex = this.currentIndex + 1;
+  // you can reload chart data here if needed
+}
