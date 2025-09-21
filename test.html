@@ -1,35 +1,4 @@
-<!-- Left Arrow -->
-<button class="nav-arrow left-arrow" 
-        (click)="navigateLeft()" 
-        [disabled]="!canNavigateLeft">
-  <i class="fa fa-chevron-left"></i>
-</button>
-
-<!-- Right Arrow -->
-<button class="nav-arrow right-arrow" 
-        (click)="navigateRight()" 
-        [disabled]="!canNavigateRight">
-  <i class="fa fa-chevron-right"></i>
-</button>
-
-
-.nav-arrow:disabled {
-    background: #f8f9fa;
-    border-color: #e9ecef;
-    cursor: not-allowed;
-    opacity: 0.6;
-  
-    i {
-      color: #adb5bd;
-    }
-  
-    &:hover {
-      transform: none;
-    }
-  }
-  
-
-  <div class="content-area">
+<div class="content-area">
 
     <!-- Left Arrow -->
     <button class="nav-arrow left-arrow"
@@ -38,13 +7,15 @@
       <i class="fa fa-chevron-left"></i>
     </button>
   
-    <!-- Chart -->
-    <div class="donut-cell">
-      <highcharts-chart class="donut-chart"
-                        [Highcharts]="swfpPieChartByGH[0]?.Highcharts"
-                        [options]="swfpPieChartByGH[0]?.chartOptions"
-                        [constructorType]="swfpPieChartByGH[0]?.chartConstructor">
-      </highcharts-chart>
+    <!-- Chart in Center -->
+    <div class="chart-container">
+      <div class="donut-cell">
+        <highcharts-chart class="donut-chart"
+                          [Highcharts]="swfpPieChartByGH[0]?.Highcharts"
+                          [options]="swfpPieChartByGH[0]?.chartOptions"
+                          [constructorType]="swfpPieChartByGH[0]?.chartConstructor">
+        </highcharts-chart>
+      </div>
     </div>
   
     <!-- Right Arrow -->
@@ -55,19 +26,4 @@
     </button>
   
   </div>
-
-  
-  .content-area {
-    display: flex;
-    align-items: center;
-    justify-content: space-between; /* 🔑 pushes left + right arrows apart */
-    gap: 16px;
-    position: relative;
-  }
-  
-  .donut-cell {
-    flex: 1; /* chart takes remaining space between arrows */
-    display: flex;
-    justify-content: center;
-  }
   
