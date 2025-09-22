@@ -1,28 +1,24 @@
-/* Horizontal scroll for charts */
-.chart-scroll-x {
-  overflow-x: auto;
-  overflow-y: hidden;
-  white-space: nowrap;
-  padding-bottom: 6px;
-}
-
-/* Ensure charts don’t shrink */
-.chart-scroll-x highcharts-chart {
-  min-width: 900px; /* adjust based on data */
-  display: inline-block;
-}
-
-/* Table body vertical scroll */
-.table-body-scroll {
-  max-height: 300px; /* adjust as needed */
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-/* Keep table header sticky */
-.table-container thead th {
-  position: sticky;
-  top: 0;
-  background: #f7f9fb;
-  z-index: 2;
-}
+ChartOptions = {
+    chart: {
+      type: 'column',
+      height: 330,
+      scrollablePlotArea: {
+        minWidth: 1000,        // 👈 total scrollable width (adjust or calculate dynamically)
+        scrollPositionX: 0
+      }
+    },
+    title: { text: null },     // optional: no chart title inside the chart
+    xAxis: {
+      categories: xAxisCategory,
+      title: { text: 'Grade' }
+    },
+    yAxis: {
+      title: { text: 'Percentage' }
+    },
+    legend: { enabled: false },
+    plotOptions: {
+      column: { dataLabels: { enabled: true } }
+    },
+    series: ChartData
+  };
+  
