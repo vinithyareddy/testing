@@ -172,22 +172,29 @@ export class SwfpByManagerFlagGradeComponent implements OnInit, AfterViewInit, O
 
   onLoadColumnChart() {
     let ChartOptions = {};
-    let xAxisCategory = ['GA', 'GB', 'GC', 'GD', 'GE', 'GF', 'GG', 'GH', 'GI', 'GJ', 'GK', 'GL', 'GM', 'GN', 'GO', 'GP', 'GQ', 'GR', 'GS', 'GT'];
+    // Extended categories for scroll demonstration
+    let xAxisCategory = ['GA', 'GB', 'GC', 'GD', 'GE', 'GF', 'GG', 'GH', 'GI', 'GJ', 'GK', 'GL', 'GM', 'GN', 'GO', 'GP', 'GQ', 'GR', 'GS', 'GT', 'GU', 'GV', 'GW', 'GX', 'GY', 'GZ'];
 
     const ChartData = [
       {
         name: 'Managerial',
-        data: [10, 20, 40, 50, 60, 70, 30, 80, 45, 55, 65, 75, 85, 35, 25, 95, 40, 60, 50, 70],
+        data: [10, 20, 40, 50, 60, 70, 30, 80, 45, 55, 65, 75, 85, 35, 25, 95, 40, 60, 50, 70, 30, 90, 20, 80, 60, 40],
         color: '#71cecd',
       },
       {
         name: 'Technical',
-        data: [20, 10, 50, 40, 70, 60, 50, 90, 55, 45, 75, 65, 95, 45, 35, 85, 60, 40, 70, 50],
+        data: [20, 10, 50, 40, 70, 60, 50, 90, 55, 45, 75, 65, 95, 45, 35, 85, 60, 40, 70, 50, 80, 30, 70, 20, 40, 60],
         color: '#6b70af',
-      }];
+      }
+    ];
+
+    const containerWidth = this.cartboxchartsection.nativeElement.offsetWidth - 40;
+    const barWidth = 60; // Fixed width per bar
+    const barSpacing = 20; // Space between bar groups
+    const totalBarsWidth = xAxisCategory.length * (barWidth + barSpacing);
 
     ChartOptions = {
-      chartWidth: this.cartboxchartsection.nativeElement.offsetWidth - 40,
+      chartWidth: containerWidth,
       chartHeight: 330,
       xAxisCategory: xAxisCategory,
       legendVisible: false,
@@ -197,21 +204,20 @@ export class SwfpByManagerFlagGradeComponent implements OnInit, AfterViewInit, O
       xAxisTitle: 'Grade',
       yAxisTitle: 'Percentage',
       dataLabelEnable: true,
-      // Add these new options for horizontal scrolling
-      scrollablePlotArea: {
-        minWidth: xAxisCategory.length * 80, // Adjust multiplier based on desired bar width
-        scrollPositionX: 0
-      },
-      // Ensure chart fills container width but allows horizontal scroll
-      plotOptions: {
+      // Enable scrolling when total width exceeds container
+      enableHorizontalScroll: totalBarsWidth > containerWidth,
+      scrollableMinWidth: Math.max(containerWidth, totalBarsWidth),
+      // Pass these values to service for proper configuration
+      plotOptionsConfig: {
         column: {
-          pointWidth: 60, // Fixed width for bars
+          pointWidth: barWidth,
           groupPadding: 0.1,
-          pointPadding: 0.1
+          pointPadding: 0.1,
+          borderWidth: 0
         }
       }
-      //max: Math.max(max, max1) + (Math.max(max, max1) * (Math.max(max, max1) > 10 ? 0.8 : 3))/100
     };
+
     this.swfpColumnChart = this.service.getStackedColumnChart(ChartOptions);
     this.responseFlag = true;
   }
@@ -241,7 +247,6 @@ export class SwfpByManagerFlagGradeComponent implements OnInit, AfterViewInit, O
     }
   }
 }
-
 
 
 .pie-chart-container {
@@ -299,35 +304,76 @@ export class SwfpByManagerFlagGradeComponent implements OnInit, AfterViewInit, O
     }
 }
 
-/* Horizontal scroll support for bar chart */
-.highcharts-scrollable-plot-area {
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
+/* CRITICAL: Horizontal scroll support for bar chart - Updated styles */
+:host ::ng-deep .highcharts-container {
+    width: 100% !important;
+    height: 100% !important;
+    overflow: visible !important; /* Changed from auto to visible */
 }
 
-/* Optional: make sure the Highcharts internal container stretches */
-:host ::ng-deep .highcharts-container,
 :host ::ng-deep .highcharts-root {
     width: 100% !important;
     height: 100% !important;
+    overflow: visible !important;
 }
 
-/* Update the chart container to handle scroll */
-:host ::ng-deep .highcharts-container {
+/* Main scrollable area styling */
+:host ::ng-deep .highcharts-scrollable-plot-area {
     overflow-x: auto !important;
     overflow-y: hidden !important;
+    width: 100% !important;
+    position: relative !important;
+    
+    /* Custom scrollbar styling */
+    &::-webkit-scrollbar {
+        height: 8px;
+    }
+    
+    &::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 4px;
+        
+        &:hover {
+            background: #a1a1a1;
+        }
+    }
 }
 
-/* Ensure the inner chart content scrolls properly */
+/* The actual scrolling content */
+:host ::ng-deep .highcharts-scrolling {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    width: 100% !important;
+}
+
+/* Ensure plot area and backgrounds don't interfere */
 :host ::ng-deep .highcharts-plot-border,
 :host ::ng-deep .highcharts-plot-background {
     overflow: visible !important;
 }
 
-/* Fix for the scrollable area */
-:host ::ng-deep .highcharts-scrolling {
+/* Make sure the chart wrapper allows scrolling */
+:host ::ng-deep highcharts-chart {
+    display: block !important;
+    width: 100% !important;
     overflow-x: auto !important;
     overflow-y: hidden !important;
+}
+
+/* Fix for the chart container div */
+.inner-card-box {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    
+    > .row > div {
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+    }
 }
 
 .grade-table table {
@@ -490,4 +536,114 @@ tr.child.hidden {
 
 .fa-table {
     font-weight: 100;
+}
+
+
+
+getStackedColumnChart(ChartOptions: any) {
+    const outsidethis = this;
+    const ChartValues: any = [];
+
+    ChartValues.push({
+        Highcharts: Highcharts,
+        chartConstructor: 'chart',
+        chartOptions: {
+            title: {
+                text: ''
+            },
+            chart: {
+                type: 'column',
+                width: ChartOptions.chartWidth,
+                height: ChartOptions.chartHeight,
+                backgroundColor: '#ffffff',       // opaque chart background
+                plotBackgroundColor: '#ffffff',   // opaque plot background
+                plotBorderWidth: 1,               // optional: define edges
+                
+                // ADD THIS: Enable scrollable plot area when there are many categories
+                ...(ChartOptions.enableHorizontalScroll && {
+                    scrollablePlotArea: {
+                        minWidth: ChartOptions.scrollableMinWidth || (ChartOptions.xAxisCategory.length * 80),
+                        scrollPositionX: 0,
+                        opacity: 1
+                    }
+                })
+                
+                // events: {
+                //     load: function () {
+                //         const chart = this;
+                //         // Sum visible series by category index
+                //         const sums: any = [];
+                //         chart.series.filter(s => s.visible).forEach(s => {
+                //             s.data.forEach((p, i) => {
+                //                 sums[i] = (sums[i] || 0) + (p.y || 0);
+                //             });
+                //         });
+                //         const maxSum = Math.max(...sums);
+                //         const niceMax = Math.ceil(maxSum / 10) * 10; // round up to nearest 10
+                //         chart.yAxis[0].setExtremes(0, niceMax, true, false);
+                //     }
+                // }
+            },
+            xAxis: {
+                categories: ChartOptions.xAxisCategory,
+                title: {
+                    text: ChartOptions.xAxisTitle
+                }
+                //  scrollbar: { enabled: true, barBackgroundColor: '#c1c7d0', trackBackgroundColor: '#fff' }
+            },
+            yAxis: [{
+                min: 0,
+                // max: ChartOptions.max,
+                title: {
+                    text: ChartOptions.yAxisTitle ? ChartOptions.yAxisTitle : 'Percentage' //ChartOptions.yAxisTitle
+                },
+                stackLabels: {
+                    //enabled: true,
+                    //     formatter: function () {
+                    //         return Highcharts.numberFormat(this.total, 1, '.', ',');
+                    //     },
+                },
+                // maxPadding: 0.25
+                //   maxPadding: (ChartOptions.chartTitle === 'Short Term Finance Commitments' || ChartOptions.chartTitle === 'Debt & Equity Investment Outstanding' || ChartOptions.chartTitle === 'Net Oustanding Exposure' || ChartOptions.chartTitle === 'Admin Spend' ||
+                //     ChartOptions.chartTitle === 'Net Flows' || ChartOptions.chartTitle === 'Commitments' || ChartOptions.chartTitle === 'Gross Disbursements' || ChartOptions.chartTitle === 'Loans-outstanding' ||
+                //     ChartOptions.chartTitle === 'Long Term Finance Commitments') ? 0.25 : 0,
+            },
+            {
+                title: {
+                    text: ChartOptions.title,
+                },
+                opposite: true
+            }],
+            tooltip: {
+                pointFormat: '{series.name}: <b>{point.y:,.1f}</b>',
+                outside: true
+            },
+            plotOptions: {
+                column: {
+                    // pointPadding: 0.35,
+                    //  borderWidth: 2,
+                    stacking: 'normal',
+                    
+                    // UPDATED: Use dynamic pointWidth from options or fallback to 25
+                    pointWidth: ChartOptions.plotOptionsConfig?.column?.pointWidth || 25,
+                    
+                    // ADD: Additional spacing options from component
+                    ...(ChartOptions.plotOptionsConfig?.column && {
+                        groupPadding: ChartOptions.plotOptionsConfig.column.groupPadding,
+                        pointPadding: ChartOptions.plotOptionsConfig.column.pointPadding,
+                        borderWidth: ChartOptions.plotOptionsConfig.column.borderWidth
+                    })
+                }
+            },
+            legend: {
+                enabled: ChartOptions.legendVisible,
+            },
+            series: ChartOptions.dataseries,
+            credits: {
+                enabled: false
+            },
+        } as Highcharts.Options
+    });
+
+    return ChartValues;
 }
