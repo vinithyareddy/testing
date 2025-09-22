@@ -22,3 +22,41 @@
     }
   </div>
 </ng-template>
+
+
+.filter-container {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  width: 100%; // take full row width
+}
+
+.filterCSS {
+  display: inline-block;
+  padding: 0 10px;
+  font-size: 12px;
+  line-height: 24px;
+  border-radius: 12px;
+  background-color: #DBE1ED;
+  cursor: pointer;
+  margin: 2px 5px 2px 0;
+
+  i.fa-times {
+    color: rgba(0, 0, 0, 0.6);
+    font-size: 11px;
+  }
+}
+
+/* Push "View More / Show Less" to the right end */
+.toggle-btn {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.resetCSS {
+  color: #0b50d1;
+  font-weight: 600;
+  font-size: 14px;
+  margin: 2px;
+  cursor: pointer;
+}
