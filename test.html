@@ -1,23 +1,192 @@
-onLoadColumnChart() {
-    let xAxisCategory = ['GA','GB','GC','GD','GE','GF','GG','GH','GI','GJ','GK','GL']; // Example
+import { AfterViewInit, Component, computed, ElementRef, HostListener, OnDestroy, OnInit, Renderer2, signal, ViewChild } from '@angular/core';
+import { animate, state, style, transition, trigger } from '@angular/animations';
+import { SwfpByManagerFlagGradeService } from '../../services/swfp-by-manager-flag-grade.service';
+
+import { CommonModule } from '@angular/common';
+import { HttpClientModule } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
+import { LiftButtonComponent, LiftButtonGroupComponent, LiftButtonSwitchComponent } from '@lift/formcontrols';
+import { LiftSectionLoaderComponent } from '@lift/loaders';
+import { LiftPopoverComponent } from '@lift/ui';
+import { HighchartsChartModule } from 'highcharts-angular';
+
+type Item = { category: string; unit: number };
+type Group = { name: string; items: Item[]; expanded?: boolean };
+const DEFAULT_DURATION = 300;
+@Component({
+  selector: 'app-swfp-by-manager-flag-grade',
+  templateUrl: './swfp-by-manager-flag-grade.component.html',
+  standalone:true,
+        imports:[
+    CommonModule,
+    FormsModule,
+    HttpClientModule,
+    LiftSectionLoaderComponent,
+    HighchartsChartModule,
+    LiftPopoverComponent
+],
+  styleUrl: './swfp-by-manager-flag-grade.component.scss',
+
+  animations: [
+    trigger('collapse', [
+      state('false', style({ height: '550px', visibility: 'visible' })),
+      state('true', style({ height: '0', visibility: 'hidden' })),
+      transition('false => true', animate(DEFAULT_DURATION + 'ms ease-in')),
+      transition('true => false', animate(DEFAULT_DURATION + 'ms ease-out'))
+    ])
+  ]
+})
+
+export class SwfpByManagerFlagGradeComponent implements OnInit, AfterViewInit, OnDestroy {
+  fullview = false;
+  widgetType: string = 'ch';
+  responseFlag: boolean = false;
+  swfpColumnChart: any = [];
+  swfpPieChartByGH: any = [];
+  swfpPieChartByGI: any = [];
+  tableData = [
+    { grp: 'GH', items: [{ cateory: 'Managerial', Unit: '5' }, { cateory: 'Technical', Unit: '110' }] },
+    { grp: 'GI', items: [{ cateory: 'Managerial', Unit: '10' }, { cateory: 'Technical', Unit: '200' }] }
+  ];
+  legends: any = [{ name: 'Managerial', color: '#71cecd' }, { name: 'Technical', color: '#6b70af' }];
+  //private chartRefs = new Set<Highcharts.Chart>();
+  //private destroyed$ = new Subject<void>();
+  @ViewChild('cartboxchartsection') cartboxchartsection: ElementRef;
+  groups = signal<Group[]>([]);
+  // Optional grand totals
+  grandTotal = computed(() =>
+    this.groups().reduce((sum, g) => sum + this.groupTotal(g), 0)
+  );
+
+  constructor(private service: SwfpByManagerFlagGradeService, private render: Renderer2) {
+    this.mapTable();
+  }
+
+  groupTotal = (g: Group) => g.items.reduce((s, x) => s + (Number.isFinite(x.unit) ? x.unit : 0), 0);
+
+  mapTable() {
+    const normalized: Group[] = this.tableData.map((g: any) => {
+      const name = g.grp ?? g.name ?? 'Unknown';
+      const items: Item[] = (Array.isArray(g.items) ? g.items : [g.items])
+        .filter(Boolean)
+        .map((it: any) => ({
+          // cope with the typo "cateory" and casing
+          category: it.category ?? it.cateory ?? it.Category ?? '',
+          unit: Number(it.unit ?? it.Unit ?? 0)
+        }));
+      return { name, items, expanded: true };
+    });
+    this.groups.set(normalized);
+  }
+
+  toggle(g: Group) {
+    g.expanded = !g.expanded;
+    // trigger change by re-setting the array reference (signals handle it, but ensure immutability if needed)
+    this.groups.set([...this.groups()]);
+  }
+
+  // Helper for percentage inside a group
+  pct(part: number, total: number) {
+    if (!total) return 0;
+    return (part / total) * 100;
+  }
+
+  trackGroup = (_: number, g: Group) => g.name;
+  trackItem = (_: number, it: Item) => it.category + ':' + it.unit;
+
+  ngAfterViewInit(): void {
+    setTimeout(() => {
+      this.onInitLoad();
+    }, 200);
+  }
+
+  ngOnInit(): void {
+  }
+
+  loadWidget(chartType: any) {
+    this.widgetType = chartType;
+    this.onInitLoad();
+  }
+
+  onLoadPieChartByGH() {
+    const chartdata = [{
+      name: 'BY GH Grade',
+      colorByPoint: true,
+      innerSize: '85%',
+      data: [{ name: 'Managerial', color: '#71cecd', y: 5 }, { name: 'Technical', color: '#6b70af', y: 110 }]
+    }];
+    const chartWidth = 400;
+    const chartHeight = 330;
+    let ChartOptions = {};
+    const chartTitle = 'BY GH Grade';
+    const centerVal = 115;
+    const centerTxt = 'BY GH Grade';
+    const datalabelsEnabled = true;
+    const legendVisible = false;
+    ChartOptions = {
+      chartTitle: chartTitle,
+      centerVal: centerVal,
+      centerTxt: centerTxt,
+      chartWidth: chartWidth,
+      chartHight: chartHeight,
+      legendVisible: legendVisible,
+      dataseries: chartdata,
+      xAxisVisible: true,
+      yAxisVisible: false,
+      dataLabelEnable: datalabelsEnabled
+    };
+    this.swfpPieChartByGH = this.service.getPieChart(ChartOptions);
+  }
+
+  onLoadPieChartByGI() {
+    const chartdata = [{
+      name: 'BY GI Grade',
+      colorByPoint: true,
+      innerSize: '85%',
+      data: [{ name: 'Managerial', color: '#71cecd', y: 10 },
+      { name: 'Technical', color: '#6b70af', y: 200 }]
+    }];
+
+    const chartWidth = 400;
+    const chartHeight = 330;
+    let ChartOptions = {};
+    const chartTitle = 'BY GI Grade';
+    const centerVal = 210;
+    const centerTxt = 'BY GI Grade';
+    const datalabelsEnabled = true;
+    const legendVisible = false;
+    ChartOptions = {
+      chartTitle: chartTitle,
+      centerVal: centerVal,
+      centerTxt: centerTxt,
+      chartWidth: chartWidth,
+      chartHight: chartHeight,
+      legendVisible: legendVisible,
+      dataseries: chartdata,
+      xAxisVisible: true,
+      yAxisVisible: false,
+      dataLabelEnable: datalabelsEnabled
+    };
+    this.swfpPieChartByGI = this.service.getPieChart(ChartOptions);
+  }
+
+  onLoadColumnChart() {
+    let ChartOptions = {};
+    let xAxisCategory = ['GA', 'GB', 'GC', 'GD', 'GE', 'GF', 'GG', 'GH', 'GI', 'GJ', 'GK', 'GL', 'GM', 'GN', 'GO', 'GP', 'GQ', 'GR', 'GS', 'GT'];
+
     const ChartData = [
       {
         name: 'Managerial',
-        data: [10, 20, 40, 50, 60, 70, 30, 80, 90, 55, 65, 75],
+        data: [10, 20, 40, 50, 60, 70, 30, 80, 45, 55, 65, 75, 85, 35, 25, 95, 40, 60, 50, 70],
         color: '#71cecd',
       },
       {
         name: 'Technical',
-        data: [20, 10, 50, 40, 70, 60, 50, 90, 100, 85, 95, 105],
+        data: [20, 10, 50, 40, 70, 60, 50, 90, 55, 45, 75, 65, 95, 45, 35, 85, 60, 40, 70, 50],
         color: '#6b70af',
-      }
-    ];
-  
-    const barsVisible = 5;      // how many bars to fit without scroll
-    const barWidth = 100;       // width per bar (px)
-    const totalBars = xAxisCategory.length;
-  
-    const ChartOptions: any = {
+      }];
+
+    ChartOptions = {
       chartWidth: this.cartboxchartsection.nativeElement.offsetWidth - 40,
       chartHeight: 330,
       xAxisCategory: xAxisCategory,
@@ -28,15 +197,297 @@ onLoadColumnChart() {
       xAxisTitle: 'Grade',
       yAxisTitle: 'Percentage',
       dataLabelEnable: true,
-  
-      // 👇 Key: make total chart width bigger than container
+      // Add these new options for horizontal scrolling
       scrollablePlotArea: {
-        minWidth: totalBars * barWidth, // full width for all bars
+        minWidth: xAxisCategory.length * 80, // Adjust multiplier based on desired bar width
         scrollPositionX: 0
+      },
+      // Ensure chart fills container width but allows horizontal scroll
+      plotOptions: {
+        column: {
+          pointWidth: 60, // Fixed width for bars
+          groupPadding: 0.1,
+          pointPadding: 0.1
+        }
       }
+      //max: Math.max(max, max1) + (Math.max(max, max1) * (Math.max(max, max1) > 10 ? 0.8 : 3))/100
     };
-  
     this.swfpColumnChart = this.service.getStackedColumnChart(ChartOptions);
     this.responseFlag = true;
   }
-  
+
+  onInitLoad() {
+    if (this.widgetType === 'ch') { this.onLoadColumnChart() }
+    if (this.widgetType === 'pi') {
+      this.onLoadPieChartByGH();
+      this.onLoadPieChartByGI();
+    }
+  }
+
+  ngOnDestroy(): void {
+  }
+
+  @HostListener('window:resize', ['$event'])
+  onResize() {
+    this.onInitLoad();
+  }
+
+  fullPageView() {
+    this.fullview = !this.fullview;
+    if (this.fullview === true) {
+      this.render.addClass(document.body, 'no-scroll');
+    } else {
+      this.render.removeClass(document.body, 'no-scroll');
+    }
+  }
+}
+
+
+
+.pie-chart-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+
+.chart-grid {
+    display: flex;
+    flex-wrap: inherit;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+/* Desktop default: fixed 380x320 */
+.donut-cell {
+    width: 380px;
+    height: 320px;
+}
+
+/* Ensure Highcharts fills the cell */
+.donut-chart {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* Tablet: fixed 320x270 */
+@media (max-width: 1024px) {
+    .donut-cell {
+        width: 320px;
+        height: 270px;
+    }
+}
+
+/* Large phones / small tablets: fixed 280x240 */
+@media (max-width: 768px) {
+    .donut-cell {
+        width: 280px;
+        height: 240px;
+    }
+}
+
+/* Phones: stack vertically, fixed 240x200 */
+@media (max-width: 520px) {
+    .chart-grid {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .donut-cell {
+        width: 240px;
+        height: 200px;
+    }
+}
+
+/* Horizontal scroll support for bar chart */
+.highcharts-scrollable-plot-area {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+}
+
+/* Optional: make sure the Highcharts internal container stretches */
+:host ::ng-deep .highcharts-container,
+:host ::ng-deep .highcharts-root {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Update the chart container to handle scroll */
+:host ::ng-deep .highcharts-container {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+}
+
+/* Ensure the inner chart content scrolls properly */
+:host ::ng-deep .highcharts-plot-border,
+:host ::ng-deep .highcharts-plot-background {
+    overflow: visible !important;
+}
+
+/* Fix for the scrollable area */
+:host ::ng-deep .highcharts-scrolling {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+}
+
+.grade-table table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background: #fff;
+    border: 1px solid #e6e8eb;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+thead th {
+    text-align: left !important;
+    font-weight: 600;
+    padding: 10px 12px;
+    color: #3b3f44;
+    background: #f7f9fb;
+    border-bottom: 1px solid #e6e8eb;
+}
+
+tbody td {
+    padding: 12px;
+    border-bottom: 1px solid #f3f4f6;
+    color: #2e3135;
+}
+
+::ng-deep .right {
+    text-align: right !important;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.indent {
+    padding-left: 28px;
+    color: #4a4f55;
+}
+
+tr.group {
+    cursor: pointer;
+}
+
+tr.child.hidden {
+    display: none;
+}
+
+.toggle {
+    border: 0;
+    background: transparent;
+    padding: 0 6px 0 0;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    color: #586069;
+}
+
+.budget-card-box .budget-box-chart {
+    height: inherit !important;
+}
+
+.fa-chart-bar {
+    display: inline-block;
+    transform: rotate(270deg) scaleY(-1);
+    margin-left: 10px;
+    margin-top: 8px;
+    font-size: 13px !important;
+}
+
+.fa-chart-pie {
+    display: inline-block;
+    transform: rotate(180deg) scaleY(-1);
+    font-weight: 100;
+}
+
+.widget-heading {
+    margin-right: 16px;
+
+    i.fa-info-circle {
+        font-size: 12px;
+        color: #0071bc;
+        margin-left: 4px;
+        cursor: pointer;
+    }
+}
+
+.header-icons {
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    // gap: 12px;
+
+    .togglebtn {
+        display: flex;
+
+        // .lft-toggle,
+        // .rgt-toggle {
+        //     width: 28px;
+        //     height: 28px;
+        //     // border: 1px solid #d6d6d6;
+        //     text-align: center;
+        //     line-height: 28px;
+        //     cursor: pointer;
+
+        //     i {
+        //         font-size: 14px;
+        //     }
+        // }
+    }
+
+    .view,
+    .ellipsis {
+        font-size: 18px;
+        color: #0071bc;
+        cursor: pointer;
+    }
+}
+
+.inner-card-box-lg {
+    padding: 6px 0 4px;
+}
+
+.viewmore {
+    font-size: 14px;
+    font-weight: 600;
+    color: #0071bc;
+    text-align: right;
+}
+
+.full-view {
+    position: fixed;
+    overflow-y: auto;
+    overflow-x: hidden;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    z-index: 99999;
+    background-color: #fff;
+    padding: 20px;
+
+    .budget-card-box-lg {
+        height: 820px !important;
+
+        .budget-box-chart-lg {
+            height: 800px !important;
+        }
+
+        .TableView {
+            height: 650px !important;
+            max-height: 680px;
+            width: 100%;
+        }
+    }
+}
+
+.lift-popover-icon {
+    margin-top: -5px;
+}
+
+.fa-table {
+    font-weight: 100;
+}
