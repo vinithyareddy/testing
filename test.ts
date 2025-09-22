@@ -1,192 +1,96 @@
-// 1. First, update your service method to use xAxis scrollbar:
+// Replace your existing onLoadColumnChart() method with this:
+onLoadColumnChart() {
+  let ChartOptions = {};
+  let xAxisCategory = ['GA', 'GB', 'GC', 'GD', 'GE', 'GF', 'GG', 'GH']
 
-getStackedColumnChart(ChartOptions: any) {
-  const outsidethis = this;
-  const ChartValues: any = [];
+  const ChartData = [
+    {
+      name: 'Managerial',
+      data: [10, 20, 40, 50, 60, 70, 30, 80],
+      color: '#71cecd',
+    },
+    {
+      name: 'Technical',
+      data: [20, 10, 50, 40, 70, 60, 50, 90],
+      color: '#6b70af',
+    }];
+
+  ChartOptions = {
+    chartWidth: this.cartboxchartsection.nativeElement.offsetWidth - 40,
+    chartHeight: 330,
+    xAxisCategory: xAxisCategory,
+    legendVisible: false,
+    dataseries: ChartData,
+    xAxisVisible: true,
+    yAxisVisible: true,
+    xAxisTitle: 'Grade',
+    yAxisTitle: 'Percentage',
+    dataLabelEnable: true,
+  };
+
+  // Get the base chart from service
+  this.swfpColumnChart = this.service.getStackedColumnChart(ChartOptions);
   
-  ChartValues.push({
-      Highcharts: Highcharts,
-      chartConstructor: 'chart',
-      chartOptions: {
-          title: {
-              text: ''
-          },
-          chart: {
-              type: 'column',
-              width: ChartOptions.chartWidth,
-              height: ChartOptions.chartHeight,
-              backgroundColor: '#ffffff',
-              plotBackgroundColor: '#ffffff',
-              plotBorderWidth: 1,
-              marginBottom: 80  // Extra space for scrollbar
-          },
-          xAxis: {
-              categories: ChartOptions.xAxisCategory,
-              title: {
-                  text: ChartOptions.xAxisTitle
-              },
-              // Show only first 5 categories
-              min: 0,
-              max: 4,  // Shows indexes 0,1,2,3,4 (first 5)
-              // Enable scrollbar
-              scrollbar: {
-                  enabled: true,
-                  barBackgroundColor: '#c1c7d0',
-                  trackBackgroundColor: '#f5f5f5',
-                  buttonBackgroundColor: '#e6e6e6',
-                  buttonBorderColor: '#c1c7d0',
-                  rifleColor: '#666',
-                  height: 14,
-                  margin: 5
-              }
-          },
-          yAxis: [{
-              min: 0,
-              title: {
-                  text: ChartOptions.yAxisTitle ? ChartOptions.yAxisTitle : 'Percentage'
-              },
-              stackLabels: {},
-          },
-          {
-              title: {
-                  text: ChartOptions.title,
-              },
-              opposite: true
-          }],
-          tooltip: {
-              pointFormat: '{series.name}: <b>{point.y:,.1f}</b>',
-              outside: true
-          },
-          plotOptions: {
-              column: {
-                  stacking: 'normal',
-                  pointWidth: 25
-              }
-          },
-          legend: {
-              enabled: ChartOptions.legendVisible,
-          },
-          series: ChartOptions.dataseries,
-          credits: {
-              enabled: false
-          },
-      } as Highcharts.Options
-  });
-  return ChartValues;
+  // Modify the chart options specifically for this widget to add scrolling
+  if (this.swfpColumnChart && this.swfpColumnChart.length > 0) {
+    const chartOptions = this.swfpColumnChart[0].chartOptions;
+    
+    // Add scrollable plot area
+    chartOptions.chart.scrollablePlotArea = {
+      minWidth: 800,
+      scrollPositionX: 0,
+      opacity: 1
+    };
+    
+    // Set initial view to show only first 5 categories
+    chartOptions.xAxis.min = 0;
+    chartOptions.xAxis.max = 4;
+    
+    // Add bottom margin for scrollbar
+    chartOptions.chart.marginBottom = 80;
+    
+    // Add scrollbar to xAxis
+    chartOptions.xAxis.scrollbar = {
+      enabled: true,
+      barBackgroundColor: '#c1c7d0',
+      trackBackgroundColor: '#f5f5f5',
+      buttonBackgroundColor: '#e6e6e6',
+      buttonBorderColor: '#c1c7d0',
+      rifleColor: '#666',
+      height: 14,
+      margin: 5
+    };
+  }
+
+  this.responseFlag = true;
 }
 
-// 2. Alternative CSS-based solution - Add this to your HTML template:
 
-/*
-Replace your existing chart div with this structure:
-
-<div class="scrollable-chart-wrapper">
-  <div class="scrollable-chart-content">
-      <ng-container *ngFor="let columnChart of swfpColumnChart">
-          <highcharts-chart [Highcharts]="columnChart.Highcharts"
-              [options]="columnChart.chartOptions"
-              [constructorType]="columnChart.chartConstructor">
-          </highcharts-chart>
-      </ng-container>
-  </div>
-</div>
-*/
-
-// 3. And add this CSS to your SCSS file:
-
-/*
-.scrollable-chart-wrapper {
-  width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  
-  // Custom scrollbar styling
-  &::-webkit-scrollbar {
-      height: 12px;
+// Override Highcharts scrollbar styling specifically for this component
+:host ::ng-deep .highcharts-scrollbar {
+  .highcharts-scrollbar-track {
+      fill: #f5f5f5;
+      stroke: #e0e0e0;
+      stroke-width: 1;
   }
   
-  &::-webkit-scrollbar-track {
-      background: #f8f9fa;
-      border-radius: 6px;
+  .highcharts-scrollbar-thumb {
+      fill: #6c757d;
+      stroke: #6c757d;
+      rx: 3;
+      ry: 3;
   }
   
-  &::-webkit-scrollbar-thumb {
-      background: #6c757d;
-      border-radius: 6px;
-      
-      &:hover {
-          background: #495057;
-      }
+  .highcharts-scrollbar-button {
+      fill: #e6e6e6;
+      stroke: #c1c7d0;
+  }
+  
+  .highcharts-scrollbar-arrow {
+      fill: #666;
   }
 }
 
-.scrollable-chart-content {
-  width: 1200px; // Make this wider to force horizontal scrolling
-  min-width: 1200px;
-}
-*/
-
-// 4. If using the CSS approach, modify your service to have a fixed width:
-
-getStackedColumnChartWithCSSScroll(ChartOptions: any) {
-  const outsidethis = this;
-  const ChartValues: any = [];
-  
-  ChartValues.push({
-      Highcharts: Highcharts,
-      chartConstructor: 'chart',
-      chartOptions: {
-          title: {
-              text: ''
-          },
-          chart: {
-              type: 'column',
-              width: 1200, // Fixed width to ensure scrolling
-              height: ChartOptions.chartHeight,
-              backgroundColor: '#ffffff',
-              plotBackgroundColor: '#ffffff',
-              plotBorderWidth: 1
-          },
-          xAxis: {
-              categories: ChartOptions.xAxisCategory,
-              title: {
-                  text: ChartOptions.xAxisTitle
-              }
-          },
-          yAxis: [{
-              min: 0,
-              title: {
-                  text: ChartOptions.yAxisTitle ? ChartOptions.yAxisTitle : 'Percentage'
-              },
-              stackLabels: {},
-          },
-          {
-              title: {
-                  text: ChartOptions.title,
-              },
-              opposite: true
-          }],
-          tooltip: {
-              pointFormat: '{series.name}: <b>{point.y:,.1f}</b>',
-              outside: true
-          },
-          plotOptions: {
-              column: {
-                  stacking: 'normal',
-                  pointWidth: 60 // Wider bars since we have more space
-              }
-          },
-          legend: {
-              enabled: ChartOptions.legendVisible,
-          },
-          series: ChartOptions.dataseries,
-          credits: {
-              enabled: false
-          },
-      } as Highcharts.Options
-  });
-  return ChartValues;
+:host ::ng-deep .highcharts-scrollbar-group {
+  visibility: visible !important;
 }
