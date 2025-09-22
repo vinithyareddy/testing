@@ -1,24 +1,20 @@
 ChartOptions = {
-    chart: {
-      type: 'column',
-      height: 330,
-      scrollablePlotArea: {
-        minWidth: 1000,        // 👈 total scrollable width (adjust or calculate dynamically)
-        scrollPositionX: 0
-      }
-    },
-    title: { text: null },     // optional: no chart title inside the chart
-    xAxis: {
-      categories: xAxisCategory,
-      title: { text: 'Grade' }
-    },
-    yAxis: {
-      title: { text: 'Percentage' }
-    },
-    legend: { enabled: false },
-    plotOptions: {
-      column: { dataLabels: { enabled: true } }
-    },
-    series: ChartData
+    chartWidth: this.cartboxchartsection.nativeElement.offsetWidth - 40,
+    chartHeight: 330,
+    xAxisCategory: xAxisCategory,
+    legendVisible: false,
+    dataseries: ChartData,
+    xAxisVisible: true,
+    yAxisVisible: true,
+    xAxisTitle: 'Grade',
+    yAxisTitle: 'Percentage',
+    dataLabelEnable: true,
+    scrollablePlotArea: {
+      minWidth: xAxisCategory.length * 120, // auto calculate
+      scrollPositionX: 0
+    }
   };
   
+
+
+  scrollablePlotArea: options.scrollablePlotArea
