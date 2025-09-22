@@ -1,81 +1,28 @@
-/* Global modern scrollbar style */
-.scroll-container {
-  scrollbar-width: thin;              /* Firefox */
-  scrollbar-color: #0071bc #f1f1f1;   /* Firefox: thumb + track */
+/* Horizontal scroll for charts */
+.chart-scroll-x {
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  padding-bottom: 6px;
 }
 
-.scroll-container::-webkit-scrollbar {
-  height: 8px;   /* for horizontal scroll */
-  width: 8px;    /* for vertical scroll */
+/* Ensure charts don’t shrink */
+.chart-scroll-x highcharts-chart {
+  min-width: 900px; /* adjust based on data */
+  display: inline-block;
 }
 
-.scroll-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 6px;
+/* Table body vertical scroll */
+.table-body-scroll {
+  max-height: 300px; /* adjust as needed */
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-.scroll-container::-webkit-scrollbar-thumb {
-  background-color: #0071bc;
-  border-radius: 6px;
-  border: 2px solid #f1f1f1;
+/* Keep table header sticky */
+.table-container thead th {
+  position: sticky;
+  top: 0;
+  background: #f7f9fb;
+  z-index: 2;
 }
-
-.scroll-container::-webkit-scrollbar-thumb:hover {
-  background-color: #005a91; /* darker on hover */
-}
-
-.table-container {
-    max-height: 350px;   /* set desired height */
-    overflow-y: auto;    /* vertical scroll */
-    overflow-x: hidden;  /* no horizontal scroll */
-  }
-  
-  .table-container table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  
-  .table-container thead th {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    background: #f7f9fb;  /* keeps header visible */
-  }
-  
-
-  <div class="grade-table" *ngIf="groups().length">
-    <div class="row table-row">
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Grade</th>
-              <th>Category</th>
-              <th class="right">Units</th>
-            </tr>
-          </thead>
-        </table>
-  
-        <!-- Scroll only rows -->
-        <div class="scroll-container">
-          <table>
-            <tbody>
-              <ng-container *ngFor="let g of groups(); trackBy: trackGroup">
-                <tr class="group" (click)="toggle(g)">
-                  <td><button class="toggle">{{ g.expanded ? '▾' : '▸' }}</button> <strong>{{ g.name }}</strong></td>
-                  <td></td>
-                  <td class="right"><strong>(100%)</strong></td>
-                </tr>
-                <tr class="child" *ngFor="let it of g.items; trackBy: trackItem" [class.hidden]="!g.expanded">
-                  <td></td>
-                  <td class="indent">{{ it.category }}</td>
-                  <td class="right">{{ it.unit | number:'1.0-0' }} ({{ pct(it.unit, groupTotal(g)) | number:'1.0-1' }}%)</td>
-                </tr>
-              </ng-container>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-  
