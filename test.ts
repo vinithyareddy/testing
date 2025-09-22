@@ -1,33 +1,46 @@
-<div class="row bar px-3 filters-row">
-  <div class="filters-wrap">
-    <ng-template [ngTemplateOutlet]="filterTemp"></ng-template>
-  </div>
+chart: {
+  type: 'column',
+  width: ChartOptions.chartWidth,
+  height: ChartOptions.chartHeight,
+  backgroundColor: '#ffffff',
+  plotBackgroundColor: '#ffffff',
+  plotBorderWidth: 1,
 
-  <div class="filter-btn">
-    <span class="tagviewShow" (click)="onFilterOpen()">
-      <lift-tag text="Filter" class="tagview" [size]="smallSize" [readOnly]="true" [active]="tagActive"
-        image="../../../../../../../assets/images/sliders.svg">
-      </lift-tag>
-    </span>
-  </div>
-</div>
+  // 👇 Add scrollable plot area
+  scrollablePlotArea: {
+      minWidth: 800,       // width needed for all categories
+      scrollPositionX: 0   // start position
+  }
+},
 
 
-.filters-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
+xAxis: {
+  categories: ChartOptions.xAxisCategory,
+  title: { text: ChartOptions.xAxisTitle },
+  min: 0,          // start index of visible categories
+  max: 4,          // show 5 at a time (0–4 = GA–GE)
+  scrollbar: {
+      enabled: true
+  }
+},
 
-.filters-wrap {
-  flex: 1; /* take all available width */
-  margin-right: 10px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-}
 
-.filter-btn {
-  flex-shrink: 0; /* button stays fixed on the right */
-}
-1094
+chart: {
+  type: 'column',
+  width: ChartOptions.chartWidth,
+  height: ChartOptions.chartHeight,
+  backgroundColor: '#ffffff',
+  plotBackgroundColor: '#ffffff',
+  plotBorderWidth: 1,
+  scrollablePlotArea: {
+      minWidth: 1200,   // make wide enough for all bars
+      scrollPositionX: 0
+  }
+},
+xAxis: {
+  categories: ChartOptions.xAxisCategory,
+  title: { text: ChartOptions.xAxisTitle },
+  min: 0,
+  max: 4,  // show only first 5 categories at once
+  scrollbar: { enabled: true }
+},
