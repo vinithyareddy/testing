@@ -9,12 +9,11 @@ ChartOptions = {
     xAxisTitle: 'Grade',
     yAxisTitle: 'Percentage',
     dataLabelEnable: true,
+  
+    // 👇 add this
     scrollablePlotArea: {
-      minWidth: xAxisCategory.length * 120, // auto calculate
+      minWidth: xAxisCategory.length * 120,  // auto width (120px per bar)
       scrollPositionX: 0
     }
   };
   
-
-
-  scrollablePlotArea: options.scrollablePlotArea
