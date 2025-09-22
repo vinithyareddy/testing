@@ -1,3 +1,5 @@
+// 1. First, update your service method to use xAxis scrollbar:
+
 getStackedColumnChart(ChartOptions: any) {
   const outsidethis = this;
   const ChartValues: any = [];
@@ -16,19 +18,27 @@ getStackedColumnChart(ChartOptions: any) {
               backgroundColor: '#ffffff',
               plotBackgroundColor: '#ffffff',
               plotBorderWidth: 1,
-              // Enable scrollable plot area - this creates a horizontal scrollbar
-              scrollablePlotArea: {
-                  minWidth: 800,  // Make this wider than your chart width to force scrolling
-                  scrollPositionX: 0
-              }
+              marginBottom: 80  // Extra space for scrollbar
           },
           xAxis: {
               categories: ChartOptions.xAxisCategory,
               title: {
                   text: ChartOptions.xAxisTitle
               },
-              // Remove min/max to let all categories render in the scrollable area
-              tickmarkPlacement: 'on'
+              // Show only first 5 categories
+              min: 0,
+              max: 4,  // Shows indexes 0,1,2,3,4 (first 5)
+              // Enable scrollbar
+              scrollbar: {
+                  enabled: true,
+                  barBackgroundColor: '#c1c7d0',
+                  trackBackgroundColor: '#f5f5f5',
+                  buttonBackgroundColor: '#e6e6e6',
+                  buttonBorderColor: '#c1c7d0',
+                  rifleColor: '#666',
+                  height: 14,
+                  margin: 5
+              }
           },
           yAxis: [{
               min: 0,
@@ -65,43 +75,63 @@ getStackedColumnChart(ChartOptions: any) {
   return ChartValues;
 }
 
+// 2. Alternative CSS-based solution - Add this to your HTML template:
 
-
-// Alternative approach - wrap the chart in a scrollable container
-// Add this to your component HTML template
-
-// Replace your existing chart container div with this:
 /*
-<div class="chart-scroll-container">
-    <div class="chart-inner-container">
-        <ng-container *ngFor="let columnChart of swfpColumnChart">
-            <highcharts-chart [Highcharts]="columnChart.Highcharts"
-                [options]="columnChart.chartOptions"
-                [constructorType]="columnChart.chartConstructor">
-            </highcharts-chart>
-        </ng-container>
-    </div>
+Replace your existing chart div with this structure:
+
+<div class="scrollable-chart-wrapper">
+  <div class="scrollable-chart-content">
+      <ng-container *ngFor="let columnChart of swfpColumnChart">
+          <highcharts-chart [Highcharts]="columnChart.Highcharts"
+              [options]="columnChart.chartOptions"
+              [constructorType]="columnChart.chartConstructor">
+          </highcharts-chart>
+      </ng-container>
+  </div>
 </div>
 */
 
-// And add this CSS to your component SCSS:
+// 3. And add this CSS to your SCSS file:
+
 /*
-.chart-scroll-container {
-    width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
-    border: 1px solid #e0e0e0;
-    border-radius: 4px;
+.scrollable-chart-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  
+  // Custom scrollbar styling
+  &::-webkit-scrollbar {
+      height: 12px;
+  }
+  
+  &::-webkit-scrollbar-track {
+      background: #f8f9fa;
+      border-radius: 6px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+      background: #6c757d;
+      border-radius: 6px;
+      
+      &:hover {
+          background: #495057;
+      }
+  }
 }
 
-.chart-inner-container {
-    width: 800px; // Make this wider than your actual chart width to force scrolling
-    min-width: 800px;
+.scrollable-chart-content {
+  width: 1200px; // Make this wider to force horizontal scrolling
+  min-width: 1200px;
 }
 */
 
-// Then modify your service method like this:
-getStackedColumnChart(ChartOptions: any) {
+// 4. If using the CSS approach, modify your service to have a fixed width:
+
+getStackedColumnChartWithCSSScroll(ChartOptions: any) {
   const outsidethis = this;
   const ChartValues: any = [];
   
@@ -114,7 +144,7 @@ getStackedColumnChart(ChartOptions: any) {
           },
           chart: {
               type: 'column',
-              width: 800, // Fixed width larger than container to force scrolling
+              width: 1200, // Fixed width to ensure scrolling
               height: ChartOptions.chartHeight,
               backgroundColor: '#ffffff',
               plotBackgroundColor: '#ffffff',
@@ -146,7 +176,7 @@ getStackedColumnChart(ChartOptions: any) {
           plotOptions: {
               column: {
                   stacking: 'normal',
-                  pointWidth: 40 // Make bars wider since we have more space
+                  pointWidth: 60 // Wider bars since we have more space
               }
           },
           legend: {
