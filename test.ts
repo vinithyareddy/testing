@@ -6,11 +6,21 @@ this.svg.selectAll('.country-label')
     if (!point) return "translate(-9999,-9999)";
     return `translate(${point[0]},${point[1]})`;
   })
-  .style("display", (d: any) => {
+  .style("opacity", (d: any) => {
     const [lon, lat] = d3.geoCentroid(d);
-    const rotated = this.projection.rotate(); // current globe rotation
+    const rotated = this.projection.rotate();
     const gDistance = d3.geoDistance([lon, lat], [-rotated[0], -rotated[1]]);
-    return gDistance > Math.PI / 2 ? "none" : "block"; // hide if back side
+
+    // add buffer: fade between 80° and 100°
+    if (gDistance < Math.PI / 2 - 0.2) {
+      return 1; // fully visible
+    } else if (gDistance > Math.PI / 2 + 0.2) {
+      return 0; // fully hidden
+    } else {
+      // smooth fade in/out near horizon
+      const t = (Math.PI / 2 + 0.2 - gDistance) / 0.4;
+      return Math.max(0, Math.min(1, t));
+    }
   })
   .text((d: any) => {
     const area = d3.geoArea(d);
