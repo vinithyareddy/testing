@@ -1,7 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { AfterViewInit, Component, ElementRef, Renderer2, ViewChild, OnDestroy, HostListener } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  Renderer2,
+  ViewChild,
+  OnDestroy,
+  HostListener
+} from '@angular/core';
 import * as THREE from 'three';
 import * as topojson from 'topojson-client';
 import worldData from 'world-atlas/countries-110m.json';
@@ -22,7 +30,6 @@ type CountrySkill = {
 
 const CUSTOM_GLOBE_COLOR = '#84c9f6';
 const STROKE_COLOR_COUNTRY = '#7e8790';
-const STROKE_COLOR_STATE = '#aaaaaa';
 const FALLBACK_COLOR = '#e0e0e0';
 const ROTATION_SPEED = 0.5;
 const ZOOM = { initial: 1, step: 0.2, min: 0.5, max: 3 };
@@ -43,11 +50,12 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   searchTerm = '';
   legendCollapsed = false;
 
+  // D3.js globe properties
   private svg: any;
   private projection: any;
   private path: any;
   private countries!: FeatureCollection<Geometry, any>;
-  private states!: FeatureCollection<Geometry, any>;
+  private states!: FeatureCollection<Geometry, any>; // NEW
   private currentRotation = [0, 0];
   private isRotating = true;
   private tooltip: any;
@@ -81,7 +89,9 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   }
 
   @HostListener('document:click', ['$event'])
-  onDocumentClick(event: any) { }
+  onDocumentClick(event: any) {
+    // Handle document clicks if needed
+  }
 
   private setupMediaQueries() {
     if (typeof window !== 'undefined') {
@@ -213,20 +223,25 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
   private handleResize() {
     if (!this.svg || !this.globeContainer) return;
+
     const globeDiv = this.globeContainer.nativeElement;
     const width = globeDiv.offsetWidth;
     const height = globeDiv.offsetHeight;
     this.currentRadius = this.getResponsiveRadius();
+
     this.projection
       .scale(this.currentRadius * this.currentZoom)
       .translate([width / 2, height / 2]);
+
     this.svg.attr('viewBox', `0 0 ${width} ${height}`);
+
     this.svg.select('circle')
       .attr('cx', width / 2)
       .attr('cy', height / 2)
       .attr('r', this.currentRadius * this.currentZoom);
+
     this.updateCountries();
-    this.updateStates();
+    this.updateStates(); // NEW
   }
 
   private setupInteractions() {
@@ -242,7 +257,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         this.currentRotation[1] = Math.max(-90, Math.min(90, this.currentRotation[1]));
         this.projection.rotate(this.currentRotation);
         this.updateCountries();
-        this.updateStates();
+        this.updateStates(); // NEW
       })
       .on('end', () => {
         this.isDragging = false;
@@ -252,7 +267,12 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
           }
         }, 2000);
       });
+
     this.svg.select('circle').call(drag);
+
+    this.globeContainer.nativeElement.addEventListener('wheel', (event: WheelEvent) => {
+      // Handle wheel events if needed
+    }, { passive: true });
   }
 
   private loadData() {
@@ -267,22 +287,24 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         lng: c.lng,
         position: this.latLngToVector3(c.lat, c.lng, this.currentRadius)
       }));
+
       const minSkills = d3.min(this.countriesList, (d: any) => d.uniqueSkills) || 0;
       const maxSkills = d3.max(this.countriesList, (d: any) => d.uniqueSkills) || 1;
       this.countryColorScale = d3.scaleLinear<string>()
         .domain([minSkills, maxSkills])
         .range(['#8db4ddff', '#144c88']);
+
       this.filteredList = [...this.countriesList];
       this.drawCountries();
       this.startRotation();
     });
 
-    // Load global states/provinces
+    // Load states/provinces
     this.http.get<any>('assets/json/globe-states.json').subscribe(data => {
       this.states = topojson.feature(
         data,
         data.objects.admin1
-      ) as FeatureCollection<Geometry, any>;
+      ) as unknown as FeatureCollection<Geometry, any>;
       this.drawStates();
     });
   }
@@ -290,6 +312,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   private drawCountries() {
     this.svg.selectAll('.country').remove();
     this.svg.selectAll('.country-label').remove();
+
     this.svg.selectAll('.country')
       .data(this.countries.features)
       .enter()
@@ -311,11 +334,13 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         }
         this.hideTooltip();
       });
+
     this.addCountryLabels();
   }
 
   private drawStates() {
     if (!this.states) return;
+
     this.svg.selectAll('.state').remove();
     this.svg.selectAll('.state-label').remove();
 
@@ -326,7 +351,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .attr('class', 'state')
       .attr('d', this.path)
       .attr('fill', 'transparent')
-      .attr('stroke', STROKE_COLOR_STATE)
+      .attr('stroke', '#aaa')
       .attr('stroke-width', 0.3);
 
     this.addStateLabels();
@@ -335,21 +360,95 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   private addStateLabels() {
     if (!this.states) return;
     this.svg.selectAll('.state-label').remove();
+
     this.states.features.forEach((d: any) => {
       const centroid = this.path.centroid(d);
-      if (centroid) {
-        const props = d.properties;
-        const label = props.iso_3166_2 || props.name;
-        if (label && this.isPointInFrontHemisphere(centroid[0], centroid[1])) {
-          this.svg.append('text')
-            .attr('class', 'state-label')
-            .attr('x', centroid[0])
-            .attr('y', centroid[1])
-            .attr('text-anchor', 'middle')
-            .style('font-size', this.isMobile ? '6px' : '8px')
-            .style('font-weight', '400')
-            .style('fill', '#333')
-            .text(label);
+      if (!centroid) return;
+
+      const [x, y] = centroid;
+      const props = d.properties;
+      const label = props.iso_3166_2 || props.name;
+
+      // Only label if visible
+      if (this.isPointInFrontHemisphere(props.longitude || 0, props.latitude || 0)) {
+        this.svg.append('text')
+          .attr('class', 'state-label')
+          .attr('x', x)
+          .attr('y', y)
+          .attr('text-anchor', 'middle')
+          .style('font-size', this.isMobile ? '5px' : '7px')
+          .style('font-weight', '400')
+          .style('fill', '#555')
+          .text(label);
+      }
+    });
+  }
+
+  private addCountryLabels() {
+    this.svg.selectAll('.country-label').remove();
+    this.svg.selectAll('.country-label-shadow').remove();
+
+    let labeledCountries = this.countriesList.filter(country => {
+      return country.uniqueSkills > 15 || country.skillSupply > 8;
+    });
+
+    labeledCountries.sort((a, b) =>
+      (b.skillSupply + b.uniqueSkills) - (a.skillSupply + a.uniqueSkills)
+    );
+
+    const usedPositions: Array<{ x: number, y: number }> = [];
+    const minDistance = this.isMobile ? 25 : 35;
+
+    labeledCountries.forEach(country => {
+      if (this.isPointInFrontHemisphere(country.lng, country.lat)) {
+        const coordinates = [country.lng, country.lat];
+        const projected = this.projection(coordinates);
+
+        if (projected && projected[0] && projected[1]) {
+          const globeDiv = this.globeContainer.nativeElement;
+          const centerX = globeDiv.offsetWidth / 2;
+          const centerY = globeDiv.offsetHeight / 2;
+
+          const distance = Math.sqrt(
+            Math.pow(projected[0] - centerX, 2) + Math.pow(projected[1] - centerY, 2)
+          );
+
+          const maxDistance = this.currentRadius * this.currentZoom * 0.9;
+
+          if (distance <= maxDistance) {
+            let canPlace = true;
+            for (const pos of usedPositions) {
+              const labelDistance = Math.sqrt(
+                Math.pow(projected[0] - pos.x, 2) + Math.pow(projected[1] - pos.y, 2)
+              );
+              if (labelDistance < minDistance) {
+                canPlace = false;
+                break;
+              }
+            }
+
+            if (canPlace) {
+              usedPositions.push({ x: projected[0], y: projected[1] });
+
+              const normalizedDistance = distance / maxDistance;
+              const opacity = Math.max(0.6, Math.min(1, 1 - normalizedDistance * 0.3));
+
+              this.svg.append('text')
+                .attr('class', 'country-label')
+                .attr('x', projected[0])
+                .attr('y', projected[1])
+                .attr('text-anchor', 'middle')
+                .style('font-size', this.isMobile ? '8px' : '10px')
+                .style('font-weight', '600')
+                .style('font-family', 'Arial, sans-serif')
+                .style('fill', '#1a365d')
+                .style('stroke', 'white')
+                .style('stroke-width', '1.5px')
+                .style('paint-order', 'stroke fill')
+                .style('opacity', opacity)
+                .text(country.country);
+            }
+          }
         }
       }
     });
@@ -396,6 +495,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     const y = event.clientY - rect.top;
     const offsetX = this.isMobile ? 10 : 15;
     const offsetY = this.isMobile ? 10 : 15;
+
     this.tooltip
       .style('left', (x + offsetX) + 'px')
       .style('top', (y + offsetY) + 'px');
@@ -409,8 +509,10 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     this.svg.selectAll('.country')
       .attr('d', this.path)
       .attr('fill', (d: any) => this.getCountryColor(d));
+
     this.svg.select('circle')
       .attr('r', this.currentRadius * this.currentZoom);
+
     this.addCountryLabels();
   }
 
@@ -473,12 +575,47 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
   focusOnCountry(country: CountrySkill) {
     if (!country) return;
+
     this.isRotating = false;
     const targetRotation = [-country.lng, -country.lat];
     this.currentRotation = targetRotation;
     this.projection.rotate(this.currentRotation);
     this.updateCountries();
     this.updateStates();
+
+    this.svg.selectAll('.country-highlight').remove();
+
+    const countryFeature = this.countries.features.find((feature: any) =>
+      feature.properties.name === country.country
+    );
+
+    if (countryFeature) {
+      const highlight = this.svg.append('path')
+        .datum(countryFeature)
+        .attr('class', 'country-highlight')
+        .attr('d', this.path)
+        .attr('fill', 'none')
+        .attr('stroke', '#ff4444')
+        .attr('stroke-width', 3)
+        .attr('stroke-dasharray', '8,4')
+        .style('opacity', 0);
+
+      highlight.transition()
+        .duration(400)
+        .style('opacity', 1);
+
+      setTimeout(() => {
+        highlight.transition()
+          .duration(600)
+          .style('opacity', 0)
+          .remove();
+        this.isRotating = true;
+      }, 3000);
+    } else {
+      setTimeout(() => {
+        this.isRotating = true;
+      }, 1000);
+    }
   }
 
   fullPageView() {
@@ -488,6 +625,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     } else {
       this.render.removeClass(document.body, 'no-scroll');
     }
+
     setTimeout(() => {
       this.handleResize();
       if (this.fullview && this.isMobile) {
