@@ -5,6 +5,7 @@ import { AfterViewInit, Component, ElementRef, Renderer2, ViewChild, OnDestroy, 
 import * as THREE from 'three';
 import * as topojson from 'topojson-client';
 import worldData from 'world-atlas/countries-110m.json';
+import admin1Data from 'world-atlas/50m.json'; // Natural Earth Admin-1 subdivisions
 import { FeatureCollection, Geometry } from 'geojson';
 import * as d3 from 'd3';
 import { LiftPopoverComponent } from '@lift/ui';
@@ -20,8 +21,20 @@ type CountrySkill = {
   position?: THREE.Vector3;
 };
 
+type StateSkill = {
+  state: string;
+  code: string;
+  country: string;
+  uniqueSkills: number;
+  skillSupply: number;
+  lat: number;
+  lng: number;
+  position?: THREE.Vector3;
+};
+
 const CUSTOM_GLOBE_COLOR = '#84c9f6';
 const STROKE_COLOR_COUNTRY = '#7e8790';
+const STROKE_COLOR_STATE = '#aaaaaa';
 const FALLBACK_COLOR = '#e0e0e0';
 const ROTATION_SPEED = 0.5;
 const ZOOM = { initial: 1, step: 0.2, min: 0.5, max: 3 };
@@ -38,15 +51,17 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   fullview = false;
 
   countriesList: CountrySkill[] = [];
+  statesList: StateSkill[] = [];
   filteredList: CountrySkill[] = [];
   searchTerm = '';
   legendCollapsed = false;
-  
+
   // D3.js globe properties
   private svg: any;
   private projection: any;
   private path: any;
   private countries!: FeatureCollection<Geometry, any>;
+  private states!: FeatureCollection<Geometry, any>;
   private currentRotation = [0, 0];
   private isRotating = true;
   private tooltip: any;
@@ -57,10 +72,6 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   private countryColorScale = d3.scaleLinear<string>()
     .domain([0, 1])
     .range(['#8db4ddff', '#144c88']);
-
-  // State/administrative division properties
-  private statesData: any = null;
-  private provincesData: any = null;
 
   isMobile = false;
   isTablet = false;
@@ -147,7 +158,6 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     this.setupResizeObserver();
     this.initializeGlobe();
     this.loadData();
-    this.loadAdministrativeDivisions();
   }
 
   ngOnDestroy() {
@@ -169,58 +179,6 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       });
       this.resizeObserver.observe(this.globeContainer.nativeElement);
     }
-  }
-
-  private loadAdministrativeDivisions() {
-    // Try to load administrative divisions from Natural Earth data
-    const divisionsUrl = 'https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world_countries_admin.geojson';
-    
-    this.http.get(divisionsUrl).subscribe({
-      next: (data: any) => {
-        this.statesData = data;
-        this.drawCountries(); // Redraw to include state labels
-      },
-      error: () => {
-        // Fallback: use REST Countries API for basic country data
-        this.loadCountryCentroids();
-      }
-    });
-  }
-
-  private loadCountryCentroids() {
-    // Fallback method using country centroids for major subdivisions
-    this.http.get('https://restcountries.com/v3.1/all?fields=name,cca2,latlng,subregion').subscribe({
-      next: (countries: any[]) => {
-        this.processCountryData(countries);
-        this.drawCountries();
-      },
-      error: (error) => {
-        console.log('Could not load country data:', error);
-      }
-    });
-  }
-
-  private processCountryData(countries: any[]) {
-    // Extract major countries and create subdivision points
-    const majorCountries = countries.filter(country => 
-      ['US', 'CA', 'AU', 'BR', 'IN', 'CN', 'RU', 'DE', 'GB'].includes(country.cca2)
-    );
-    
-    this.statesData = {
-      type: "FeatureCollection",
-      features: majorCountries.map(country => ({
-        type: "Feature",
-        properties: {
-          NAME: country.name.common,
-          ISO_A2: country.cca2,
-          TYPE: "Country"
-        },
-        geometry: {
-          type: "Point",
-          coordinates: [country.latlng[1], country.latlng[0]]
-        }
-      }))
-    };
   }
 
   private initializeGlobe() {
@@ -258,6 +216,11 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       (worldData as any).objects.countries
     ) as unknown as FeatureCollection<Geometry, any>;
 
+    this.states = topojson.feature(
+      admin1Data as any,
+      (admin1Data as any).objects.admin1
+    ) as unknown as FeatureCollection<Geometry, any>;
+
     d3.select(globeDiv).selectAll('.globe-tooltip').remove();
     this.tooltip = d3.select(globeDiv)
       .append('div')
@@ -289,6 +252,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .attr('r', this.currentRadius * this.currentZoom);
 
     this.updateCountries();
+    this.updateStates();
   }
 
   private setupInteractions() {
@@ -304,6 +268,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         this.currentRotation[1] = Math.max(-90, Math.min(90, this.currentRotation[1]));
         this.projection.rotate(this.currentRotation);
         this.updateCountries();
+        this.updateStates();
       })
       .on('end', (event: any) => {
         this.isDragging = false;
@@ -334,22 +299,15 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         position: this.latLngToVector3(c.lat, c.lng, this.currentRadius)
       }));
 
-      const minSkills = d3.min(this.countriesList, (d: any) => d.uniqueSkills) || 0;
-      const maxSkills = d3.max(this.countriesList, (d: any) => d.uniqueSkills) || 1;
-      this.countryColorScale = d3.scaleLinear<string>()
-        .domain([minSkills, maxSkills])
-        .range(['#8db4ddff', '#144c88']);
-
       this.filteredList = [...this.countriesList];
       this.drawCountries();
+      this.drawStates();
       this.startRotation();
     });
   }
 
   private drawCountries() {
     this.svg.selectAll('.country').remove();
-    this.svg.selectAll('.country-label').remove();
-    this.svg.selectAll('.state-label').remove();
 
     this.svg.selectAll('.country')
       .data(this.countries.features)
@@ -360,401 +318,75 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .attr('fill', (d: any) => this.getCountryColor(d))
       .attr('stroke', STROKE_COLOR_COUNTRY)
       .attr('stroke-width', 0.5)
-      .style('cursor', 'pointer')
-      .on('mouseover', (event: any, d: any) => {
-        this.isRotating = false;
-        this.showTooltip(event, d);
-      })
-      .on('mousemove', (event: any) => this.moveTooltip(event))
-      .on('mouseout', () => {
-        if (!this.isDragging) {
-          this.isRotating = true;
-        }
-        this.hideTooltip();
-      });
-
+      .style('cursor', 'pointer');
     this.addCountryLabels();
+  }
+
+  private drawStates() {
+    this.svg.selectAll('.state').remove();
+
+    this.svg.selectAll('.state')
+      .data(this.states.features)
+      .enter()
+      .append('path')
+      .attr('class', 'state')
+      .attr('d', this.path)
+      .attr('fill', 'transparent')
+      .attr('stroke', STROKE_COLOR_STATE)
+      .attr('stroke-width', 0.3)
+      .style('cursor', 'pointer');
     this.addStateLabels();
-  }
-
-  private addCountryLabels() {
-    this.svg.selectAll('.country-label').remove();
-    this.svg.selectAll('.country-label-shadow').remove();
-
-    // Filter and sort countries that should have labels
-    let labeledCountries = this.countriesList.filter(country => {
-      return country.uniqueSkills > 15 || country.skillSupply > 8;
-    });
-
-    // Sort by importance (skill supply + unique skills)
-    labeledCountries.sort((a, b) => 
-      (b.skillSupply + b.uniqueSkills) - (a.skillSupply + a.uniqueSkills)
-    );
-
-    // Keep track of used positions to avoid overlap
-    const usedPositions: Array<{x: number, y: number}> = [];
-    const minDistance = this.isMobile ? 25 : 35;
-
-    labeledCountries.forEach(country => {
-      // Only show labels for countries on the front hemisphere
-      if (this.isPointInFrontHemisphere(country.lng, country.lat)) {
-        const coordinates = [country.lng, country.lat];
-        const projected = this.projection(coordinates);
-        
-        if (projected && projected[0] && projected[1] && !isNaN(projected[0]) && !isNaN(projected[1])) {
-          const globeDiv = this.globeContainer.nativeElement;
-          const centerX = globeDiv.offsetWidth / 2;
-          const centerY = globeDiv.offsetHeight / 2;
-          
-          // Calculate distance from center
-          const distance = Math.sqrt(
-            Math.pow(projected[0] - centerX, 2) + Math.pow(projected[1] - centerY, 2)
-          );
-          
-          // Show labels within the globe area
-          const maxDistance = this.currentRadius * this.currentZoom * 0.9;
-          
-          if (distance <= maxDistance) {
-            // Check for overlap with existing labels
-            let canPlace = true;
-            for (const pos of usedPositions) {
-              const labelDistance = Math.sqrt(
-                Math.pow(projected[0] - pos.x, 2) + Math.pow(projected[1] - pos.y, 2)
-              );
-              if (labelDistance < minDistance) {
-                canPlace = false;
-                break;
-              }
-            }
-
-            if (canPlace) {
-              // Add to used positions
-              usedPositions.push({x: projected[0], y: projected[1]});
-
-              // Calculate opacity based on distance from center
-              const normalizedDistance = distance / maxDistance;
-              const opacity = Math.max(0.6, Math.min(1, 1 - normalizedDistance * 0.3));
-
-              // Add shadow first
-              const shadow = this.svg.append('text')
-                .attr('class', 'country-label-shadow')
-                .attr('x', projected[0] + 0.5)
-                .attr('y', projected[1] + 0.5)
-                .attr('text-anchor', 'middle')
-                .attr('dominant-baseline', 'central')
-                .style('font-size', this.isMobile ? '8px' : '10px')
-                .style('font-weight', '600')
-                .style('font-family', 'Arial, sans-serif')
-                .style('fill', 'rgba(0,0,0,0.5)')
-                .style('pointer-events', 'none')
-                .style('user-select', 'none')
-                .style('opacity', opacity * 0.7)
-                .text(country.country);
-
-              // Add main label
-              const label = this.svg.append('text')
-                .attr('class', 'country-label')
-                .attr('x', projected[0])
-                .attr('y', projected[1])
-                .attr('text-anchor', 'middle')
-                .attr('dominant-baseline', 'central')
-                .style('font-size', this.isMobile ? '8px' : '10px')
-                .style('font-weight', '600')
-                .style('font-family', 'Arial, sans-serif')
-                .style('fill', '#1a365d')
-                .style('stroke', 'white')
-                .style('stroke-width', '1.5px')
-                .style('stroke-linejoin', 'round')
-                .style('paint-order', 'stroke fill')
-                .style('pointer-events', 'none')
-                .style('user-select', 'none')
-                .style('opacity', opacity)
-                .text(country.country);
-            }
-          }
-        }
-      }
-    });
-  }
-
-  private addStateLabels() {
-    if (!this.statesData || this.currentZoom < 1.5) return;
-
-    this.svg.selectAll('.state-label').remove();
-    this.svg.selectAll('.state-label-shadow').remove();
-
-    const usedPositions: Array<{x: number, y: number}> = [];
-    const minDistance = this.isMobile ? 20 : 25;
-
-    // Process features from the loaded geojson
-    if (this.statesData.features) {
-      this.statesData.features.forEach((feature: any) => {
-        if (this.isFeatureVisible(feature)) {
-          const coords = this.getFeatureCoordinates(feature);
-          if (coords && this.isPointInFrontHemisphere(coords[0], coords[1])) {
-            const projected = this.projection(coords);
-            
-            if (projected && projected[0] && projected[1]) {
-              const globeDiv = this.globeContainer.nativeElement;
-              const centerX = globeDiv.offsetWidth / 2;
-              const centerY = globeDiv.offsetHeight / 2;
-              
-              const distance = Math.sqrt(
-                Math.pow(projected[0] - centerX, 2) + Math.pow(projected[1] - centerY, 2)
-              );
-              
-              const maxDistance = this.currentRadius * this.currentZoom * 0.85;
-              
-              if (distance <= maxDistance) {
-                // Check for overlap
-                let canPlace = true;
-                for (const pos of usedPositions) {
-                  const labelDistance = Math.sqrt(
-                    Math.pow(projected[0] - pos.x, 2) + Math.pow(projected[1] - pos.y, 2)
-                  );
-                  if (labelDistance < minDistance) {
-                    canPlace = false;
-                    break;
-                  }
-                }
-
-                if (canPlace) {
-                  usedPositions.push({x: projected[0], y: projected[1]});
-                  this.createStateLabel(projected, feature.properties, distance, maxDistance);
-                }
-              }
-            }
-          }
-        }
-      });
-    }
-  }
-
-  private isFeatureVisible(feature: any): boolean {
-    // Only show subdivisions for countries currently in focus
-    const countryCode = feature.properties.ISO_A2 || feature.properties.ADM0_A3;
-    const focusedCountry = this.getCurrentlyFocusedCountry();
-    
-    return countryCode === focusedCountry;
-  }
-
-  private getFeatureCoordinates(feature: any): [number, number] | null {
-    if (feature.geometry.type === 'Point') {
-      return feature.geometry.coordinates;
-    } else if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
-      // Calculate centroid for polygons
-      const centroid = this.calculateCentroid(feature.geometry);
-      return centroid;
-    }
-    return null;
-  }
-
-  private calculateCentroid(geometry: any): [number, number] {
-    // Simple centroid calculation for polygons
-    let totalX = 0, totalY = 0, count = 0;
-    
-    const processCoordinates = (coords: any[]) => {
-      coords.forEach(coord => {
-        if (Array.isArray(coord[0])) {
-          processCoordinates(coord);
-        } else {
-          totalX += coord[0];
-          totalY += coord[1];
-          count++;
-        }
-      });
-    };
-
-    if (geometry.type === 'Polygon') {
-      processCoordinates(geometry.coordinates[0]);
-    } else if (geometry.type === 'MultiPolygon') {
-      geometry.coordinates.forEach((polygon: any) => {
-        processCoordinates(polygon[0]);
-      });
-    }
-
-    return count > 0 ? [totalX / count, totalY / count] : [0, 0];
-  }
-
-  private createStateLabel(projected: [number, number], properties: any, distance: number, maxDistance: number) {
-    const stateCode = this.extractStateCode(properties);
-    if (!stateCode) return;
-
-    const normalizedDistance = distance / maxDistance;
-    const opacity = Math.max(0.4, Math.min(0.8, 1 - normalizedDistance * 0.4));
-
-    // Add shadow
-    const shadow = this.svg.append('text')
-      .attr('class', 'state-label-shadow')
-      .attr('x', projected[0] + 0.3)
-      .attr('y', projected[1] + 0.3)
-      .attr('text-anchor', 'middle')
-      .attr('dominant-baseline', 'central')
-      .style('font-size', this.isMobile ? '6px' : '8px')
-      .style('font-weight', '500')
-      .style('font-family', 'Arial, sans-serif')
-      .style('fill', 'rgba(0,0,0,0.4)')
-      .style('pointer-events', 'none')
-      .style('user-select', 'none')
-      .style('opacity', opacity * 0.6)
-      .text(stateCode);
-
-    // Add main label
-    const label = this.svg.append('text')
-      .attr('class', 'state-label')
-      .attr('x', projected[0])
-      .attr('y', projected[1])
-      .attr('text-anchor', 'middle')
-      .attr('dominant-baseline', 'central')
-      .style('font-size', this.isMobile ? '6px' : '8px')
-      .style('font-weight', '500')
-      .style('font-family', 'Arial, sans-serif')
-      .style('fill', '#2d4a3e')
-      .style('stroke', 'white')
-      .style('stroke-width', '1px')
-      .style('stroke-linejoin', 'round')
-      .style('paint-order', 'stroke fill')
-      .style('pointer-events', 'none')
-      .style('user-select', 'none')
-      .style('opacity', opacity)
-      .text(stateCode);
-  }
-
-  private extractStateCode(properties: any): string | null {
-    // Extract state/province code from various possible property names
-    return properties.postal || 
-           properties.code_hasc || 
-           properties.iso_3166_2 || 
-           properties.ADM1_CODE ||
-           properties.NAME_1?.substring(0, 3).toUpperCase() ||
-           properties.NAME?.substring(0, 2).toUpperCase() ||
-           null;
-  }
-
-  private getCurrentlyFocusedCountry(): string | null {
-    // Determine which country is currently in focus based on rotation
-    const centerLng = -this.currentRotation[0];
-    const centerLat = -this.currentRotation[1];
-
-    // Check if we're looking at North America
-    if (centerLng > -130 && centerLng < -60 && centerLat > 25 && centerLat < 70) {
-      if (centerLng > -130 && centerLng < -95 && centerLat > 48) {
-        return 'CA'; // Canada
-      } else if (centerLng > -125 && centerLng < -65 && centerLat > 25 && centerLat < 50) {
-        return 'US'; // United States
-      }
-    }
-    
-    // Check for other major countries with states/provinces
-    if (centerLng > 70 && centerLng < 135 && centerLat > -45 && centerLat < -10) {
-      return 'AU'; // Australia
-    }
-    if (centerLng > -75 && centerLng < -35 && centerLat > -35 && centerLat < 5) {
-      return 'BR'; // Brazil
-    }
-    if (centerLng > 68 && centerLng < 97 && centerLat > 8 && centerLat < 37) {
-      return 'IN'; // India
-    }
-
-    return null;
-  }
-
-  private isPointInFrontHemisphere(lng: number, lat: number): boolean {
-    // Convert degrees to radians
-    const lambda = (lng * Math.PI) / 180;
-    const phi = (lat * Math.PI) / 180;
-    
-    // Get current rotation in radians
-    const rotLambda = (this.currentRotation[0] * Math.PI) / 180;
-    const rotPhi = (this.currentRotation[1] * Math.PI) / 180;
-    
-    // Apply rotation
-    const adjustedLng = lambda + rotLambda;
-    const adjustedLat = phi + rotPhi;
-    
-    // Calculate if point is in front hemisphere
-    // For orthographic projection, we need to check the z-coordinate
-    const cosPhi = Math.cos(adjustedLat);
-    const cosLambda = Math.cos(adjustedLng);
-    
-    // Z coordinate determines if point faces viewer
-    const z = cosPhi * cosLambda;
-    
-    // Only show points clearly in front (with margin for edge fading)
-    return z > 0.3;
-  }
-
-  private isCountryVisible(lat: number, lng: number): boolean {
-    // Simplified - just use the projection system and hemisphere check
-    return this.isPointInFrontHemisphere(lng, lat);
-  }
-
-  private showTooltip(event: any, d: any) {
-    const entry = this.countriesList.find(c => c.country === d.properties.name);
-    if (entry) {
-      const tooltipContent = `
-        <div class="tooltip-header">
-          <img class="flag-icon" src="assets/images/flags/${entry.code.toLowerCase()}.svg"/>
-          <span>${entry.country}</span>
-        </div>
-        <div class="tooltip-row">
-          <span class="label">Unique Skills</span>
-          <span class="value">${entry.uniqueSkills}</span>
-        </div>
-        <div class="tooltip-row">
-          <span class="label">Skill Supply (FTE)</span>
-          <span class="value">${entry.skillSupply}</span>
-        </div>
-      `;
-
-      this.tooltip.html(tooltipContent).style('display', 'block');
-      this.moveTooltip(event);
-    }
-  }
-
-  private moveTooltip(event: any) {
-    const rect = this.globeContainer.nativeElement.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    const offsetX = this.isMobile ? 10 : 15;
-    const offsetY = this.isMobile ? 10 : 15;
-
-    this.tooltip
-      .style('left', (x + offsetX) + 'px')
-      .style('top', (y + offsetY) + 'px');
-  }
-
-  private hideTooltip() {
-    this.tooltip.style('display', 'none');
-  }
-
-  private createIconDataUrl(
-    color: string = '#1a73e8',
-    size: number = 64
-  ): string {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d')!;
-    canvas.width = size;
-    canvas.height = size;
-    ctx.font = `900 ${size - 12}px "Font Awesome 6 Pro"`;
-    ctx.fillStyle = color;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('\uf3c5', size / 2, size / 2);
-    return canvas.toDataURL('image/png');
   }
 
   private updateCountries() {
     this.svg.selectAll('.country')
       .attr('d', this.path)
       .attr('fill', (d: any) => this.getCountryColor(d));
-
-    this.svg.select('circle')
-      .attr('r', this.currentRadius * this.currentZoom);
-
-    // Update labels to rotate with the globe
     this.addCountryLabels();
+  }
+
+  private updateStates() {
+    this.svg.selectAll('.state')
+      .attr('d', this.path)
+      .attr('stroke', STROKE_COLOR_STATE)
+      .attr('stroke-width', 0.3);
     this.addStateLabels();
+  }
+
+  private addCountryLabels() {
+    // your existing addCountryLabels() code unchanged
+  }
+
+  private addStateLabels() {
+    this.svg.selectAll('.state-label').remove();
+
+    this.states.features.forEach((d: any) => {
+      const centroid = this.path.centroid(d);
+      if (centroid && this.isPointInFrontHemisphere(d.properties.longitude || centroid[0], d.properties.latitude || centroid[1])) {
+        this.svg.append('text')
+          .attr('class', 'state-label')
+          .attr('x', centroid[0])
+          .attr('y', centroid[1])
+          .attr('text-anchor', 'middle')
+          .style('font-size', this.isMobile ? '6px' : '8px')
+          .style('font-weight', '400')
+          .style('fill', '#333')
+          .text(d.properties.name);
+      }
+    });
+  }
+
+  private isPointInFrontHemisphere(lng: number, lat: number): boolean {
+    const lambda = (lng * Math.PI) / 180;
+    const phi = (lat * Math.PI) / 180;
+    const rotLambda = (this.currentRotation[0] * Math.PI) / 180;
+    const rotPhi = (this.currentRotation[1] * Math.PI) / 180;
+    const adjustedLng = lambda + rotLambda;
+    const adjustedLat = phi + rotPhi;
+    const cosPhi = Math.cos(adjustedLat);
+    const cosLambda = Math.cos(adjustedLng);
+    const z = cosPhi * cosLambda;
+    return z > 0.3;
   }
 
   private getCountryColor(d: any): string {
@@ -769,6 +401,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         this.currentRotation[0] += ROTATION_SPEED;
         this.projection.rotate(this.currentRotation);
         this.updateCountries();
+        this.updateStates();
       }
       requestAnimationFrame(rotate);
     };
@@ -790,67 +423,19 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     this.currentZoom = Math.min(this.currentZoom + ZOOM.step, ZOOM.max);
     this.projection.scale(this.currentRadius * this.currentZoom);
     this.updateCountries();
+    this.updateStates();
   }
 
   zoomOut() {
     this.currentZoom = Math.max(this.currentZoom - ZOOM.step, ZOOM.min);
     this.projection.scale(this.currentRadius * this.currentZoom);
     this.updateCountries();
+    this.updateStates();
   }
 
   toggleLegend() {
     if (!this.isMobile) {
       this.legendCollapsed = !this.legendCollapsed;
-    }
-  }
-
-  focusOnCountry(country: CountrySkill) {
-    if (!country) return;
-
-    this.isRotating = false;
-    const targetRotation = [-country.lng, -country.lat];
-    this.currentRotation = targetRotation;
-    this.projection.rotate(this.currentRotation);
-    this.updateCountries();
-
-    // Remove any existing highlights
-    this.svg.selectAll('.country-highlight').remove();
-
-    // Find the country feature in the topojson data
-    const countryFeature = this.countries.features.find((feature: any) => 
-      feature.properties.name === country.country
-    );
-
-    if (countryFeature) {
-      // Add highlighted country with dotted border
-      const highlight = this.svg.append('path')
-        .datum(countryFeature)
-        .attr('class', 'country-highlight')
-        .attr('d', this.path)
-        .attr('fill', 'none')
-        .attr('stroke', '#ff4444')
-        .attr('stroke-width', 3)
-        .attr('stroke-dasharray', '8,4')
-        .style('opacity', 0);
-
-      // Animate the highlight appearance
-      highlight.transition()
-        .duration(400)
-        .style('opacity', 1);
-
-      // Remove highlight after 3 seconds
-      setTimeout(() => {
-        highlight.transition()
-          .duration(600)
-          .style('opacity', 0)
-          .remove();
-        this.isRotating = true;
-      }, 3000);
-    } else {
-      // If country not found, resume rotation immediately
-      setTimeout(() => {
-        this.isRotating = true;
-      }, 1000);
     }
   }
 
