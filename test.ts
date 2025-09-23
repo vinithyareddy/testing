@@ -340,7 +340,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       // Use the SAME coordinates as the projection system
       const coordinates = [country.lng, country.lat];
       
-      // Check visibility using the same projection
+      // Always project the coordinates regardless of visibility
       const projected = this.projection(coordinates);
       
       if (projected && projected[0] && projected[1] && !isNaN(projected[0]) && !isNaN(projected[1])) {
@@ -353,70 +353,76 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
           Math.pow(projected[0] - centerX, 2) + Math.pow(projected[1] - centerY, 2)
         );
         
-        // Only show labels that are well within the visible globe area
-        const maxDistance = this.currentRadius * this.currentZoom * 0.85; // 85% of radius
+        // Show labels within a reasonable area (including slightly beyond the globe edge)
+        const maxDistance = this.currentRadius * this.currentZoom * 1.1; // 110% of radius
         
         if (distance <= maxDistance) {
-          // Additional visibility check - make sure the point is actually visible
-          // by checking if it's in the front hemisphere
-          if (this.isPointInFrontHemisphere(country.lng, country.lat)) {
-            // Check for overlap with existing labels
-            let canPlace = true;
-            for (const pos of usedPositions) {
-              const labelDistance = Math.sqrt(
-                Math.pow(projected[0] - pos.x, 2) + Math.pow(projected[1] - pos.y, 2)
-              );
-              if (labelDistance < minDistance) {
-                canPlace = false;
-                break;
-              }
+          // Check for overlap with existing labels
+          let canPlace = true;
+          for (const pos of usedPositions) {
+            const labelDistance = Math.sqrt(
+              Math.pow(projected[0] - pos.x, 2) + Math.pow(projected[1] - pos.y, 2)
+            );
+            if (labelDistance < minDistance) {
+              canPlace = false;
+              break;
             }
+          }
 
-            if (canPlace) {
-              // Add to used positions
-              usedPositions.push({x: projected[0], y: projected[1]});
+          if (canPlace) {
+            // Add to used positions
+            usedPositions.push({x: projected[0], y: projected[1]});
 
-              // Add shadow first
-              const shadow = this.svg.append('text')
-                .attr('class', 'country-label-shadow')
-                .attr('x', projected[0] + 0.5)
-                .attr('y', projected[1] + 0.5)
-                .attr('text-anchor', 'middle')
-                .attr('dominant-baseline', 'central')
-                .style('font-size', this.isMobile ? '8px' : '10px')
-                .style('font-weight', '600')
-                .style('font-family', 'Arial, sans-serif')
-                .style('fill', 'rgba(0,0,0,0.5)')
-                .style('pointer-events', 'none')
-                .style('user-select', 'none')
-                .text(country.country);
-
-              // Add main label
-              const label = this.svg.append('text')
-                .attr('class', 'country-label')
-                .attr('x', projected[0])
-                .attr('y', projected[1])
-                .attr('text-anchor', 'middle')
-                .attr('dominant-baseline', 'central')
-                .style('font-size', this.isMobile ? '8px' : '10px')
-                .style('font-weight', '600')
-                .style('font-family', 'Arial, sans-serif')
-                .style('fill', '#1a365d')
-                .style('stroke', 'white')
-                .style('stroke-width', '1.5px')
-                .style('stroke-linejoin', 'round')
-                .style('paint-order', 'stroke fill')
-                .style('pointer-events', 'none')
-                .style('user-select', 'none')
-                .text(country.country);
-
-              // Calculate opacity based on distance from center
-              const normalizedDistance = distance / maxDistance;
-              const opacity = Math.max(0.6, Math.min(1, 1 - normalizedDistance * 0.5));
-              
-              label.style('opacity', opacity);
-              shadow.style('opacity', opacity * 0.7);
+            // Determine if this label is on the front or back hemisphere for styling
+            const isInFront = this.isPointInFrontHemisphere(country.lng, country.lat);
+            
+            // Calculate base opacity - always visible but may vary in intensity
+            let baseOpacity = 1;
+            if (!isInFront) {
+              // Back hemisphere labels are slightly more transparent
+              baseOpacity = 0.7;
             }
+            
+            // Distance-based opacity adjustment
+            const normalizedDistance = Math.min(1, distance / (this.currentRadius * this.currentZoom));
+            const distanceOpacity = Math.max(0.4, 1 - normalizedDistance * 0.3);
+            const finalOpacity = baseOpacity * distanceOpacity;
+
+            // Add shadow first
+            const shadow = this.svg.append('text')
+              .attr('class', 'country-label-shadow')
+              .attr('x', projected[0] + 0.5)
+              .attr('y', projected[1] + 0.5)
+              .attr('text-anchor', 'middle')
+              .attr('dominant-baseline', 'central')
+              .style('font-size', this.isMobile ? '8px' : '10px')
+              .style('font-weight', '600')
+              .style('font-family', 'Arial, sans-serif')
+              .style('fill', 'rgba(0,0,0,0.5)')
+              .style('pointer-events', 'none')
+              .style('user-select', 'none')
+              .style('opacity', finalOpacity * 0.7)
+              .text(country.country);
+
+            // Add main label
+            const label = this.svg.append('text')
+              .attr('class', 'country-label')
+              .attr('x', projected[0])
+              .attr('y', projected[1])
+              .attr('text-anchor', 'middle')
+              .attr('dominant-baseline', 'central')
+              .style('font-size', this.isMobile ? '8px' : '10px')
+              .style('font-weight', '600')
+              .style('font-family', 'Arial, sans-serif')
+              .style('fill', isInFront ? '#1a365d' : '#4a5568') // Slightly different color for back labels
+              .style('stroke', 'white')
+              .style('stroke-width', '1.5px')
+              .style('stroke-linejoin', 'round')
+              .style('paint-order', 'stroke fill')
+              .style('pointer-events', 'none')
+              .style('user-select', 'none')
+              .style('opacity', finalOpacity)
+              .text(country.country);
           }
         }
       }
