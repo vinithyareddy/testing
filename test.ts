@@ -291,6 +291,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
   private drawCountries() {
     this.svg.selectAll('.country').remove();
+    this.svg.selectAll('.country-label').remove();
 
     this.svg.selectAll('.country')
       .data(this.countries.features)
@@ -313,6 +314,69 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         }
         this.hideTooltip();
       });
+
+    this.addCountryLabels();
+  }
+
+  private addCountryLabels() {
+    this.svg.selectAll('.country-label').remove();
+
+    // Filter countries that should have labels (only those in our data)
+    const labeledCountries = this.countriesList.filter(country => {
+      // Only show labels for countries with significant data
+      return country.uniqueSkills > 20 || country.skillSupply > 10;
+    });
+
+    labeledCountries.forEach(country => {
+      const coordinates = [country.lng, country.lat];
+      const projected = this.projection(coordinates);
+      
+      if (projected && this.isCountryVisible(country.lat, country.lng)) {
+        const label = this.svg.append('text')
+          .attr('class', 'country-label')
+          .attr('x', projected[0])
+          .attr('y', projected[1])
+          .attr('text-anchor', 'middle')
+          .attr('dominant-baseline', 'middle')
+          .style('font-size', this.isMobile ? '10px' : '12px')
+          .style('font-weight', 'bold')
+          .style('fill', '#2c3e50')
+          .style('stroke', 'white')
+          .style('stroke-width', '2px')
+          .style('paint-order', 'stroke')
+          .style('pointer-events', 'none')
+          .style('user-select', 'none')
+          .text(country.country);
+
+        // Add shadow for better visibility
+        const shadow = this.svg.append('text')
+          .attr('class', 'country-label-shadow')
+          .attr('x', projected[0])
+          .attr('y', projected[1] + 1)
+          .attr('text-anchor', 'middle')
+          .attr('dominant-baseline', 'middle')
+          .style('font-size', this.isMobile ? '10px' : '12px')
+          .style('font-weight', 'bold')
+          .style('fill', 'rgba(0,0,0,0.3)')
+          .style('pointer-events', 'none')
+          .style('user-select', 'none')
+          .text(country.country);
+
+        // Move shadow behind the main label
+        shadow.lower();
+        label.raise();
+      }
+    });
+  }
+
+  private isCountryVisible(lat: number, lng: number): boolean {
+    // Check if the country is on the visible side of the globe
+    const rotatedLng = lng - this.currentRotation[0];
+    const rotatedLat = lat - this.currentRotation[1];
+    
+    // Simple visibility check based on rotation
+    const normalizedLng = ((rotatedLng + 180) % 360) - 180;
+    return Math.abs(normalizedLng) < 90;
   }
 
   private showTooltip(event: any, d: any) {
@@ -377,6 +441,9 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
     this.svg.select('circle')
       .attr('r', this.currentRadius * this.currentZoom);
+
+    // Update labels to rotate with the globe
+    this.addCountryLabels();
   }
 
   private getCountryColor(d: any): string {
