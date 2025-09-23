@@ -1,386 +1,551 @@
-<div class="budget-card-box-lg" #cartboxchartsection [ngClass]="{ 'fullscreen': isFullscreen }">
-    <div class="budget-box-chart-lg">
-        <div class="d-flex justify-content-between align-items-center flex-wrap">
-            <!-- Left Section -->
-            <div class="widget-heading pointer mt-1 col-md-8 d-flex align-items-center">
-                <span class="title-with-icon d-flex align-items-center gap-2">
-                    {{ selectedView === 'By Region' ? 'Skill Supply by Location' : 'Skill Supply by Country' }}
-                    <ng-template [ngTemplateOutlet]="infotemp"></ng-template>
-                </span>
-            </div>
+import { CommonModule } from '@angular/common';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
+import { HighchartsChartModule } from 'highcharts-angular';
+import { AfterViewInit, Component, ElementRef, ViewChild, OnDestroy, HostListener } from '@angular/core';
+import * as THREE from 'three';
+import * as topojson from 'topojson-client';
+import worldData from 'world-atlas/countries-110m.json';
+import { FeatureCollection, Geometry } from 'geojson';
+import * as d3 from 'd3';
+import { LiftPopoverComponent } from '@lift/ui';
 
-            <!-- Right Section -->
-            <div class="col-md-4 d-flex justify-content-end align-items-center header-icons">
-                <!-- Search Box -->
-                <div class="search-container">
-                    <input type="text" 
-                           placeholder="Search by country" 
-                           [(ngModel)]="searchTerm"
-                           (input)="onSearchChange()"
-                           class="search-input">
-                    <i class="fas fa-search search-icon"></i>
-                </div>
+type CountryCost = {
+  country: string;
+  region: string;
+  cost: number;
+  code: string;
+  lat: number;
+  lng: number;
+  position?: THREE.Vector3;
+  uniqueSkills?: number;
+  skillSupply?: number;
+  population?: number;
+};
 
-                <!-- Custom Dropdown -->
-                <div class="dropdown custom-dropdown">
-                    <button class="btn btn-light dropdown-toggle" type="button" (click)="showMenu = !showMenu">
-                        {{ selectedView }}
-                    </button>
-                    <ul class="dropdown-menu" *ngIf="showMenu">
-                        <li (click)="setView('By Country'); showMenu=false">
-                            <a class="dropdown-item">
-                                By Country
-                                <i *ngIf="selectedView === 'By Country'" class="fas fa-check ms-2"></i>
-                            </a>
-                        </li>
-                        <li (click)="setView('By Region'); showMenu=false">
-                            <a class="dropdown-item">
-                                By Region
-                                <i *ngIf="selectedView === 'By Region'" class="fas fa-check ms-2"></i>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
+// Enhanced color scheme to match target
+const GLOBE_BACKGROUND = 'radial-gradient(circle at 30% 30%, #4a90e2, #2c5aa0)';
+const COUNTRY_COLORS = {
+  default: '#7dd3c0',
+  hover: '#5bc0a0',
+  selected: '#ffffff',
+  water: '#4a90e2'
+};
+const GRATICULE_COLOR = 'rgba(255, 255, 255, 0.2)';
+const LABEL_COLOR = '#ffffff';
+const ROTATION_SPEED = 0.3;
+const ZOOM = { initial: 1, step: 0.3, min: 0.8, max: 4 };
 
-                <!-- Toggle Buttons -->
-                <div class="d-flex gap-3">
-                    <span class="view" (click)="toggleFullscreen()">
-                        <i [ngClass]="isFullscreen ? 'fas fa-compress' : 'fas fa-expand'" title="Zoom"></i>
-                    </span>
-                    <div class="ellipsis ml-2">
-                        <i class="fas fa-ellipsis-v"></i>
-                    </div>
-                </div>
-            </div>
+// Major countries to always show labels
+const MAJOR_COUNTRIES = [
+  'United States', 'Canada', 'Brazil', 'Russia', 'China', 'India', 
+  'Australia', 'Germany', 'France', 'United Kingdom', 'Japan', 
+  'South Africa', 'Egypt', 'Nigeria', 'Argentina', 'Mexico'
+];
+
+@Component({
+  selector: 'app-ss-by-location',
+  templateUrl: './ss-by-location.component.html',
+  standalone: true,
+  imports: [CommonModule, FormsModule, HttpClientModule, HighchartsChartModule, LiftPopoverComponent],
+  styleUrls: ['./ss-by-location.component.scss']
+})
+export class SsByLocationComponent implements AfterViewInit, OnDestroy {
+  @ViewChild('globeContainer', { static: true }) globeContainer!: ElementRef;
+
+  laborData: CountryCost[] = [];
+  filteredCountries: CountryCost[] = [];
+  selectedCountry: CountryCost | null = null;
+  private svg: any;
+  private projection: any;
+  private path: any;
+  private countries!: FeatureCollection<Geometry, any>;
+  private graticule: any;
+  private currentRotation = [0, 0];
+  private isRotating = true;
+  private tooltip: any;
+  private isDragging = false;
+  private resizeObserver?: ResizeObserver;
+  private highlightTimeout: any;
+  
+  currentZoom: number = ZOOM.initial;
+  isFullscreen = false;
+  selectedView: string = 'By Country';
+  showMenu: boolean = false;
+  searchTerm: string = '';
+  private currentRadius = 250;
+  private isMobile = false;
+  private isTablet = false;
+
+  constructor(private http: HttpClient) {
+    this.checkScreenSize();
+  }
+
+  @HostListener('window:resize', ['$event'])
+  onResize(event: any) {
+    this.checkScreenSize();
+    this.handleResize();
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: any) {
+    if (!event.target.closest('.custom-dropdown')) {
+      this.showMenu = false;
+    }
+  }
+
+  private checkScreenSize() {
+    const width = window.innerWidth;
+    this.isMobile = width <= 767;
+    this.isTablet = width >= 768 && width <= 1024;
+  }
+
+  private getResponsiveRadius(): number {
+    const container = this.globeContainer?.nativeElement;
+    if (!container) return 250;
+    const width = container.offsetWidth;
+    const height = container.offsetHeight;
+    const minDimension = Math.min(width, height);
+    
+    if (this.isMobile) {
+      return Math.min(minDimension * 0.35, 150);
+    } else if (this.isTablet) {
+      return Math.min(minDimension * 0.4, 200);
+    } else {
+      return Math.min(minDimension * 0.45, 250);
+    }
+  }
+
+  ngAfterViewInit() {
+    this.setupResizeObserver();
+    this.initializeGlobe();
+    this.loadData();
+  }
+
+  ngOnDestroy() {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
+    if (this.highlightTimeout) {
+      clearTimeout(this.highlightTimeout);
+    }
+  }
+
+  private setupResizeObserver() {
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(() => {
+        this.handleResize();
+      });
+      this.resizeObserver.observe(this.globeContainer.nativeElement);
+    }
+  }
+
+  private initializeGlobe() {
+    const globeDiv = this.globeContainer.nativeElement;
+    const width = globeDiv.offsetWidth;
+    const height = globeDiv.offsetHeight;
+    this.currentRadius = this.getResponsiveRadius();
+
+    this.projection = d3.geoOrthographic()
+      .scale(this.currentRadius)
+      .translate([width / 2, height / 2])
+      .clipAngle(90);
+
+    this.path = d3.geoPath().projection(this.projection);
+
+    // Create graticule (grid lines)
+    this.graticule = d3.geoGraticule()
+      .step([15, 15]); // 15-degree grid
+
+    // Clear any existing SVG
+    d3.select(globeDiv).selectAll('svg').remove();
+
+    this.svg = d3.select(globeDiv)
+      .append('svg')
+      .attr('width', '100%')
+      .attr('height', '100%')
+      .attr('viewBox', `0 0 ${width} ${height}`)
+      .attr('preserveAspectRatio', 'xMidYMid meet');
+
+    // Add ocean/water circle
+    this.svg.append('circle')
+      .attr('cx', width / 2)
+      .attr('cy', height / 2)
+      .attr('r', this.currentRadius)
+      .attr('fill', COUNTRY_COLORS.water)
+      .attr('stroke', 'rgba(255,255,255,0.3)')
+      .attr('stroke-width', 1);
+
+    // Add graticule
+    this.svg.append('path')
+      .datum(this.graticule)
+      .attr('class', 'graticule')
+      .attr('d', this.path)
+      .attr('fill', 'none')
+      .attr('stroke', GRATICULE_COLOR)
+      .attr('stroke-width', 0.5);
+
+    // Process world data
+    this.countries = topojson.feature(
+      worldData as any,
+      (worldData as any).objects.countries
+    ) as unknown as FeatureCollection<Geometry, any>;
+
+    // Setup tooltip
+    this.setupTooltip(globeDiv);
+    this.setupInteractions();
+  }
+
+  private setupTooltip(container: any) {
+    d3.select(container).selectAll('.enhanced-tooltip').remove();
+    
+    this.tooltip = d3.select(container)
+      .append('div')
+      .attr('class', 'enhanced-tooltip')
+      .style('position', 'absolute')
+      .style('pointer-events', 'none')
+      .style('display', 'none');
+  }
+
+  private handleResize() {
+    if (!this.svg || !this.globeContainer) return;
+
+    const globeDiv = this.globeContainer.nativeElement;
+    const width = globeDiv.offsetWidth;
+    const height = globeDiv.offsetHeight;
+    this.currentRadius = this.getResponsiveRadius();
+
+    this.projection
+      .scale(this.currentRadius * this.currentZoom)
+      .translate([width / 2, height / 2]);
+
+    this.svg.attr('viewBox', `0 0 ${width} ${height}`);
+    
+    // Update ocean circle
+    this.svg.select('circle')
+      .attr('cx', width / 2)
+      .attr('cy', height / 2)
+      .attr('r', this.currentRadius * this.currentZoom);
+
+    this.updateGlobe();
+  }
+
+  private setupInteractions() {
+    const drag = d3.drag()
+      .on('start', (event: any) => {
+        this.isDragging = true;
+        this.isRotating = false;
+      })
+      .on('drag', (event: any) => {
+        const sensitivity = this.isMobile ? 0.4 : 0.25;
+        this.currentRotation[0] += event.dx * sensitivity;
+        this.currentRotation[1] -= event.dy * sensitivity;
+        this.currentRotation[1] = Math.max(-90, Math.min(90, this.currentRotation[1]));
+        this.projection.rotate(this.currentRotation);
+        this.updateGlobe();
+      })
+      .on('end', () => {
+        this.isDragging = false;
+        setTimeout(() => {
+          if (!this.isDragging) {
+            this.isRotating = true;
+          }
+        }, 2000);
+      });
+
+    this.svg.select('circle').call(drag);
+  }
+
+  private loadData() {
+    this.http.get<any>('assets/json/world-globe-data.json').subscribe(data => {
+      this.laborData = data.countries.map((c: any) => ({
+        country: c.name,
+        region: c.region,
+        cost: c.cost ?? Math.floor(Math.random() * 50) + 10,
+        code: c.code,
+        lat: c.lat,
+        lng: c.lng,
+        uniqueSkills: Math.floor(Math.random() * 80) + 20,
+        skillSupply: Math.floor(Math.random() * 40) + 5,
+        population: Math.floor(Math.random() * 100000000) + 1000000
+      }));
+
+      this.filteredCountries = [...this.laborData];
+      this.drawCountries();
+      this.addCountryLabels();
+      this.startRotation();
+    });
+  }
+
+  private drawCountries() {
+    this.svg.selectAll('.country-path').remove();
+
+    this.svg.selectAll('.country-path')
+      .data(this.countries.features)
+      .enter()
+      .append('path')
+      .attr('class', 'country-path')
+      .attr('d', this.path)
+      .attr('fill', COUNTRY_COLORS.default)
+      .attr('stroke', 'rgba(255,255,255,0.3)')
+      .attr('stroke-width', 0.5)
+      .style('cursor', 'pointer')
+      .on('mouseover', (event: any, d: any) => {
+        this.isRotating = false;
+        this.showTooltip(event, d);
+        // Highlight on hover
+        d3.select(event.currentTarget)
+          .attr('stroke', 'rgba(255,255,255,0.8)')
+          .attr('stroke-width', 1);
+      })
+      .on('mousemove', (event: any) => this.moveTooltip(event))
+      .on('mouseout', (event: any) => {
+        if (!this.isDragging) {
+          this.isRotating = true;
+        }
+        this.hideTooltip();
+        // Remove hover highlight if not selected
+        const countryData = d3.select(event.currentTarget).datum() as any;
+        const isSelected = this.selectedCountry && 
+                          this.selectedCountry.country === countryData.properties.name;
+        if (!isSelected) {
+          d3.select(event.currentTarget)
+            .attr('stroke', 'rgba(255,255,255,0.3)')
+            .attr('stroke-width', 0.5);
+        }
+      })
+      .on('click', (event: any, d: any) => {
+        const countryData = this.laborData.find(c => c.country === d.properties.name);
+        if (countryData) {
+          this.selectCountry(countryData);
+        }
+      });
+  }
+
+  private addCountryLabels() {
+    this.svg.selectAll('.country-label').remove();
+
+    const labelsToShow = this.laborData.filter(country => {
+      const isMajor = MAJOR_COUNTRIES.includes(country.country);
+      const isZoomedIn = this.currentZoom > 1.5;
+      return isMajor || (isZoomedIn && country.population > 10000000);
+    });
+
+    this.svg.selectAll('.country-label')
+      .data(labelsToShow)
+      .enter()
+      .append('text')
+      .attr('class', (d: CountryCost) => {
+        const classes = ['country-label'];
+        if (MAJOR_COUNTRIES.includes(d.country)) classes.push('major');
+        else classes.push('small');
+        return classes.join(' ');
+      })
+      .attr('x', (d: CountryCost) => {
+        const coords = this.projection([d.lng, d.lat]);
+        return coords ? coords[0] : 0;
+      })
+      .attr('y', (d: CountryCost) => {
+        const coords = this.projection([d.lng, d.lat]);
+        return coords ? coords[1] + 4 : 0;
+      })
+      .attr('text-anchor', 'middle')
+      .attr('fill', LABEL_COLOR)
+      .attr('font-size', (d: CountryCost) => {
+        return MAJOR_COUNTRIES.includes(d.country) ? '11px' : '9px';
+      })
+      .attr('font-weight', (d: CountryCost) => {
+        return MAJOR_COUNTRIES.includes(d.country) ? 'bold' : 'normal';
+      })
+      .style('text-shadow', '0 0 3px rgba(0,0,0,0.8)')
+      .text((d: CountryCost) => {
+        // Show abbreviated names for smaller countries
+        if (MAJOR_COUNTRIES.includes(d.country)) {
+          return d.country;
+        } else {
+          return d.country.length > 12 ? d.country.substring(0, 10) + '...' : d.country;
+        }
+      })
+      .style('pointer-events', 'none');
+  }
+
+  private updateGlobe() {
+    // Update countries
+    this.svg.selectAll('.country-path')
+      .attr('d', this.path);
+
+    // Update graticule
+    this.svg.select('.graticule')
+      .attr('d', this.path);
+
+    // Update labels
+    this.svg.selectAll('.country-label')
+      .attr('x', (d: CountryCost) => {
+        const coords = this.projection([d.lng, d.lat]);
+        return coords ? coords[0] : -1000; // Hide if not visible
+      })
+      .attr('y', (d: CountryCost) => {
+        const coords = this.projection([d.lng, d.lat]);
+        return coords ? coords[1] + 4 : -1000;
+      })
+      .style('opacity', (d: CountryCost) => {
+        const coords = this.projection([d.lng, d.lat]);
+        return coords ? 1 : 0;
+      });
+
+    // Update ocean circle
+    this.svg.select('circle')
+      .attr('r', this.currentRadius * this.currentZoom);
+  }
+
+  private showTooltip(event: any, d: any) {
+    const countryData = this.laborData.find(c => c.country === d.properties.name);
+    if (countryData) {
+      const tooltipContent = `
+        <div class="tooltip-header">
+          <img src="assets/images/flags/${countryData.code.toLowerCase()}.svg" 
+               class="tooltip-flag" alt="${countryData.country} flag">
+          <span class="tooltip-title">${countryData.country}</span>
         </div>
-
-        <div class="globe-wrapper">
-            <!-- Left Panel - Country List -->
-            <div class="country-panel">
-                <div class="country-list-container" [ngClass]="{ 'scrollable': selectedView === 'By Country' }">
-                    <!-- Search Results or Country List -->
-                    <div class="country-item" 
-                         *ngFor="let country of getFilteredCountries()" 
-                         (click)="selectCountry(country)"
-                         [ngClass]="{ 'selected': selectedCountry?.code === country.code }">
-                        <div class="country-flag-container">
-                            <img [src]="'assets/images/flags/' + country.code.toLowerCase() + '.svg'" 
-                                 class="country-flag" 
-                                 alt="{{ country.country }} flag">
-                            <span class="country-name">{{ country.country }}</span>
-                        </div>
-                        <div class="country-stats">
-                            <div class="stat-row">
-                                <span class="stat-label">Unique Skills</span>
-                                <span class="stat-value">{{ country.uniqueSkills || (country.cost * 2) }}</span>
-                            </div>
-                            <div class="stat-row">
-                                <span class="stat-label">Skill Supply (FTE)</span>
-                                <span class="stat-value">{{ country.skillSupply || country.cost }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Globe Container -->
-            <div #globeContainer class="globe-container-enhanced"></div>
-            
-            <!-- Zoom Controls -->
-            <div class="zoom-container">
-                <button (click)="zoomIn()" class="zoom-btn">+</button>
-                <button (click)="zoomOut()" class="zoom-btn">−</button>
-            </div>
-
-            <!-- View More -->
-            <div class="viewmore-container">
-                <span class="viewmore-text">View More</span>
-                <i class="fa fa-angle-right viewmore-icon"></i>
-            </div>
+        <div class="tooltip-stats">
+          <div class="stat-row">
+            <span class="stat-label">Unique Skills</span>
+            <span class="stat-value">${countryData.uniqueSkills}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Skill Supply (FTE)</span>
+            <span class="stat-value">${countryData.skillSupply}</span>
+          </div>
         </div>
-    </div>
-</div>
-
-<ng-template #infotemp>
-    <lift-popover popoverTitle="" popoverText="">
-        <span><i aria-hidden="true" class="far fa-info-circle"></i></span>
-    </lift-popover>
-</ng-template>
-
-
-.globe-wrapper {
-  display: flex;
-  background: linear-gradient(135deg, #2c5aa0 0%, #1a4480 50%, #0d2a5c 100%);
-  padding: 0;
-  color: #fff;
-  position: relative;
-  min-height: 600px;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.country-panel {
-  width: 320px;
-  background: #f8f9fa;
-  border-right: 1px solid #e0e0e0;
-  display: flex;
-  flex-direction: column;
-  
-  .search-container {
-      padding: 15px;
-      border-bottom: 1px solid #e0e0e0;
-  }
-}
-
-.country-list-container {
-  flex: 1;
-  overflow-y: auto;
-  max-height: 500px;
-  
-  &.scrollable {
-      max-height: 600px;
-  }
-}
-
-.country-item {
-  padding: 12px 16px;
-  border-bottom: 1px solid #e5e5e5;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  
-  &:hover {
-      background-color: #f0f8ff;
-  }
-  
-  &.selected {
-      background-color: #e3f2fd;
-      border-left: 3px solid #2196f3;
-  }
-}
-
-.country-flag-container {
-  display: flex;
-  align-items: center;
-  margin-bottom: 8px;
-  
-  .country-flag {
-      width: 24px;
-      height: 16px;
-      margin-right: 10px;
-      border: 1px solid #ddd;
-      border-radius: 2px;
-  }
-  
-  .country-name {
-      font-weight: 500;
-      color: #333;
-      font-size: 14px;
-  }
-}
-
-.country-stats {
-  margin-left: 34px;
-}
-
-.stat-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: #666;
-  margin-bottom: 2px;
-  
-  .stat-label {
-      flex: 1;
-  }
-  
-  .stat-value {
-      font-weight: 500;
-      color: #333;
-  }
-}
-
-.search-container {
-  position: relative;
-  margin-right: 15px;
-  
-  .search-input {
-      width: 200px;
-      padding: 8px 35px 8px 12px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 14px;
+      `;
       
-      &:focus {
-          outline: none;
-          border-color: #2196f3;
-          box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
-      }
+      this.tooltip.html(tooltipContent).style('display', 'block');
+      this.moveTooltip(event);
+    }
   }
-  
-  .search-icon {
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #999;
-      font-size: 14px;
-  }
-}
 
-.globe-container-enhanced {
-  flex: 1;
-  position: relative;
-  min-height: 600px;
-  background: radial-gradient(circle at 30% 30%, #4a90e2, #2c5aa0);
-}
+  private moveTooltip(event: any) {
+    const rect = this.globeContainer.nativeElement.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    const offsetX = this.isMobile ? 10 : 15;
+    const offsetY = this.isMobile ? 10 : 15;
+    
+    this.tooltip
+      .style('left', (x + offsetX) + 'px')
+      .style('top', (y + offsetY) + 'px');
+  }
 
-.zoom-container {
-  position: absolute;
-  bottom: 60px;
-  right: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  
-  .zoom-btn {
-      width: 40px;
-      height: 40px;
-      background: rgba(255, 255, 255, 0.9);
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 18px;
-      font-weight: bold;
-      color: #2c5aa0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-      
-      &:hover {
-          background: #fff;
-          transform: translateY(-1px);
-          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-      }
+  private hideTooltip() {
+    this.tooltip.style('display', 'none');
   }
-}
 
-.viewmore-container {
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
-  display: flex;
-  align-items: center;
-  color: #fff;
-  cursor: pointer;
-  font-size: 14px;
-  
-  .viewmore-text {
-      margin-right: 5px;
+  private startRotation() {
+    const rotate = () => {
+      if (this.isRotating && !this.isDragging) {
+        this.currentRotation[0] += ROTATION_SPEED;
+        this.projection.rotate(this.currentRotation);
+        this.updateGlobe();
+      }
+      requestAnimationFrame(rotate);
+    };
+    rotate();
   }
-  
-  .viewmore-icon {
-      font-size: 12px;
-  }
-  
-  &:hover {
-      color: #e3f2fd;
-  }
-}
 
-// Globe-specific styles
-:host ::ng-deep {
-  .country-path {
-      stroke-width: 0.5px;
-      cursor: pointer;
-      transition: all 0.3s ease;
+  // Public methods for interactions
+  selectCountry(country: CountryCost) {
+    this.selectedCountry = country;
+    this.isRotating = false;
+    
+    // Clear any existing highlights
+    this.svg.selectAll('.country-path')
+      .classed('highlighted', false)
+      .attr('stroke', 'rgba(255,255,255,0.3)')
+      .attr('stroke-width', 0.5)
+      .attr('stroke-dasharray', 'none')
+      .style('filter', 'none');
+
+    // Rotate to country
+    const targetRotation = [-country.lng, -country.lat];
+    this.currentRotation = targetRotation;
+    this.projection.rotate(this.currentRotation);
+    
+    // Highlight selected country
+    this.svg.selectAll('.country-path')
+      .filter((d: any) => d.properties.name === country.country)
+      .classed('highlighted', true)
+      .attr('stroke', '#ffffff')
+      .attr('stroke-width', 2)
+      .attr('stroke-dasharray', '4,2')
+      .style('filter', 'drop-shadow(0 0 8px rgba(255,255,255,0.6))');
+
+    this.updateGlobe();
+    this.addCountryLabels();
+
+    // Clear highlight after 4 seconds
+    if (this.highlightTimeout) {
+      clearTimeout(this.highlightTimeout);
+    }
+    
+    this.highlightTimeout = setTimeout(() => {
+      this.svg.selectAll('.country-path')
+        .classed('highlighted', false)
+        .attr('stroke', 'rgba(255,255,255,0.3)')
+        .attr('stroke-width', 0.5)
+        .attr('stroke-dasharray', 'none')
+        .style('filter', 'none');
       
-      &.highlighted {
-          stroke: #fff;
-          stroke-width: 2px;
-          stroke-dasharray: 3,2;
-          filter: drop-shadow(0 0 5px rgba(255,255,255,0.8));
-      }
-      
-      &:hover {
-          stroke: rgba(255,255,255,0.6);
-          stroke-width: 1px;
-      }
+      this.selectedCountry = null;
+      this.isRotating = true;
+    }, 4000);
   }
-  
-  .graticule {
-      fill: none;
-      stroke: rgba(255, 255, 255, 0.2);
-      stroke-width: 0.5px;
+
+  onSearchChange() {
+    if (this.searchTerm.trim() === '') {
+      this.filteredCountries = [...this.laborData];
+    } else {
+      const searchLower = this.searchTerm.toLowerCase();
+      this.filteredCountries = this.laborData.filter(country =>
+        country.country.toLowerCase().includes(searchLower) ||
+        country.region.toLowerCase().includes(searchLower) ||
+        country.code.toLowerCase().includes(searchLower)
+      );
+    }
   }
-  
-  .country-label {
-      font-family: Arial, sans-serif;
-      font-size: 10px;
-      fill: #fff;
-      text-anchor: middle;
-      pointer-events: none;
-      text-shadow: 0 0 3px rgba(0,0,0,0.8);
-      
-      &.major {
-          font-size: 12px;
-          font-weight: bold;
-      }
-      
-      &.small {
-          font-size: 8px;
-          opacity: 0.8;
-      }
+
+  getFilteredCountries(): CountryCost[] {
+    return this.filteredCountries.slice(0, 20); // Limit to first 20 results
   }
-  
-  .enhanced-tooltip {
-      position: absolute;
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      padding: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      font-size: 13px;
-      min-width: 180px;
-      z-index: 1000;
-      
-      .tooltip-header {
-          display: flex;
-          align-items: center;
-          margin-bottom: 8px;
-          padding-bottom: 6px;
-          border-bottom: 1px solid #eee;
-          
-          .tooltip-flag {
-              width: 24px;
-              height: 16px;
-              margin-right: 8px;
-              border: 1px solid #ddd;
-              border-radius: 2px;
-          }
-          
-          .tooltip-title {
-              font-weight: 600;
-              color: #333;
-          }
-      }
-      
-      .tooltip-stats {
-          .stat-row {
-              display: flex;
-              justify-content: space-between;
-              margin-bottom: 4px;
-              
-              .stat-label {
-                  color: #666;
-                  font-size: 12px;
-              }
-              
-              .stat-value {
-                  font-weight: 500;
-                  color: #333;
-              }
-          }
-      }
+
+  zoomIn() {
+    this.currentZoom = Math.min(this.currentZoom + ZOOM.step, ZOOM.max);
+    this.projection.scale(this.currentRadius * this.currentZoom);
+    this.updateGlobe();
+    this.addCountryLabels(); // Refresh labels based on zoom level
   }
-}
+
+  zoomOut() {
+    this.currentZoom = Math.max(this.currentZoom - ZOOM.step, ZOOM.min);
+    this.projection.scale(this.currentRadius * this.currentZoom);
+    this.updateGlobe();
+    this.addCountryLabels(); // Refresh labels based on zoom level
+  }
+
+  setView(view: string) {
+    this.selectedView = view;
+    // You can add different logic here for different view modes
+    // For now, both views show the same data structure
+  }
+
+  toggleFullscreen() {
+    this.isFullscreen = !this.isFullscreen;
+    setTimeout(() => {
+      this.handleResize();
+    }, 100);
+  }
+
+  // Utility methods for tracking
+  trackByCountry(index: number, country: CountryCost): string {
+    return country.code;
+  }
