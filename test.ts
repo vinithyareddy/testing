@@ -414,23 +414,22 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   }
 
   private isCountryVisible(lat: number, lng: number): boolean {
-    // Use the D3 projection to determine visibility
-    const coordinates = [lng, lat];
-    const projected = this.projection(coordinates);
+    // Convert to radians
+    const latRad = lat * Math.PI / 180;
+    const lngRad = lng * Math.PI / 180;
     
-    if (!projected) return false;
+    // Apply rotation to get the rotated coordinates
+    const rotatedLng = lngRad - (this.currentRotation[0] * Math.PI / 180);
+    const rotatedLat = latRad - (this.currentRotation[1] * Math.PI / 180);
     
-    // Check if the projection is valid (not null) and within reasonable bounds
-    const globeDiv = this.globeContainer.nativeElement;
-    const centerX = globeDiv.offsetWidth / 2;
-    const centerY = globeDiv.offsetHeight / 2;
+    // Calculate the 3D position on the sphere
+    const x = Math.cos(rotatedLat) * Math.cos(rotatedLng);
+    const y = Math.cos(rotatedLat) * Math.sin(rotatedLng);
+    const z = Math.sin(rotatedLat);
     
-    const distance = Math.sqrt(
-      Math.pow(projected[0] - centerX, 2) + Math.pow(projected[1] - centerY, 2)
-    );
-    
-    // Return true if within the visible hemisphere
-    return distance <= this.currentRadius * this.currentZoom;
+    // For orthographic projection, only points with positive z-coordinate (facing viewer) are visible
+    // Add a small buffer to prevent flickering at the edges
+    return z > 0.05;
   }
 
   private showTooltip(event: any, d: any) {
