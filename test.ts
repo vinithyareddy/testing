@@ -20,12 +20,13 @@ type CountrySkill = {
   position?: THREE.Vector3;
 };
 
-type StateInfo = {
+type AdminDivision = {
   code: string;
   name: string;
   lat: number;
   lng: number;
   countryCode: string;
+  type: 'state' | 'province' | 'region' | 'territory';
 };
 
 const CUSTOM_GLOBE_COLOR = '#84c9f6';
@@ -33,6 +34,18 @@ const STROKE_COLOR_COUNTRY = '#7e8790';
 const FALLBACK_COLOR = '#e0e0e0';
 const ROTATION_SPEED = 0.5;
 const ZOOM = { initial: 1, step: 0.2, min: 0.5, max: 3 };
+
+// External data sources for administrative divisions
+const ADMIN_DATA_SOURCES = {
+  // Natural Earth data for administrative divisions
+  naturalEarth: 'https://cdn.jsdelivr.net/npm/world-atlas@3/countries-50m.json',
+  usStates: 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json',
+  worldAdmin: 'https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world_population.csv',
+  
+  // Alternative sources
+  restCountries: 'https://restcountries.com/v3.1/all?fields=name,cca2,cca3,latlng,region,subregion',
+  geoNames: 'http://api.geonames.org/countryInfoJSON?formatted=true&username=demo'
+};
 
 @Component({
   selector: 'app-ss-by-location',
@@ -55,7 +68,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   private projection: any;
   private path: any;
   private countries!: FeatureCollection<Geometry, any>;
-  private usStates: any = null;
+  private adminDivisions: FeatureCollection<Geometry, any> | null = null;
   private currentRotation = [0, 0];
   private isRotating = true;
   private tooltip: any;
@@ -67,74 +80,9 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     .domain([0, 1])
     .range(['#8db4ddff', '#144c88']);
 
-  // State/Province data mapping
-  private stateData: StateInfo[] = [
-    // US States (major ones)
-    { code: 'CA', name: 'California', lat: 36.7783, lng: -119.4179, countryCode: 'US' },
-    { code: 'TX', name: 'Texas', lat: 31.9686, lng: -99.9018, countryCode: 'US' },
-    { code: 'FL', name: 'Florida', lat: 27.7663, lng: -81.6868, countryCode: 'US' },
-    { code: 'NY', name: 'New York', lat: 40.7128, lng: -74.0060, countryCode: 'US' },
-    { code: 'PA', name: 'Pennsylvania', lat: 41.2033, lng: -77.1945, countryCode: 'US' },
-    { code: 'IL', name: 'Illinois', lat: 40.3363, lng: -89.0022, countryCode: 'US' },
-    { code: 'OH', name: 'Ohio', lat: 40.3888, lng: -82.7649, countryCode: 'US' },
-    { code: 'GA', name: 'Georgia', lat: 33.76, lng: -84.39, countryCode: 'US' },
-    { code: 'NC', name: 'North Carolina', lat: 35.771, lng: -78.638, countryCode: 'US' },
-    { code: 'MI', name: 'Michigan', lat: 43.3266, lng: -84.5361, countryCode: 'US' },
-    { code: 'NJ', name: 'New Jersey', lat: 40.314, lng: -74.756, countryCode: 'US' },
-    { code: 'VA', name: 'Virginia', lat: 37.768, lng: -78.2057, countryCode: 'US' },
-    { code: 'WA', name: 'Washington', lat: 47.042, lng: -122.893, countryCode: 'US' },
-    { code: 'AZ', name: 'Arizona', lat: 33.7712, lng: -111.3877, countryCode: 'US' },
-    { code: 'MA', name: 'Massachusetts', lat: 42.2373, lng: -71.5314, countryCode: 'US' },
-    { code: 'TN', name: 'Tennessee', lat: 35.7449, lng: -86.7489, countryCode: 'US' },
-    { code: 'IN', name: 'Indiana', lat: 40.5, lng: -86.25, countryCode: 'US' },
-    { code: 'MO', name: 'Missouri', lat: 38.572954, lng: -92.189283, countryCode: 'US' },
-    { code: 'MD', name: 'Maryland', lat: 39.161921, lng: -76.505206, countryCode: 'US' },
-    { code: 'WI', name: 'Wisconsin', lat: 44.25, lng: -89.5, countryCode: 'US' },
-    { code: 'CO', name: 'Colorado', lat: 39.550051, lng: -105.782067, countryCode: 'US' },
-    { code: 'MN', name: 'Minnesota', lat: 46.39241, lng: -94.63623, countryCode: 'US' },
-    { code: 'SC', name: 'South Carolina', lat: 33.76, lng: -81.035, countryCode: 'US' },
-    { code: 'AL', name: 'Alabama', lat: 32.354668, lng: -86.732662, countryCode: 'US' },
-    { code: 'LA', name: 'Louisiana', lat: 30.45809, lng: -91.140229, countryCode: 'US' },
-    { code: 'KY', name: 'Kentucky', lat: 37.669789, lng: -84.6701, countryCode: 'US' },
-    { code: 'OR', name: 'Oregon', lat: 44.931109, lng: -123.029159, countryCode: 'US' },
-    { code: 'OK', name: 'Oklahoma', lat: 35.482309, lng: -97.534994, countryCode: 'US' },
-    { code: 'CT', name: 'Connecticut', lat: 41.767, lng: -72.677, countryCode: 'US' },
-    { code: 'UT', name: 'Utah', lat: 39.32098, lng: -111.093731, countryCode: 'US' },
-    { code: 'NV', name: 'Nevada', lat: 38.4199, lng: -116.4069, countryCode: 'US' },
-    { code: 'AR', name: 'Arkansas', lat: 34.9513, lng: -92.3809, countryCode: 'US' },
-    { code: 'MS', name: 'Mississippi', lat: 32.354668, lng: -89.398528, countryCode: 'US' },
-    { code: 'KS', name: 'Kansas', lat: 38.5111, lng: -96.8005, countryCode: 'US' },
-    { code: 'NM', name: 'New Mexico', lat: 34.307144, lng: -106.018066, countryCode: 'US' },
-    { code: 'NE', name: 'Nebraska', lat: 41.4925, lng: -99.9018, countryCode: 'US' },
-    { code: 'WV', name: 'West Virginia', lat: 38.349497, lng: -81.633294, countryCode: 'US' },
-    { code: 'ID', name: 'Idaho', lat: 44.240459, lng: -114.478828, countryCode: 'US' },
-    { code: 'HI', name: 'Hawaii', lat: 21.30895, lng: -157.826182, countryCode: 'US' },
-    { code: 'NH', name: 'New Hampshire', lat: 43.452492, lng: -71.563896, countryCode: 'US' },
-    { code: 'ME', name: 'Maine', lat: 44.323535, lng: -69.765261, countryCode: 'US' },
-    { code: 'RI', name: 'Rhode Island', lat: 41.82355, lng: -71.422132, countryCode: 'US' },
-    { code: 'MT', name: 'Montana', lat: 46.595805, lng: -110.037336, countryCode: 'US' },
-    { code: 'DE', name: 'Delaware', lat: 39.161921, lng: -75.526755, countryCode: 'US' },
-    { code: 'SD', name: 'South Dakota', lat: 44.2853, lng: -99.4632, countryCode: 'US' },
-    { code: 'ND', name: 'North Dakota', lat: 47.528912, lng: -99.784012, countryCode: 'US' },
-    { code: 'AK', name: 'Alaska', lat: 61.385, lng: -152.2683, countryCode: 'US' },
-    { code: 'VT', name: 'Vermont', lat: 44.26639, lng: -72.580536, countryCode: 'US' },
-    { code: 'WY', name: 'Wyoming', lat: 42.7475, lng: -107.2085, countryCode: 'US' },
-    
-    // Canadian Provinces
-    { code: 'ON', name: 'Ontario', lat: 51.2538, lng: -85.3232, countryCode: 'CA' },
-    { code: 'QC', name: 'Quebec', lat: 53.9214, lng: -73.2269, countryCode: 'CA' },
-    { code: 'BC', name: 'British Columbia', lat: 53.7267, lng: -127.6476, countryCode: 'CA' },
-    { code: 'AB', name: 'Alberta', lat: 53.9333, lng: -116.5765, countryCode: 'CA' },
-    { code: 'MB', name: 'Manitoba', lat: 53.7609, lng: -98.8139, countryCode: 'CA' },
-    { code: 'SK', name: 'Saskatchewan', lat: 52.9399, lng: -106.4509, countryCode: 'CA' },
-    { code: 'NS', name: 'Nova Scotia', lat: 44.6820, lng: -63.7443, countryCode: 'CA' },
-    { code: 'NB', name: 'New Brunswick', lat: 46.5653, lng: -66.4619, countryCode: 'CA' },
-    { code: 'NL', name: 'Newfoundland and Labrador', lat: 53.1355, lng: -57.6604, countryCode: 'CA' },
-    { code: 'PE', name: 'Prince Edward Island', lat: 46.5107, lng: -63.4168, countryCode: 'CA' },
-    { code: 'NT', name: 'Northwest Territories', lat: 61.9240, lng: -113.6458, countryCode: 'CA' },
-    { code: 'YT', name: 'Yukon Territory', lat: 64.0685, lng: -139.0686, countryCode: 'CA' },
-    { code: 'NU', name: 'Nunavut', lat: 70.2998, lng: -83.1076, countryCode: 'CA' }
-  ];
+  // Dynamic admin divisions loaded from external sources
+  private adminDivisionData: AdminDivision[] = [];
+  private adminDivisionsCache = new Map<string, AdminDivision[]>();
 
   isMobile = false;
   isTablet = false;
@@ -149,6 +97,284 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   constructor(private http: HttpClient, private render: Renderer2) {
     this.setupMediaQueries();
     this.checkScreenSize();
+  }
+
+  @HostListener('window:resize', ['$event'])
+  onWindowResize(event: Event) {
+    this.checkScreenSize();
+    this.handleResize();
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: any) {
+    // Handle document clicks if needed
+  }
+
+  private setupMediaQueries() {
+    if (typeof window !== 'undefined') {
+      this.mediaQueryMobile = window.matchMedia('(max-width: 767px)');
+      this.mediaQueryTablet = window.matchMedia('(min-width: 768px) and (max-width: 1023px)');
+      this.updateResponsiveState();
+      this.mediaQueryMobile.addEventListener('change', () => this.updateResponsiveState());
+      this.mediaQueryTablet.addEventListener('change', () => this.updateResponsiveState());
+    }
+  }
+
+  private updateResponsiveState() {
+    this.isMobile = this.mediaQueryMobile?.matches || false;
+    this.isTablet = this.mediaQueryTablet?.matches || false;
+    if (this.isMobile) {
+      this.legendCollapsed = false;
+    }
+    if (this.svg) {
+      setTimeout(() => {
+        this.handleResize();
+      }, 100);
+    }
+  }
+
+  private checkScreenSize() {
+    const width = window.innerWidth;
+    this.isMobile = width <= 767;
+    this.isTablet = width >= 768 && width <= 1024;
+  }
+
+  private getResponsiveRadius(): number {
+    const container = this.globeContainer?.nativeElement;
+    if (!container) return 300;
+    const width = container.offsetWidth;
+    const height = container.offsetHeight;
+    const minDimension = Math.min(width, height);
+    if (this.isMobile) {
+      return Math.min(minDimension * 0.35, 150);
+    } else if (this.isTablet) {
+      return Math.min(minDimension * 0.4, 200);
+    } else {
+      return Math.min(minDimension * 0.45, 300);
+    }
+  }
+
+  private latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
+    const phi = (90 - lat) * (Math.PI / 180);
+    const theta = (lng + 180) * (Math.PI / 180);
+    const x = -radius * Math.sin(phi) * Math.cos(theta);
+    const y = radius * Math.cos(phi);
+    const z = radius * Math.sin(phi) * Math.sin(theta);
+    const v = new THREE.Vector3(x, y, z);
+    v.applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
+    return v;
+  }
+
+  ngAfterViewInit() {
+    this.setupResizeObserver();
+    this.initializeGlobe();
+    this.loadData();
+    this.loadAdministrativeDivisions();
+  }
+
+  ngOnDestroy() {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
+    if (this.mediaQueryMobile) {
+      this.mediaQueryMobile.removeEventListener('change', () => this.updateResponsiveState());
+    }
+    if (this.mediaQueryTablet) {
+      this.mediaQueryTablet.removeEventListener('change', () => this.updateResponsiveState());
+    }
+  }
+
+  private setupResizeObserver() {
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(() => {
+        this.handleResize();
+      });
+      this.resizeObserver.observe(this.globeContainer.nativeElement);
+    }
+  }
+
+  private async loadAdministrativeDivisions() {
+    try {
+      // Load US States first (most reliable source)
+      await this.loadUSStates();
+      
+      // Load other administrative divisions using REST Countries API
+      await this.loadWorldAdminDivisions();
+      
+      // Alternative: Load using GeoNames API
+      // await this.loadGeoNamesData();
+      
+    } catch (error) {
+      console.log('Using fallback administrative division data');
+      this.loadFallbackAdminData();
+    }
+  }
+
+  private async loadUSStates(): Promise<void> {
+    try {
+      const data: any = await this.http.get(ADMIN_DATA_SOURCES.usStates).toPromise();
+      this.adminDivisions = topojson.feature(data, data.objects.states);
+      
+      // Extract state information from the topojson data
+      const usStates: AdminDivision[] = this.adminDivisions.features.map((feature: any) => ({
+        code: feature.properties.name.substring(0, 2).toUpperCase(), // Simplified code extraction
+        name: feature.properties.name,
+        lat: d3.geoCentroid(feature)[1],
+        lng: d3.geoCentroid(feature)[0],
+        countryCode: 'US',
+        type: 'state' as const
+      }));
+      
+      this.adminDivisionData.push(...usStates);
+      this.adminDivisionsCache.set('US', usStates);
+      
+    } catch (error) {
+      console.log('US states data not available:', error);
+    }
+  }
+
+  private async loadWorldAdminDivisions(): Promise<void> {
+    try {
+      const countries: any = await this.http.get(ADMIN_DATA_SOURCES.restCountries).toPromise();
+      
+      // For major countries, we can extract region information
+      countries.forEach((country: any) => {
+        if (country.subregion && country.latlng) {
+          const adminDiv: AdminDivision = {
+            code: country.cca2,
+            name: country.name.common,
+            lat: country.latlng[0],
+            lng: country.latlng[1],
+            countryCode: country.cca2,
+            type: 'region'
+          };
+          
+          if (!this.adminDivisionsCache.has(country.cca2)) {
+            this.adminDivisionsCache.set(country.cca2, []);
+          }
+          this.adminDivisionsCache.get(country.cca2)?.push(adminDiv);
+        }
+      });
+      
+    } catch (error) {
+      console.log('World admin divisions not available:', error);
+    }
+  }
+
+  private async loadGeoNamesData(): Promise<void> {
+    try {
+      // GeoNames API can provide administrative divisions
+      // Note: Requires API key for production use
+      const response: any = await this.http.get(
+        'http://api.geonames.org/searchJSON?q=*&fclass=A&fcode=ADM1&maxRows=1000&username=demo'
+      ).toPromise();
+      
+      const adminDivs: AdminDivision[] = response.geonames.map((item: any) => ({
+        code: item.adminCode1 || item.toponymName.substring(0, 2).toUpperCase(),
+        name: item.toponymName,
+        lat: parseFloat(item.lat),
+        lng: parseFloat(item.lng),
+        countryCode: item.countryCode,
+        type: 'region'
+      }));
+      
+      this.adminDivisionData.push(...adminDivs);
+      
+    } catch (error) {
+      console.log('GeoNames data not available:', error);
+    }
+  }
+
+  private loadFallbackAdminData(): void {
+    // Minimal fallback data for major regions only
+    const fallbackData: AdminDivision[] = [
+      { code: 'CA', name: 'California', lat: 36.7783, lng: -119.4179, countryCode: 'US', type: 'state' },
+      { code: 'TX', name: 'Texas', lat: 31.9686, lng: -99.9018, countryCode: 'US', type: 'state' },
+      { code: 'FL', name: 'Florida', lat: 27.7663, lng: -81.6868, countryCode: 'US', type: 'state' },
+      { code: 'NY', name: 'New York', lat: 40.7128, lng: -74.0060, countryCode: 'US', type: 'state' },
+      { code: 'ON', name: 'Ontario', lat: 51.2538, lng: -85.3232, countryCode: 'CA', type: 'province' },
+      { code: 'QC', name: 'Quebec', lat: 53.9214, lng: -73.2269, countryCode: 'CA', type: 'province' },
+    ];
+    
+    this.adminDivisionData = fallbackData;
+  }
+
+  // Method to dynamically load admin divisions for a specific country
+  private async loadAdminDivisionsForCountry(countryCode: string): Promise<AdminDivision[]> {
+    if (this.adminDivisionsCache.has(countryCode)) {
+      return this.adminDivisionsCache.get(countryCode) || [];
+    }
+
+    try {
+      // For specific countries, you could load detailed subdivision data
+      // Example for different data sources:
+      
+      if (countryCode === 'US') {
+        return await this.loadUSStateDetails();
+      } else if (countryCode === 'CA') {
+        return await this.loadCanadianProvinces();
+      } else if (countryCode === 'GB') {
+        return await this.loadUKRegions();
+      }
+      
+      // Generic approach for other countries
+      return await this.loadGenericAdminDivisions(countryCode);
+      
+    } catch (error) {
+      console.log(`Admin divisions for ${countryCode} not available:`, error);
+      return [];
+    }
+  }
+
+  private async loadUSStateDetails(): Promise<AdminDivision[]> {
+    // This could load from a more detailed US states API
+    // For now, return cached data
+    return this.adminDivisionsCache.get('US') || [];
+  }
+
+  private async loadCanadianProvinces(): Promise<AdminDivision[]> {
+    try {
+      // Could load from Statistics Canada API or similar
+      const response: any = await this.http.get(
+        'https://api.example.com/canada/provinces' // Replace with actual API
+      ).toPromise();
+      
+      return response.provinces.map((province: any) => ({
+        code: province.code,
+        name: province.name,
+        lat: province.lat,
+        lng: province.lng,
+        countryCode: 'CA',
+        type: 'province'
+      }));
+    } catch (error) {
+      return []; // Return empty array if API fails
+    }
+  }
+
+  private async loadUKRegions(): Promise<AdminDivision[]> {
+    // Similar pattern for UK regions
+    return [];
+  }
+
+  private async loadGenericAdminDivisions(countryCode: string): Promise<AdminDivision[]> {
+    try {
+      // Use GeoNames or similar service for generic country subdivisions
+      const response: any = await this.http.get(
+        `http://api.geonames.org/childrenJSON?geonameId=country&username=demo`
+      ).toPromise();
+      
+      return response.geonames.map((item: any) => ({
+        code: item.adminCode1 || item.name.substring(0, 2).toUpperCase(),
+        name: item.name,
+        lat: parseFloat(item.lat),
+        lng: parseFloat(item.lng),
+        countryCode: countryCode,
+        type: 'region'
+      }));
+    } catch (error) {
+      return [];
+    }
   }
 
   @HostListener('window:resize', ['$event'])
