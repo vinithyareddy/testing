@@ -320,63 +320,117 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
   private addCountryLabels() {
     this.svg.selectAll('.country-label').remove();
+    this.svg.selectAll('.country-label-shadow').remove();
 
-    // Filter countries that should have labels (only those in our data)
-    const labeledCountries = this.countriesList.filter(country => {
-      // Only show labels for countries with significant data
-      return country.uniqueSkills > 20 || country.skillSupply > 10;
+    // Filter and sort countries that should have labels
+    let labeledCountries = this.countriesList.filter(country => {
+      return country.uniqueSkills > 15 || country.skillSupply > 8;
     });
 
+    // Sort by importance (skill supply + unique skills)
+    labeledCountries.sort((a, b) => 
+      (b.skillSupply + b.uniqueSkills) - (a.skillSupply + a.uniqueSkills)
+    );
+
+    // Keep track of used positions to avoid overlap
+    const usedPositions: Array<{x: number, y: number}> = [];
+    const minDistance = this.isMobile ? 25 : 35;
+
     labeledCountries.forEach(country => {
-      const coordinates = [country.lng, country.lat];
-      const projected = this.projection(coordinates);
-      
-      if (projected && this.isCountryVisible(country.lat, country.lng)) {
-        const label = this.svg.append('text')
-          .attr('class', 'country-label')
-          .attr('x', projected[0])
-          .attr('y', projected[1])
-          .attr('text-anchor', 'middle')
-          .attr('dominant-baseline', 'middle')
-          .style('font-size', this.isMobile ? '10px' : '12px')
-          .style('font-weight', 'bold')
-          .style('fill', '#2c3e50')
-          .style('stroke', 'white')
-          .style('stroke-width', '2px')
-          .style('paint-order', 'stroke')
-          .style('pointer-events', 'none')
-          .style('user-select', 'none')
-          .text(country.country);
+      if (this.isCountryVisible(country.lat, country.lng)) {
+        const coordinates = [country.lng, country.lat];
+        const projected = this.projection(coordinates);
+        
+        if (projected) {
+          const globeDiv = this.globeContainer.nativeElement;
+          const centerX = globeDiv.offsetWidth / 2;
+          const centerY = globeDiv.offsetHeight / 2;
+          const distance = Math.sqrt(
+            Math.pow(projected[0] - centerX, 2) + Math.pow(projected[1] - centerY, 2)
+          );
+          
+          if (distance <= this.currentRadius * this.currentZoom - 10) {
+            // Check for overlap with existing labels
+            let canPlace = true;
+            for (const pos of usedPositions) {
+              const labelDistance = Math.sqrt(
+                Math.pow(projected[0] - pos.x, 2) + Math.pow(projected[1] - pos.y, 2)
+              );
+              if (labelDistance < minDistance) {
+                canPlace = false;
+                break;
+              }
+            }
 
-        // Add shadow for better visibility
-        const shadow = this.svg.append('text')
-          .attr('class', 'country-label-shadow')
-          .attr('x', projected[0])
-          .attr('y', projected[1] + 1)
-          .attr('text-anchor', 'middle')
-          .attr('dominant-baseline', 'middle')
-          .style('font-size', this.isMobile ? '10px' : '12px')
-          .style('font-weight', 'bold')
-          .style('fill', 'rgba(0,0,0,0.3)')
-          .style('pointer-events', 'none')
-          .style('user-select', 'none')
-          .text(country.country);
+            if (canPlace) {
+              // Add to used positions
+              usedPositions.push({x: projected[0], y: projected[1]});
 
-        // Move shadow behind the main label
-        shadow.lower();
-        label.raise();
+              // Add shadow first
+              const shadow = this.svg.append('text')
+                .attr('class', 'country-label-shadow')
+                .attr('x', projected[0] + 0.5)
+                .attr('y', projected[1] + 0.5)
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'central')
+                .style('font-size', this.isMobile ? '8px' : '10px')
+                .style('font-weight', '600')
+                .style('font-family', 'Arial, sans-serif')
+                .style('fill', 'rgba(0,0,0,0.5)')
+                .style('pointer-events', 'none')
+                .style('user-select', 'none')
+                .text(country.country);
+
+              // Add main label
+              const label = this.svg.append('text')
+                .attr('class', 'country-label')
+                .attr('x', projected[0])
+                .attr('y', projected[1])
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'central')
+                .style('font-size', this.isMobile ? '8px' : '10px')
+                .style('font-weight', '600')
+                .style('font-family', 'Arial, sans-serif')
+                .style('fill', '#1a365d')
+                .style('stroke', 'white')
+                .style('stroke-width', '1.5px')
+                .style('stroke-linejoin', 'round')
+                .style('paint-order', 'stroke fill')
+                .style('pointer-events', 'none')
+                .style('user-select', 'none')
+                .text(country.country);
+
+              // Calculate opacity based on distance from center and edge
+              const normalizedDistance = distance / (this.currentRadius * this.currentZoom);
+              const opacity = Math.max(0.4, Math.min(1, (1 - normalizedDistance) * 1.5));
+              
+              label.style('opacity', opacity);
+              shadow.style('opacity', opacity * 0.7);
+            }
+          }
+        }
       }
     });
   }
 
   private isCountryVisible(lat: number, lng: number): boolean {
-    // Check if the country is on the visible side of the globe
-    const rotatedLng = lng - this.currentRotation[0];
-    const rotatedLat = lat - this.currentRotation[1];
+    // Use the D3 projection to determine visibility
+    const coordinates = [lng, lat];
+    const projected = this.projection(coordinates);
     
-    // Simple visibility check based on rotation
-    const normalizedLng = ((rotatedLng + 180) % 360) - 180;
-    return Math.abs(normalizedLng) < 90;
+    if (!projected) return false;
+    
+    // Check if the projection is valid (not null) and within reasonable bounds
+    const globeDiv = this.globeContainer.nativeElement;
+    const centerX = globeDiv.offsetWidth / 2;
+    const centerY = globeDiv.offsetHeight / 2;
+    
+    const distance = Math.sqrt(
+      Math.pow(projected[0] - centerX, 2) + Math.pow(projected[1] - centerY, 2)
+    );
+    
+    // Return true if within the visible hemisphere
+    return distance <= this.currentRadius * this.currentZoom;
   }
 
   private showTooltip(event: any, d: any) {
