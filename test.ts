@@ -5,7 +5,6 @@ import { AfterViewInit, Component, ElementRef, Renderer2, ViewChild, OnDestroy, 
 import * as THREE from 'three';
 import * as topojson from 'topojson-client';
 import worldData from 'world-atlas/countries-110m.json';
-import admin1Data from 'world-atlas/50m.json'; // Natural Earth Admin-1 subdivisions
 import { FeatureCollection, Geometry } from 'geojson';
 import * as d3 from 'd3';
 import { LiftPopoverComponent } from '@lift/ui';
@@ -14,17 +13,6 @@ type CountrySkill = {
   country: string;
   code: string;
   region?: string;
-  uniqueSkills: number;
-  skillSupply: number;
-  lat: number;
-  lng: number;
-  position?: THREE.Vector3;
-};
-
-type StateSkill = {
-  state: string;
-  code: string;
-  country: string;
   uniqueSkills: number;
   skillSupply: number;
   lat: number;
@@ -51,12 +39,10 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   fullview = false;
 
   countriesList: CountrySkill[] = [];
-  statesList: StateSkill[] = [];
   filteredList: CountrySkill[] = [];
   searchTerm = '';
   legendCollapsed = false;
 
-  // D3.js globe properties
   private svg: any;
   private projection: any;
   private path: any;
@@ -95,9 +81,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   }
 
   @HostListener('document:click', ['$event'])
-  onDocumentClick(event: any) {
-    // Handle document clicks if needed
-  }
+  onDocumentClick(event: any) { }
 
   private setupMediaQueries() {
     if (typeof window !== 'undefined') {
@@ -216,11 +200,6 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       (worldData as any).objects.countries
     ) as unknown as FeatureCollection<Geometry, any>;
 
-    this.states = topojson.feature(
-      admin1Data as any,
-      (admin1Data as any).objects.admin1
-    ) as unknown as FeatureCollection<Geometry, any>;
-
     d3.select(globeDiv).selectAll('.globe-tooltip').remove();
     this.tooltip = d3.select(globeDiv)
       .append('div')
@@ -234,23 +213,18 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
   private handleResize() {
     if (!this.svg || !this.globeContainer) return;
-
     const globeDiv = this.globeContainer.nativeElement;
     const width = globeDiv.offsetWidth;
     const height = globeDiv.offsetHeight;
     this.currentRadius = this.getResponsiveRadius();
-
     this.projection
       .scale(this.currentRadius * this.currentZoom)
       .translate([width / 2, height / 2]);
-
     this.svg.attr('viewBox', `0 0 ${width} ${height}`);
-
     this.svg.select('circle')
       .attr('cx', width / 2)
       .attr('cy', height / 2)
       .attr('r', this.currentRadius * this.currentZoom);
-
     this.updateCountries();
     this.updateStates();
   }
@@ -270,7 +244,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         this.updateCountries();
         this.updateStates();
       })
-      .on('end', (event: any) => {
+      .on('end', () => {
         this.isDragging = false;
         setTimeout(() => {
           if (!this.isDragging) {
@@ -278,12 +252,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
           }
         }, 2000);
       });
-
     this.svg.select('circle').call(drag);
-
-    this.globeContainer.nativeElement.addEventListener('wheel', (event: WheelEvent) => {
-      // Handle wheel events if needed
-    }, { passive: true });
   }
 
   private loadData() {
@@ -298,17 +267,29 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         lng: c.lng,
         position: this.latLngToVector3(c.lat, c.lng, this.currentRadius)
       }));
-
+      const minSkills = d3.min(this.countriesList, (d: any) => d.uniqueSkills) || 0;
+      const maxSkills = d3.max(this.countriesList, (d: any) => d.uniqueSkills) || 1;
+      this.countryColorScale = d3.scaleLinear<string>()
+        .domain([minSkills, maxSkills])
+        .range(['#8db4ddff', '#144c88']);
       this.filteredList = [...this.countriesList];
       this.drawCountries();
-      this.drawStates();
       this.startRotation();
+    });
+
+    // Load global states/provinces
+    this.http.get<any>('assets/json/globe-states.json').subscribe(data => {
+      this.states = topojson.feature(
+        data,
+        data.objects.admin1
+      ) as FeatureCollection<Geometry, any>;
+      this.drawStates();
     });
   }
 
   private drawCountries() {
     this.svg.selectAll('.country').remove();
-
+    this.svg.selectAll('.country-label').remove();
     this.svg.selectAll('.country')
       .data(this.countries.features)
       .enter()
@@ -318,12 +299,25 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .attr('fill', (d: any) => this.getCountryColor(d))
       .attr('stroke', STROKE_COLOR_COUNTRY)
       .attr('stroke-width', 0.5)
-      .style('cursor', 'pointer');
+      .style('cursor', 'pointer')
+      .on('mouseover', (event: any, d: any) => {
+        this.isRotating = false;
+        this.showTooltip(event, d);
+      })
+      .on('mousemove', (event: any) => this.moveTooltip(event))
+      .on('mouseout', () => {
+        if (!this.isDragging) {
+          this.isRotating = true;
+        }
+        this.hideTooltip();
+      });
     this.addCountryLabels();
   }
 
   private drawStates() {
+    if (!this.states) return;
     this.svg.selectAll('.state').remove();
+    this.svg.selectAll('.state-label').remove();
 
     this.svg.selectAll('.state')
       .data(this.states.features)
@@ -333,45 +327,30 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .attr('d', this.path)
       .attr('fill', 'transparent')
       .attr('stroke', STROKE_COLOR_STATE)
-      .attr('stroke-width', 0.3)
-      .style('cursor', 'pointer');
-    this.addStateLabels();
-  }
-
-  private updateCountries() {
-    this.svg.selectAll('.country')
-      .attr('d', this.path)
-      .attr('fill', (d: any) => this.getCountryColor(d));
-    this.addCountryLabels();
-  }
-
-  private updateStates() {
-    this.svg.selectAll('.state')
-      .attr('d', this.path)
-      .attr('stroke', STROKE_COLOR_STATE)
       .attr('stroke-width', 0.3);
-    this.addStateLabels();
-  }
 
-  private addCountryLabels() {
-    // your existing addCountryLabels() code unchanged
+    this.addStateLabels();
   }
 
   private addStateLabels() {
+    if (!this.states) return;
     this.svg.selectAll('.state-label').remove();
-
     this.states.features.forEach((d: any) => {
       const centroid = this.path.centroid(d);
-      if (centroid && this.isPointInFrontHemisphere(d.properties.longitude || centroid[0], d.properties.latitude || centroid[1])) {
-        this.svg.append('text')
-          .attr('class', 'state-label')
-          .attr('x', centroid[0])
-          .attr('y', centroid[1])
-          .attr('text-anchor', 'middle')
-          .style('font-size', this.isMobile ? '6px' : '8px')
-          .style('font-weight', '400')
-          .style('fill', '#333')
-          .text(d.properties.name);
+      if (centroid) {
+        const props = d.properties;
+        const label = props.iso_3166_2 || props.name;
+        if (label && this.isPointInFrontHemisphere(centroid[0], centroid[1])) {
+          this.svg.append('text')
+            .attr('class', 'state-label')
+            .attr('x', centroid[0])
+            .attr('y', centroid[1])
+            .attr('text-anchor', 'middle')
+            .style('font-size', this.isMobile ? '6px' : '8px')
+            .style('font-weight', '400')
+            .style('fill', '#333')
+            .text(label);
+        }
       }
     });
   }
@@ -387,6 +366,59 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     const cosLambda = Math.cos(adjustedLng);
     const z = cosPhi * cosLambda;
     return z > 0.3;
+  }
+
+  private showTooltip(event: any, d: any) {
+    const entry = this.countriesList.find(c => c.country === d.properties.name);
+    if (entry) {
+      const tooltipContent = `
+        <div class="tooltip-header">
+          <img class="flag-icon" src="assets/images/flags/${entry.code.toLowerCase()}.svg"/>
+          <span>${entry.country}</span>
+        </div>
+        <div class="tooltip-row">
+          <span class="label">Unique Skills</span>
+          <span class="value">${entry.uniqueSkills}</span>
+        </div>
+        <div class="tooltip-row">
+          <span class="label">Skill Supply (FTE)</span>
+          <span class="value">${entry.skillSupply}</span>
+        </div>
+      `;
+      this.tooltip.html(tooltipContent).style('display', 'block');
+      this.moveTooltip(event);
+    }
+  }
+
+  private moveTooltip(event: any) {
+    const rect = this.globeContainer.nativeElement.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    const offsetX = this.isMobile ? 10 : 15;
+    const offsetY = this.isMobile ? 10 : 15;
+    this.tooltip
+      .style('left', (x + offsetX) + 'px')
+      .style('top', (y + offsetY) + 'px');
+  }
+
+  private hideTooltip() {
+    this.tooltip.style('display', 'none');
+  }
+
+  private updateCountries() {
+    this.svg.selectAll('.country')
+      .attr('d', this.path)
+      .attr('fill', (d: any) => this.getCountryColor(d));
+    this.svg.select('circle')
+      .attr('r', this.currentRadius * this.currentZoom);
+    this.addCountryLabels();
+  }
+
+  private updateStates() {
+    if (!this.states) return;
+    this.svg.selectAll('.state')
+      .attr('d', this.path);
+    this.addStateLabels();
   }
 
   private getCountryColor(d: any): string {
@@ -439,6 +471,16 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  focusOnCountry(country: CountrySkill) {
+    if (!country) return;
+    this.isRotating = false;
+    const targetRotation = [-country.lng, -country.lat];
+    this.currentRotation = targetRotation;
+    this.projection.rotate(this.currentRotation);
+    this.updateCountries();
+    this.updateStates();
+  }
+
   fullPageView() {
     this.fullview = !this.fullview;
     if (this.fullview === true) {
@@ -446,7 +488,6 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     } else {
       this.render.removeClass(document.body, 'no-scroll');
     }
-
     setTimeout(() => {
       this.handleResize();
       if (this.fullview && this.isMobile) {
