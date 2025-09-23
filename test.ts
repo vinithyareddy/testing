@@ -263,44 +263,66 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   }
 
   private createCountryPatterns(defs: any) {
-    // Create multiple terrain patterns with different intensities
-    const intensities = [
-      { id: 'terrain-light', base: '#c8e6c8', accent1: '#b5d8b5', accent2: '#a2cba2' },
-      { id: 'terrain-medium', base: '#a8d5a8', accent1: '#95c295', accent2: '#82af82' },
-      { id: 'terrain-dark', base: '#88c488', accent1: '#75b175', accent2: '#629e62' },
-      { id: 'terrain-darker', base: '#68b368', accent1: '#55a055', accent2: '#428d42' }
+    // Create crosshatch patterns with different intensities like in the reference image
+    const patterns = [
+      { id: 'crosshatch-light', base: '#c8e6c8', line: '#9ccc9c', spacing: 3, opacity: 0.3 },
+      { id: 'crosshatch-medium', base: '#a8d5a8', line: '#7bb87b', spacing: 2.5, opacity: 0.4 },
+      { id: 'crosshatch-dark', base: '#88c488', line: '#5a9d5a', spacing: 2, opacity: 0.5 },
+      { id: 'crosshatch-darker', base: '#68a368', line: '#3a7a3a', spacing: 1.5, opacity: 0.6 }
     ];
 
-    intensities.forEach(intensity => {
+    patterns.forEach(patternConfig => {
       const pattern = defs.append('pattern')
-        .attr('id', intensity.id)
+        .attr('id', patternConfig.id)
         .attr('patternUnits', 'userSpaceOnUse')
         .attr('width', 8)
         .attr('height', 8);
 
-      // Base terrain color
+      // Base color
       pattern.append('rect')
         .attr('width', 8)
         .attr('height', 8)
-        .attr('fill', intensity.base);
+        .attr('fill', patternConfig.base);
 
-      // Add random terrain texture points
-      for (let i = 0; i < 6; i++) {
-        pattern.append('circle')
-          .attr('cx', Math.random() * 8)
-          .attr('cy', Math.random() * 8)
-          .attr('r', Math.random() * 0.5 + 0.2)
-          .attr('fill', i % 2 === 0 ? intensity.accent1 : intensity.accent2)
-          .attr('opacity', 0.7);
+      // Create diagonal crosshatch lines
+      const lineGroup = pattern.append('g')
+        .attr('stroke', patternConfig.line)
+        .attr('stroke-width', 0.5)
+        .attr('opacity', patternConfig.opacity);
+
+      // Diagonal lines going top-left to bottom-right
+      for (let i = -8; i <= 16; i += patternConfig.spacing) {
+        lineGroup.append('line')
+          .attr('x1', i)
+          .attr('y1', 0)
+          .attr('x2', i + 8)
+          .attr('y2', 8);
       }
 
-      // Add subtle lines for topographic feel
-      pattern.append('path')
-        .attr('d', `M0,${Math.random() * 8} Q4,${Math.random() * 8} 8,${Math.random() * 8}`)
-        .attr('stroke', intensity.accent2)
+      // Diagonal lines going top-right to bottom-left
+      for (let i = -8; i <= 16; i += patternConfig.spacing) {
+        lineGroup.append('line')
+          .attr('x1', i)
+          .attr('y1', 8)
+          .attr('x2', i + 8)
+          .attr('y2', 0);
+      }
+
+      // Add subtle elevation-style contour lines
+      const contourGroup = pattern.append('g')
+        .attr('stroke', patternConfig.line)
         .attr('stroke-width', 0.3)
         .attr('fill', 'none')
-        .attr('opacity', 0.5);
+        .attr('opacity', patternConfig.opacity * 0.7);
+
+      // Curved contour lines for topographic effect
+      contourGroup.append('path')
+        .attr('d', 'M0,2 Q4,1.5 8,2')
+        .attr('opacity', 0.4);
+      
+      contourGroup.append('path')
+        .attr('d', 'M0,6 Q4,5.5 8,6')
+        .attr('opacity', 0.4);
     });
   }
 
@@ -612,22 +634,22 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     const entry = this.countriesList.find(c => c.country === countryName);
     
     if (entry) {
-      // Use textured patterns based on skill levels
+      // Use crosshatch patterns based on skill levels
       const totalSkills = entry.uniqueSkills + entry.skillSupply;
       
       if (totalSkills >= 80) {
-        return 'url(#terrain-darker)';  // Highest skill level
+        return 'url(#crosshatch-darker)';  // Highest skill level
       } else if (totalSkills >= 60) {
-        return 'url(#terrain-dark)';    // High skill level  
+        return 'url(#crosshatch-dark)';    // High skill level  
       } else if (totalSkills >= 40) {
-        return 'url(#terrain-medium)';  // Medium skill level
+        return 'url(#crosshatch-medium)';  // Medium skill level
       } else {
-        return 'url(#terrain-light)';   // Lower skill level
+        return 'url(#crosshatch-light)';   // Lower skill level
       }
     }
     
-    // Default terrain pattern for countries without data
-    return 'url(#terrain-light)';
+    // Default crosshatch pattern for countries without data
+    return 'url(#crosshatch-light)';
   }
 
   private startRotation() {
