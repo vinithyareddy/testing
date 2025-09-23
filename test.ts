@@ -20,6 +20,14 @@ type CountrySkill = {
   position?: THREE.Vector3;
 };
 
+type StateInfo = {
+  code: string;
+  name: string;
+  lat: number;
+  lng: number;
+  countryCode: string;
+};
+
 const CUSTOM_GLOBE_COLOR = '#84c9f6';
 const STROKE_COLOR_COUNTRY = '#7e8790';
 const FALLBACK_COLOR = '#e0e0e0';
@@ -47,6 +55,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   private projection: any;
   private path: any;
   private countries!: FeatureCollection<Geometry, any>;
+  private usStates: any = null;
   private currentRotation = [0, 0];
   private isRotating = true;
   private tooltip: any;
@@ -57,6 +66,75 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   private countryColorScale = d3.scaleLinear<string>()
     .domain([0, 1])
     .range(['#8db4ddff', '#144c88']);
+
+  // State/Province data mapping
+  private stateData: StateInfo[] = [
+    // US States (major ones)
+    { code: 'CA', name: 'California', lat: 36.7783, lng: -119.4179, countryCode: 'US' },
+    { code: 'TX', name: 'Texas', lat: 31.9686, lng: -99.9018, countryCode: 'US' },
+    { code: 'FL', name: 'Florida', lat: 27.7663, lng: -81.6868, countryCode: 'US' },
+    { code: 'NY', name: 'New York', lat: 40.7128, lng: -74.0060, countryCode: 'US' },
+    { code: 'PA', name: 'Pennsylvania', lat: 41.2033, lng: -77.1945, countryCode: 'US' },
+    { code: 'IL', name: 'Illinois', lat: 40.3363, lng: -89.0022, countryCode: 'US' },
+    { code: 'OH', name: 'Ohio', lat: 40.3888, lng: -82.7649, countryCode: 'US' },
+    { code: 'GA', name: 'Georgia', lat: 33.76, lng: -84.39, countryCode: 'US' },
+    { code: 'NC', name: 'North Carolina', lat: 35.771, lng: -78.638, countryCode: 'US' },
+    { code: 'MI', name: 'Michigan', lat: 43.3266, lng: -84.5361, countryCode: 'US' },
+    { code: 'NJ', name: 'New Jersey', lat: 40.314, lng: -74.756, countryCode: 'US' },
+    { code: 'VA', name: 'Virginia', lat: 37.768, lng: -78.2057, countryCode: 'US' },
+    { code: 'WA', name: 'Washington', lat: 47.042, lng: -122.893, countryCode: 'US' },
+    { code: 'AZ', name: 'Arizona', lat: 33.7712, lng: -111.3877, countryCode: 'US' },
+    { code: 'MA', name: 'Massachusetts', lat: 42.2373, lng: -71.5314, countryCode: 'US' },
+    { code: 'TN', name: 'Tennessee', lat: 35.7449, lng: -86.7489, countryCode: 'US' },
+    { code: 'IN', name: 'Indiana', lat: 40.5, lng: -86.25, countryCode: 'US' },
+    { code: 'MO', name: 'Missouri', lat: 38.572954, lng: -92.189283, countryCode: 'US' },
+    { code: 'MD', name: 'Maryland', lat: 39.161921, lng: -76.505206, countryCode: 'US' },
+    { code: 'WI', name: 'Wisconsin', lat: 44.25, lng: -89.5, countryCode: 'US' },
+    { code: 'CO', name: 'Colorado', lat: 39.550051, lng: -105.782067, countryCode: 'US' },
+    { code: 'MN', name: 'Minnesota', lat: 46.39241, lng: -94.63623, countryCode: 'US' },
+    { code: 'SC', name: 'South Carolina', lat: 33.76, lng: -81.035, countryCode: 'US' },
+    { code: 'AL', name: 'Alabama', lat: 32.354668, lng: -86.732662, countryCode: 'US' },
+    { code: 'LA', name: 'Louisiana', lat: 30.45809, lng: -91.140229, countryCode: 'US' },
+    { code: 'KY', name: 'Kentucky', lat: 37.669789, lng: -84.6701, countryCode: 'US' },
+    { code: 'OR', name: 'Oregon', lat: 44.931109, lng: -123.029159, countryCode: 'US' },
+    { code: 'OK', name: 'Oklahoma', lat: 35.482309, lng: -97.534994, countryCode: 'US' },
+    { code: 'CT', name: 'Connecticut', lat: 41.767, lng: -72.677, countryCode: 'US' },
+    { code: 'UT', name: 'Utah', lat: 39.32098, lng: -111.093731, countryCode: 'US' },
+    { code: 'NV', name: 'Nevada', lat: 38.4199, lng: -116.4069, countryCode: 'US' },
+    { code: 'AR', name: 'Arkansas', lat: 34.9513, lng: -92.3809, countryCode: 'US' },
+    { code: 'MS', name: 'Mississippi', lat: 32.354668, lng: -89.398528, countryCode: 'US' },
+    { code: 'KS', name: 'Kansas', lat: 38.5111, lng: -96.8005, countryCode: 'US' },
+    { code: 'NM', name: 'New Mexico', lat: 34.307144, lng: -106.018066, countryCode: 'US' },
+    { code: 'NE', name: 'Nebraska', lat: 41.4925, lng: -99.9018, countryCode: 'US' },
+    { code: 'WV', name: 'West Virginia', lat: 38.349497, lng: -81.633294, countryCode: 'US' },
+    { code: 'ID', name: 'Idaho', lat: 44.240459, lng: -114.478828, countryCode: 'US' },
+    { code: 'HI', name: 'Hawaii', lat: 21.30895, lng: -157.826182, countryCode: 'US' },
+    { code: 'NH', name: 'New Hampshire', lat: 43.452492, lng: -71.563896, countryCode: 'US' },
+    { code: 'ME', name: 'Maine', lat: 44.323535, lng: -69.765261, countryCode: 'US' },
+    { code: 'RI', name: 'Rhode Island', lat: 41.82355, lng: -71.422132, countryCode: 'US' },
+    { code: 'MT', name: 'Montana', lat: 46.595805, lng: -110.037336, countryCode: 'US' },
+    { code: 'DE', name: 'Delaware', lat: 39.161921, lng: -75.526755, countryCode: 'US' },
+    { code: 'SD', name: 'South Dakota', lat: 44.2853, lng: -99.4632, countryCode: 'US' },
+    { code: 'ND', name: 'North Dakota', lat: 47.528912, lng: -99.784012, countryCode: 'US' },
+    { code: 'AK', name: 'Alaska', lat: 61.385, lng: -152.2683, countryCode: 'US' },
+    { code: 'VT', name: 'Vermont', lat: 44.26639, lng: -72.580536, countryCode: 'US' },
+    { code: 'WY', name: 'Wyoming', lat: 42.7475, lng: -107.2085, countryCode: 'US' },
+    
+    // Canadian Provinces
+    { code: 'ON', name: 'Ontario', lat: 51.2538, lng: -85.3232, countryCode: 'CA' },
+    { code: 'QC', name: 'Quebec', lat: 53.9214, lng: -73.2269, countryCode: 'CA' },
+    { code: 'BC', name: 'British Columbia', lat: 53.7267, lng: -127.6476, countryCode: 'CA' },
+    { code: 'AB', name: 'Alberta', lat: 53.9333, lng: -116.5765, countryCode: 'CA' },
+    { code: 'MB', name: 'Manitoba', lat: 53.7609, lng: -98.8139, countryCode: 'CA' },
+    { code: 'SK', name: 'Saskatchewan', lat: 52.9399, lng: -106.4509, countryCode: 'CA' },
+    { code: 'NS', name: 'Nova Scotia', lat: 44.6820, lng: -63.7443, countryCode: 'CA' },
+    { code: 'NB', name: 'New Brunswick', lat: 46.5653, lng: -66.4619, countryCode: 'CA' },
+    { code: 'NL', name: 'Newfoundland and Labrador', lat: 53.1355, lng: -57.6604, countryCode: 'CA' },
+    { code: 'PE', name: 'Prince Edward Island', lat: 46.5107, lng: -63.4168, countryCode: 'CA' },
+    { code: 'NT', name: 'Northwest Territories', lat: 61.9240, lng: -113.6458, countryCode: 'CA' },
+    { code: 'YT', name: 'Yukon Territory', lat: 64.0685, lng: -139.0686, countryCode: 'CA' },
+    { code: 'NU', name: 'Nunavut', lat: 70.2998, lng: -83.1076, countryCode: 'CA' }
+  ];
 
   isMobile = false;
   isTablet = false;
@@ -143,6 +221,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     this.setupResizeObserver();
     this.initializeGlobe();
     this.loadData();
+    this.loadUSStatesData();
   }
 
   ngOnDestroy() {
@@ -164,6 +243,20 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       });
       this.resizeObserver.observe(this.globeContainer.nativeElement);
     }
+  }
+
+  private loadUSStatesData() {
+    // Try to load US states data from a CDN
+    this.http.get('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json')
+      .subscribe({
+        next: (data: any) => {
+          this.usStates = topojson.feature(data, data.objects.states);
+          this.drawCountries(); // Redraw to include state boundaries
+        },
+        error: (error) => {
+          console.log('US states data not available, using coordinates only:', error);
+        }
+      });
   }
 
   private initializeGlobe() {
@@ -188,61 +281,11 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .attr('viewBox', `0 0 ${width} ${height}`)
       .attr('preserveAspectRatio', 'xMidYMid meet');
 
-    // Create defs for patterns and gradients
-    const defs = this.svg.append('defs');
-
-    // Create terrain-like pattern
-    const terrainPattern = defs.append('pattern')
-      .attr('id', 'terrain-pattern')
-      .attr('patternUnits', 'userSpaceOnUse')
-      .attr('width', 4)
-      .attr('height', 4);
-
-    // Add subtle dots pattern for terrain texture
-    terrainPattern.append('rect')
-      .attr('width', 4)
-      .attr('height', 4)
-      .attr('fill', '#a8d5a8');
-
-    terrainPattern.append('circle')
-      .attr('cx', 1)
-      .attr('cy', 1)
-      .attr('r', 0.3)
-      .attr('fill', '#8fbc8f');
-
-    terrainPattern.append('circle')
-      .attr('cx', 3)
-      .attr('cy', 3)
-      .attr('r', 0.2)
-      .attr('fill', '#7aa67a');
-
-    // Create water texture pattern
-    const waterPattern = defs.append('pattern')
-      .attr('id', 'water-pattern')
-      .attr('patternUnits', 'userSpaceOnUse')
-      .attr('width', 6)
-      .attr('height', 6);
-
-    waterPattern.append('rect')
-      .attr('width', 6)
-      .attr('height', 6)
-      .attr('fill', CUSTOM_GLOBE_COLOR);
-
-    // Add subtle wave lines
-    waterPattern.append('path')
-      .attr('d', 'M0,3 Q3,1 6,3')
-      .attr('stroke', '#7bb8e6')
-      .attr('stroke-width', 0.3)
-      .attr('fill', 'none');
-
-    // Create country-specific patterns with varying intensities
-    this.createCountryPatterns(defs);
-
     this.svg.append('circle')
       .attr('cx', width / 2)
       .attr('cy', height / 2)
       .attr('r', this.currentRadius)
-      .attr('fill', 'url(#water-pattern)')
+      .attr('fill', CUSTOM_GLOBE_COLOR)
       .attr('stroke', '#ccc')
       .attr('stroke-width', 1);
 
@@ -260,97 +303,6 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .style('display', 'none');
 
     this.setupInteractions();
-  }
-
-  private createCountryPatterns(defs: any) {
-    // Create Google Maps-style terrain patterns with organic elevation shading
-    const patterns = [
-      { id: 'terrain-light', colors: ['#e6f3e6', '#d9eed9', '#cce8cc'] },
-      { id: 'terrain-medium', colors: ['#b3ddb3', '#a6d6a6', '#99d099'] },
-      { id: 'terrain-dark', colors: ['#80cc80', '#73c573', '#66bf66'] },
-      { id: 'terrain-darker', colors: ['#4db84d', '#40b140', '#33aa33'] }
-    ];
-
-    patterns.forEach((patternConfig, index) => {
-      const pattern = defs.append('pattern')
-        .attr('id', patternConfig.id)
-        .attr('patternUnits', 'userSpaceOnUse')
-        .attr('width', 20)
-        .attr('height', 20);
-
-      // Create base gradient for elevation effect
-      const gradient = defs.append('linearGradient')
-        .attr('id', `elevation-gradient-${index}`)
-        .attr('x1', '0%')
-        .attr('y1', '0%')
-        .attr('x2', '100%')
-        .attr('y2', '100%');
-
-      gradient.append('stop')
-        .attr('offset', '0%')
-        .attr('stop-color', patternConfig.colors[0]);
-
-      gradient.append('stop')
-        .attr('offset', '50%')
-        .attr('stop-color', patternConfig.colors[1]);
-
-      gradient.append('stop')
-        .attr('offset', '100%')
-        .attr('stop-color', patternConfig.colors[2]);
-
-      // Base terrain with gradient
-      pattern.append('rect')
-        .attr('width', 20)
-        .attr('height', 20)
-        .attr('fill', `url(#elevation-gradient-${index})`);
-
-      // Add organic terrain variation with random shapes
-      const terrainGroup = pattern.append('g')
-        .attr('opacity', 0.3);
-
-      // Create irregular terrain patches
-      for (let i = 0; i < 8; i++) {
-        const x = Math.random() * 20;
-        const y = Math.random() * 20;
-        const size = Math.random() * 3 + 1;
-        
-        terrainGroup.append('circle')
-          .attr('cx', x)
-          .attr('cy', y)
-          .attr('r', size)
-          .attr('fill', patternConfig.colors[Math.floor(Math.random() * 3)])
-          .attr('opacity', 0.4);
-      }
-
-      // Add subtle elevation contours
-      const contourGroup = pattern.append('g')
-        .attr('stroke', patternConfig.colors[2])
-        .attr('stroke-width', 0.3)
-        .attr('fill', 'none')
-        .attr('opacity', 0.2);
-
-      // Organic contour lines
-      contourGroup.append('path')
-        .attr('d', `M0,${5 + Math.random() * 3} Q${10 + Math.random() * 2},${7 + Math.random() * 2} 20,${6 + Math.random() * 3}`)
-        .attr('opacity', 0.3);
-
-      contourGroup.append('path')
-        .attr('d', `M0,${12 + Math.random() * 3} Q${10 + Math.random() * 2},${14 + Math.random() * 2} 20,${13 + Math.random() * 3}`)
-        .attr('opacity', 0.3);
-
-      // Add texture noise for realistic terrain feel
-      const noiseGroup = pattern.append('g')
-        .attr('opacity', 0.1);
-
-      for (let i = 0; i < 15; i++) {
-        noiseGroup.append('rect')
-          .attr('x', Math.random() * 20)
-          .attr('y', Math.random() * 20)
-          .attr('width', 0.5)
-          .attr('height', 0.5)
-          .attr('fill', patternConfig.colors[2]);
-      }
-    });
   }
 
   private handleResize() {
@@ -433,6 +385,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   private drawCountries() {
     this.svg.selectAll('.country').remove();
     this.svg.selectAll('.country-label').remove();
+    this.svg.selectAll('.state-boundary').remove();
 
     this.svg.selectAll('.country')
       .data(this.countries.features)
@@ -456,7 +409,22 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         this.hideTooltip();
       });
 
+    // Draw US state boundaries if available
+    if (this.usStates) {
+      this.svg.selectAll('.state-boundary')
+        .data(this.usStates.features)
+        .enter()
+        .append('path')
+        .attr('class', 'state-boundary')
+        .attr('d', this.path)
+        .attr('fill', 'none')
+        .attr('stroke', '#999')
+        .attr('stroke-width', 0.3)
+        .attr('opacity', 0.6);
+    }
+
     this.addCountryLabels();
+    this.addStateLabels();
   }
 
   private addCountryLabels() {
@@ -559,6 +527,138 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     });
   }
 
+  private addStateLabels() {
+    this.svg.selectAll('.state-label').remove();
+    this.svg.selectAll('.state-label-shadow').remove();
+
+    const usedPositions: Array<{x: number, y: number}> = [];
+    const minDistance = this.isMobile ? 20 : 25;
+
+    // Get visible states based on current zoom level
+    const visibleStates = this.getVisibleStates();
+
+    visibleStates.forEach(state => {
+      if (this.isPointInFrontHemisphere(state.lng, state.lat)) {
+        const coordinates = [state.lng, state.lat];
+        const projected = this.projection(coordinates);
+        
+        if (projected && projected[0] && projected[1] && !isNaN(projected[0]) && !isNaN(projected[1])) {
+          const globeDiv = this.globeContainer.nativeElement;
+          const centerX = globeDiv.offsetWidth / 2;
+          const centerY = globeDiv.offsetHeight / 2;
+          
+          const distance = Math.sqrt(
+            Math.pow(projected[0] - centerX, 2) + Math.pow(projected[1] - centerY, 2)
+          );
+          
+          const maxDistance = this.currentRadius * this.currentZoom * 0.85;
+          
+          if (distance <= maxDistance) {
+            // Check for overlap
+            let canPlace = true;
+            for (const pos of usedPositions) {
+              const labelDistance = Math.sqrt(
+                Math.pow(projected[0] - pos.x, 2) + Math.pow(projected[1] - pos.y, 2)
+              );
+              if (labelDistance < minDistance) {
+                canPlace = false;
+                break;
+              }
+            }
+
+            if (canPlace) {
+              usedPositions.push({x: projected[0], y: projected[1]});
+
+              const normalizedDistance = distance / maxDistance;
+              const opacity = Math.max(0.4, Math.min(0.8, 1 - normalizedDistance * 0.4));
+
+              // Add state code shadow
+              const stateShadow = this.svg.append('text')
+                .attr('class', 'state-label-shadow')
+                .attr('x', projected[0] + 0.3)
+                .attr('y', projected[1] + 0.3)
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'central')
+                .style('font-size', this.isMobile ? '6px' : '8px')
+                .style('font-weight', '500')
+                .style('font-family', 'Arial, sans-serif')
+                .style('fill', 'rgba(0,0,0,0.4)')
+                .style('pointer-events', 'none')
+                .style('user-select', 'none')
+                .style('opacity', opacity * 0.6)
+                .text(state.code);
+
+              // Add state code label
+              const stateLabel = this.svg.append('text')
+                .attr('class', 'state-label')
+                .attr('x', projected[0])
+                .attr('y', projected[1])
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'central')
+                .style('font-size', this.isMobile ? '6px' : '8px')
+                .style('font-weight', '500')
+                .style('font-family', 'Arial, sans-serif')
+                .style('fill', '#2d4a3e')
+                .style('stroke', 'white')
+                .style('stroke-width', '1px')
+                .style('stroke-linejoin', 'round')
+                .style('paint-order', 'stroke fill')
+                .style('pointer-events', 'none')
+                .style('user-select', 'none')
+                .style('opacity', opacity)
+                .text(state.code);
+            }
+          }
+        }
+      }
+    });
+  }
+
+  private getVisibleStates(): StateInfo[] {
+    // Only show state labels when zoomed in enough
+    if (this.currentZoom < 1.5) {
+      return [];
+    }
+
+    // Filter states based on what's currently visible and zoom level
+    const currentCountry = this.getCurrentlyFocusedCountry();
+    
+    if (currentCountry === 'US' || currentCountry === 'United States') {
+      // Show US states
+      return this.stateData.filter(state => 
+        state.countryCode === 'US' && 
+        Math.abs(state.lng - (-this.currentRotation[0])) < 30 &&
+        Math.abs(state.lat - (-this.currentRotation[1])) < 20
+      );
+    } else if (currentCountry === 'CA' || currentCountry === 'Canada') {
+      // Show Canadian provinces
+      return this.stateData.filter(state => 
+        state.countryCode === 'CA' &&
+        Math.abs(state.lng - (-this.currentRotation[0])) < 40 &&
+        Math.abs(state.lat - (-this.currentRotation[1])) < 25
+      );
+    }
+
+    return [];
+  }
+
+  private getCurrentlyFocusedCountry(): string | null {
+    // Determine which country is currently in focus based on rotation
+    const centerLng = -this.currentRotation[0];
+    const centerLat = -this.currentRotation[1];
+
+    // Check if we're looking at North America
+    if (centerLng > -130 && centerLng < -60 && centerLat > 25 && centerLat < 70) {
+      if (centerLng > -130 && centerLng < -95 && centerLat > 48) {
+        return 'CA'; // Canada
+      } else if (centerLng > -125 && centerLng < -65 && centerLat > 25 && centerLat < 50) {
+        return 'US'; // United States
+      }
+    }
+
+    return null;
+  }
+
   private isPointInFrontHemisphere(lng: number, lat: number): boolean {
     // Convert degrees to radians
     const lambda = (lng * Math.PI) / 180;
@@ -652,31 +752,21 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     this.svg.select('circle')
       .attr('r', this.currentRadius * this.currentZoom);
 
+    // Update state boundaries if they exist
+    if (this.usStates) {
+      this.svg.selectAll('.state-boundary')
+        .attr('d', this.path);
+    }
+
     // Update labels to rotate with the globe
     this.addCountryLabels();
+    this.addStateLabels();
   }
 
   private getCountryColor(d: any): string {
     const countryName = d.properties.name;
     const entry = this.countriesList.find(c => c.country === countryName);
-    
-    if (entry) {
-      // Use Google Maps-style terrain patterns based on skill levels
-      const totalSkills = entry.uniqueSkills + entry.skillSupply;
-      
-      if (totalSkills >= 80) {
-        return 'url(#terrain-darker)';  // Highest skill level - darkest green
-      } else if (totalSkills >= 60) {
-        return 'url(#terrain-dark)';    // High skill level - dark green
-      } else if (totalSkills >= 40) {
-        return 'url(#terrain-medium)';  // Medium skill level - medium green
-      } else {
-        return 'url(#terrain-light)';   // Lower skill level - light green
-      }
-    }
-    
-    // Default terrain pattern for countries without data
-    return 'url(#terrain-light)';
+    return entry ? this.countryColorScale(entry.uniqueSkills) : FALLBACK_COLOR;
   }
 
   private startRotation() {
