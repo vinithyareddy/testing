@@ -435,26 +435,45 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     this.projection.rotate(this.currentRotation);
     this.updateCountries();
 
-    this.svg.selectAll('.country-marker').remove();
+    // Remove any existing highlights
+    this.svg.selectAll('.country-highlight').remove();
 
-    const [x, y] = this.projection([country.lng, country.lat]) || [0, 0];
-    const iconUrl = this.createIconDataUrl('#d13a35ff', this.isMobile ? 64 : 96);
+    // Find the country feature in the topojson data
+    const countryFeature = this.countries.features.find((feature: any) => 
+      feature.properties.name === country.country
+    );
 
-    const pin = this.svg.append('image')
-      .attr('class', 'country-marker')
-      .attr('x', x - 24)
-      .attr('y', y - 48)
-      .attr('width', this.isMobile ? 36 : 48)
-      .attr('height', this.isMobile ? 36 : 48)
-      .attr('href', iconUrl);
+    if (countryFeature) {
+      // Add highlighted country with dotted border
+      const highlight = this.svg.append('path')
+        .datum(countryFeature)
+        .attr('class', 'country-highlight')
+        .attr('d', this.path)
+        .attr('fill', 'none')
+        .attr('stroke', '#ff4444')
+        .attr('stroke-width', 3)
+        .attr('stroke-dasharray', '8,4')
+        .style('opacity', 0);
 
-    pin.style('opacity', 0)
-      .transition().duration(400).style('opacity', 1);
+      // Animate the highlight appearance
+      highlight.transition()
+        .duration(400)
+        .style('opacity', 1);
 
-    setTimeout(() => {
-      pin.transition().duration(600).style('opacity', 0).remove();
-      this.isRotating = true;
-    }, 3000);
+      // Remove highlight after 3 seconds
+      setTimeout(() => {
+        highlight.transition()
+          .duration(600)
+          .style('opacity', 0)
+          .remove();
+        this.isRotating = true;
+      }, 3000);
+    } else {
+      // If country not found, resume rotation immediately
+      setTimeout(() => {
+        this.isRotating = true;
+      }, 1000);
+    }
   }
 
   fullPageView() {
