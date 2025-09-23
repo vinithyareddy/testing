@@ -24,12 +24,12 @@ type CountryCost = {
 };
 
 // Enhanced color scheme to match target
-const GLOBE_BACKGROUND = 'radial-gradient(circle at 30% 30%, #4a90e2, #2c5aa0)';
+const GLOBE_BACKGROUND = 'radial-gradient(circle at center, #85c1e9 0%, #5dade2 30%, #3498db 60%, #2e86c1 100%)';
 const COUNTRY_COLORS = {
   default: '#7dd3c0',
-  hover: '#5bc0a0',
+  hover: '#5bc0a0', 
   selected: '#ffffff',
-  water: '#4a90e2'
+  water: '#85c1e9'
 };
 const GRATICULE_COLOR = 'rgba(255, 255, 255, 0.2)';
 const LABEL_COLOR = '#ffffff';
