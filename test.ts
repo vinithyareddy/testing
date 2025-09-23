@@ -188,11 +188,61 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .attr('viewBox', `0 0 ${width} ${height}`)
       .attr('preserveAspectRatio', 'xMidYMid meet');
 
+    // Create defs for patterns and gradients
+    const defs = this.svg.append('defs');
+
+    // Create terrain-like pattern
+    const terrainPattern = defs.append('pattern')
+      .attr('id', 'terrain-pattern')
+      .attr('patternUnits', 'userSpaceOnUse')
+      .attr('width', 4)
+      .attr('height', 4);
+
+    // Add subtle dots pattern for terrain texture
+    terrainPattern.append('rect')
+      .attr('width', 4)
+      .attr('height', 4)
+      .attr('fill', '#a8d5a8');
+
+    terrainPattern.append('circle')
+      .attr('cx', 1)
+      .attr('cy', 1)
+      .attr('r', 0.3)
+      .attr('fill', '#8fbc8f');
+
+    terrainPattern.append('circle')
+      .attr('cx', 3)
+      .attr('cy', 3)
+      .attr('r', 0.2)
+      .attr('fill', '#7aa67a');
+
+    // Create water texture pattern
+    const waterPattern = defs.append('pattern')
+      .attr('id', 'water-pattern')
+      .attr('patternUnits', 'userSpaceOnUse')
+      .attr('width', 6)
+      .attr('height', 6);
+
+    waterPattern.append('rect')
+      .attr('width', 6)
+      .attr('height', 6)
+      .attr('fill', CUSTOM_GLOBE_COLOR);
+
+    // Add subtle wave lines
+    waterPattern.append('path')
+      .attr('d', 'M0,3 Q3,1 6,3')
+      .attr('stroke', '#7bb8e6')
+      .attr('stroke-width', 0.3)
+      .attr('fill', 'none');
+
+    // Create country-specific patterns with varying intensities
+    this.createCountryPatterns(defs);
+
     this.svg.append('circle')
       .attr('cx', width / 2)
       .attr('cy', height / 2)
       .attr('r', this.currentRadius)
-      .attr('fill', CUSTOM_GLOBE_COLOR)
+      .attr('fill', 'url(#water-pattern)')
       .attr('stroke', '#ccc')
       .attr('stroke-width', 1);
 
@@ -210,6 +260,48 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .style('display', 'none');
 
     this.setupInteractions();
+  }
+
+  private createCountryPatterns(defs: any) {
+    // Create multiple terrain patterns with different intensities
+    const intensities = [
+      { id: 'terrain-light', base: '#c8e6c8', accent1: '#b5d8b5', accent2: '#a2cba2' },
+      { id: 'terrain-medium', base: '#a8d5a8', accent1: '#95c295', accent2: '#82af82' },
+      { id: 'terrain-dark', base: '#88c488', accent1: '#75b175', accent2: '#629e62' },
+      { id: 'terrain-darker', base: '#68b368', accent1: '#55a055', accent2: '#428d42' }
+    ];
+
+    intensities.forEach(intensity => {
+      const pattern = defs.append('pattern')
+        .attr('id', intensity.id)
+        .attr('patternUnits', 'userSpaceOnUse')
+        .attr('width', 8)
+        .attr('height', 8);
+
+      // Base terrain color
+      pattern.append('rect')
+        .attr('width', 8)
+        .attr('height', 8)
+        .attr('fill', intensity.base);
+
+      // Add random terrain texture points
+      for (let i = 0; i < 6; i++) {
+        pattern.append('circle')
+          .attr('cx', Math.random() * 8)
+          .attr('cy', Math.random() * 8)
+          .attr('r', Math.random() * 0.5 + 0.2)
+          .attr('fill', i % 2 === 0 ? intensity.accent1 : intensity.accent2)
+          .attr('opacity', 0.7);
+      }
+
+      // Add subtle lines for topographic feel
+      pattern.append('path')
+        .attr('d', `M0,${Math.random() * 8} Q4,${Math.random() * 8} 8,${Math.random() * 8}`)
+        .attr('stroke', intensity.accent2)
+        .attr('stroke-width', 0.3)
+        .attr('fill', 'none')
+        .attr('opacity', 0.5);
+    });
   }
 
   private handleResize() {
@@ -518,7 +610,24 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   private getCountryColor(d: any): string {
     const countryName = d.properties.name;
     const entry = this.countriesList.find(c => c.country === countryName);
-    return entry ? this.countryColorScale(entry.uniqueSkills) : FALLBACK_COLOR;
+    
+    if (entry) {
+      // Use textured patterns based on skill levels
+      const totalSkills = entry.uniqueSkills + entry.skillSupply;
+      
+      if (totalSkills >= 80) {
+        return 'url(#terrain-darker)';  // Highest skill level
+      } else if (totalSkills >= 60) {
+        return 'url(#terrain-dark)';    // High skill level  
+      } else if (totalSkills >= 40) {
+        return 'url(#terrain-medium)';  // Medium skill level
+      } else {
+        return 'url(#terrain-light)';   // Lower skill level
+      }
+    }
+    
+    // Default terrain pattern for countries without data
+    return 'url(#terrain-light)';
   }
 
   private startRotation() {
