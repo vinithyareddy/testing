@@ -1,58 +1,30 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { AfterViewInit, Component, ElementRef, ViewChild, OnDestroy, HostListener } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, Renderer2, ViewChild, OnDestroy, HostListener } from '@angular/core';
+import * as THREE from 'three';
+import * as topojson from 'topojson-client';
+import worldData from 'world-atlas/countries-110m.json';
+import { FeatureCollection, Geometry } from 'geojson';
 import * as d3 from 'd3';
 import { LiftPopoverComponent } from '@lift/ui';
 
-// Import topojson and world data based on your project setup
-// If you have issues with these imports, you may need to:
-// npm install --save-dev @types/topojson-client
-// npm install topojson-client world-atlas
-declare const topojson: any;
-declare const worldData: any;
-
-interface FeatureCollection<T = any, P = any> {
-  type: 'FeatureCollection';
-  features: Array<{
-    type: 'Feature';
-    geometry: T;
-    properties: P;
-  }>;
-}
-
-type SkillSupplyData = {
+type CountrySkill = {
   country: string;
-  region: string;
   code: string;
-  lat: number;
-  lng: number;
+  region?: string;
   uniqueSkills: number;
   skillSupply: number;
-  isVisible?: boolean;
-  labelSize?: 'major' | 'normal' | 'small';
+  lat: number;
+  lng: number;
+  position?: THREE.Vector3;
 };
 
-const GLOBE_COLORS = {
-  background: ['#4A9CB8', '#2E7D8A', '#1E5F73'],
-  countries: {
-    default: 'rgba(255, 255, 255, 0.3)',
-    hover: 'rgba(255, 255, 255, 0.5)',
-    highlighted: 'rgba(255, 193, 7, 0.4)'
-  },
-  stroke: {
-    default: 'rgba(255, 255, 255, 0.5)',
-    hover: 'rgba(255, 255, 255, 0.8)',
-    highlighted: '#ffc107'
-  },
-  graticule: 'rgba(255, 255, 255, 0.2)',
-  labels: '#fff'
-};
-
-const ROTATION_SPEED = 0.3;
-const ZOOM_CONFIG = { initial: 1, step: 0.2, min: 0.8, max: 4 };
-const HIGHLIGHT_DURATION = 4000;
-const GRATICULE_STEP = 20;
+const CUSTOM_GLOBE_COLOR = '#84c9f6';
+const STROKE_COLOR_COUNTRY = '#7e8790';
+const FALLBACK_COLOR = '#e0e0e0';
+const ROTATION_SPEED = 0.5;
+const ZOOM = { initial: 1, step: 0.2, min: 0.5, max: 3 };
 
 @Component({
   selector: 'app-ss-by-location',
@@ -63,46 +35,76 @@ const GRATICULE_STEP = 20;
 })
 export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   @ViewChild('globeContainer', { static: true }) globeContainer!: ElementRef;
+  fullview = false;
 
-  // Data Properties
-  skillData: SkillSupplyData[] = [];
-  filteredCountries: SkillSupplyData[] = [];
-  searchTerm: string = '';
-  selectedCountry: SkillSupplyData | null = null;
-
-  // Globe Properties
+  countriesList: CountrySkill[] = [];
+  filteredList: CountrySkill[] = [];
+  searchTerm = '';
+  legendCollapsed = false;
+  
+  // D3.js globe properties
   private svg: any;
   private projection: any;
   private path: any;
-  private graticule: any;
-  private countries!: FeatureCollection;
-  private currentRotation = [0, -10];
+  private countries!: FeatureCollection<Geometry, any>;
+  private currentRotation = [0, 0];
   private isRotating = true;
-  private isDragging = false;
   private tooltip: any;
-  private currentZoom: number = ZOOM_CONFIG.initial;
-  private currentRadius = 280;
+  private isDragging = false;
   private resizeObserver?: ResizeObserver;
-  private highlightTimer?: number;
+  currentZoom: number = ZOOM.initial;
+  private currentRadius = 300;
+  private countryColorScale = d3.scaleLinear<string>()
+    .domain([0, 1])
+    .range(['#8db4ddff', '#144c88']);
 
-  // UI Properties
-  isFullscreen = false;
-  private isMobile = false;
-  private isTablet = false;
+  isMobile = false;
+  isTablet = false;
+  private mediaQueryMobile!: MediaQueryList;
+  private mediaQueryTablet!: MediaQueryList;
+  private readonly breakpoints = {
+    mobile: 768,
+    tablet: 1024,
+    desktop: 1200
+  };
 
-  constructor(private http: HttpClient) {
+  constructor(private http: HttpClient, private render: Renderer2) {
+    this.setupMediaQueries();
     this.checkScreenSize();
   }
 
   @HostListener('window:resize', ['$event'])
-  onResize(event: any) {
+  onWindowResize(event: Event) {
     this.checkScreenSize();
     this.handleResize();
   }
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: any) {
-    // Handle outside clicks if needed
+    // Handle document clicks if needed
+  }
+
+  private setupMediaQueries() {
+    if (typeof window !== 'undefined') {
+      this.mediaQueryMobile = window.matchMedia('(max-width: 767px)');
+      this.mediaQueryTablet = window.matchMedia('(min-width: 768px) and (max-width: 1023px)');
+      this.updateResponsiveState();
+      this.mediaQueryMobile.addEventListener('change', () => this.updateResponsiveState());
+      this.mediaQueryTablet.addEventListener('change', () => this.updateResponsiveState());
+    }
+  }
+
+  private updateResponsiveState() {
+    this.isMobile = this.mediaQueryMobile?.matches || false;
+    this.isTablet = this.mediaQueryTablet?.matches || false;
+    if (this.isMobile) {
+      this.legendCollapsed = false;
+    }
+    if (this.svg) {
+      setTimeout(() => {
+        this.handleResize();
+      }, 100);
+    }
   }
 
   private checkScreenSize() {
@@ -113,19 +115,28 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
   private getResponsiveRadius(): number {
     const container = this.globeContainer?.nativeElement;
-    if (!container) return 280;
-    
+    if (!container) return 300;
     const width = container.offsetWidth;
     const height = container.offsetHeight;
     const minDimension = Math.min(width, height);
-    
     if (this.isMobile) {
-      return Math.min(minDimension * 0.35, 140);
+      return Math.min(minDimension * 0.35, 150);
     } else if (this.isTablet) {
       return Math.min(minDimension * 0.4, 200);
     } else {
-      return Math.min(minDimension * 0.45, 280);
+      return Math.min(minDimension * 0.45, 300);
     }
+  }
+
+  private latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
+    const phi = (90 - lat) * (Math.PI / 180);
+    const theta = (lng + 180) * (Math.PI / 180);
+    const x = -radius * Math.sin(phi) * Math.cos(theta);
+    const y = radius * Math.cos(phi);
+    const z = radius * Math.sin(phi) * Math.sin(theta);
+    const v = new THREE.Vector3(x, y, z);
+    v.applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
+    return v;
   }
 
   ngAfterViewInit() {
@@ -138,8 +149,11 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
     }
-    if (this.highlightTimer) {
-      clearTimeout(this.highlightTimer);
+    if (this.mediaQueryMobile) {
+      this.mediaQueryMobile.removeEventListener('change', () => this.updateResponsiveState());
+    }
+    if (this.mediaQueryTablet) {
+      this.mediaQueryTablet.removeEventListener('change', () => this.updateResponsiveState());
     }
   }
 
@@ -158,23 +172,15 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     const height = globeDiv.offsetHeight;
     this.currentRadius = this.getResponsiveRadius();
 
-    // Setup projection and path
     this.projection = d3.geoOrthographic()
       .scale(this.currentRadius)
       .translate([width / 2, height / 2])
-      .clipAngle(90)
-      .rotate(this.currentRotation);
+      .clipAngle(90);
 
     this.path = d3.geoPath().projection(this.projection);
 
-    // Setup graticule (grid lines)
-    this.graticule = d3.geoGraticule()
-      .step([GRATICULE_STEP, GRATICULE_STEP]);
-
-    // Clear existing SVG
     d3.select(globeDiv).selectAll('svg').remove();
 
-    // Create main SVG
     this.svg = d3.select(globeDiv)
       .append('svg')
       .attr('width', '100%')
@@ -182,62 +188,50 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .attr('viewBox', `0 0 ${width} ${height}`)
       .attr('preserveAspectRatio', 'xMidYMid meet');
 
-    // Add gradient definition
-    const defs = this.svg.append('defs');
-    const gradient = defs.append('radialGradient')
-      .attr('id', 'globeGradient')
-      .attr('cx', '30%')
-      .attr('cy', '30%');
-
-    gradient.append('stop')
-      .attr('offset', '0%')
-      .attr('stop-color', GLOBE_COLORS.background[0]);
-    
-    gradient.append('stop')
-      .attr('offset', '50%')
-      .attr('stop-color', GLOBE_COLORS.background[1]);
-    
-    gradient.append('stop')
-      .attr('offset', '100%')
-      .attr('stop-color', GLOBE_COLORS.background[2]);
-
-    // Add globe sphere
     this.svg.append('circle')
       .attr('cx', width / 2)
       .attr('cy', height / 2)
       .attr('r', this.currentRadius)
-      .attr('fill', 'url(#globeGradient)')
-      .attr('stroke', 'rgba(255, 255, 255, 0.3)')
+      .attr('fill', CUSTOM_GLOBE_COLOR)
+      .attr('stroke', '#ccc')
       .attr('stroke-width', 1);
 
-    // Add graticule (grid lines)
-    this.svg.append('path')
-      .datum(this.graticule)
-      .attr('class', 'globe-graticule')
-      .attr('d', this.path)
-      .attr('stroke', GLOBE_COLORS.graticule)
-      .attr('stroke-width', 0.5)
-      .attr('fill', 'none');
+    this.countries = topojson.feature(
+      worldData as any,
+      (worldData as any).objects.countries
+    ) as unknown as FeatureCollection<Geometry, any>;
 
-    // Load world data - we'll handle this in loadData method
-    // this.countries will be set there
-    
-    // Setup tooltip
-    this.setupTooltip(globeDiv);
-    
-    // Setup interactions
-    this.setupInteractions();
-  }
-
-  private setupTooltip(container: HTMLElement) {
-    d3.select(container).selectAll('.globe-tooltip').remove();
-    
-    this.tooltip = d3.select(container)
+    d3.select(globeDiv).selectAll('.globe-tooltip').remove();
+    this.tooltip = d3.select(globeDiv)
       .append('div')
       .attr('class', 'globe-tooltip')
       .style('position', 'absolute')
       .style('pointer-events', 'none')
       .style('display', 'none');
+
+    this.setupInteractions();
+  }
+
+  private handleResize() {
+    if (!this.svg || !this.globeContainer) return;
+
+    const globeDiv = this.globeContainer.nativeElement;
+    const width = globeDiv.offsetWidth;
+    const height = globeDiv.offsetHeight;
+    this.currentRadius = this.getResponsiveRadius();
+
+    this.projection
+      .scale(this.currentRadius * this.currentZoom)
+      .translate([width / 2, height / 2]);
+
+    this.svg.attr('viewBox', `0 0 ${width} ${height}`);
+
+    this.svg.select('circle')
+      .attr('cx', width / 2)
+      .attr('cy', height / 2)
+      .attr('r', this.currentRadius * this.currentZoom);
+
+    this.updateCountries();
   }
 
   private setupInteractions() {
@@ -251,11 +245,10 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         this.currentRotation[0] += event.dx * sensitivity;
         this.currentRotation[1] -= event.dy * sensitivity;
         this.currentRotation[1] = Math.max(-90, Math.min(90, this.currentRotation[1]));
-        
         this.projection.rotate(this.currentRotation);
-        this.updateGlobe();
+        this.updateCountries();
       })
-      .on('end', () => {
+      .on('end', (event: any) => {
         this.isDragging = false;
         setTimeout(() => {
           if (!this.isDragging) {
@@ -265,245 +258,93 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       });
 
     this.svg.select('circle').call(drag);
+
+    this.globeContainer.nativeElement.addEventListener('wheel', (event: WheelEvent) => {
+      // Handle wheel events if needed
+    }, { passive: true });
   }
 
   private loadData() {
     this.http.get<any>('assets/json/world-globe-data.json').subscribe(data => {
-      // Transform the data to match our interface
-      this.skillData = data.countries.map((c: any) => ({
+      this.countriesList = data.countries.map((c: any) => ({
         country: c.name,
-        region: c.region,
         code: c.code,
+        region: c.region,
+        uniqueSkills: c.uniqueSkills > 0 ? c.uniqueSkills : Math.floor(Math.random() * 100),
+        skillSupply: c.skillSupply > 0 ? c.skillSupply : Math.floor(Math.random() * 50),
         lat: c.lat,
         lng: c.lng,
-        uniqueSkills: Math.floor(Math.random() * 80) + 20, // Dummy data
-        skillSupply: Math.floor(Math.random() * 50) + 5,   // Dummy data
-        isVisible: true,
-        labelSize: this.determineLabelSize(c.name)
+        position: this.latLngToVector3(c.lat, c.lng, this.currentRadius)
       }));
 
-      this.filteredCountries = [...this.skillData].sort((a, b) => 
-        b.skillSupply - a.skillSupply
-      );
+      const minSkills = d3.min(this.countriesList, (d: any) => d.uniqueSkills) || 0;
+      const maxSkills = d3.max(this.countriesList, (d: any) => d.uniqueSkills) || 1;
+      this.countryColorScale = d3.scaleLinear<string>()
+        .domain([minSkills, maxSkills])
+        .range(['#8db4ddff', '#144c88']);
 
-      // Load world topology data for globe rendering
-      this.loadWorldData();
+      this.filteredList = [...this.countriesList];
+      this.drawCountries();
+      this.startRotation();
     });
   }
 
-  private loadWorldData() {
-    // You can either use a CDN or local file for world data
-    // For now, we'll create a simple world outline or use your existing approach
-    
-    // If you have world-atlas installed, uncomment and adjust:
-    // this.http.get('assets/json/world-110m.json').subscribe(worldTopology => {
-    //   this.countries = topojson.feature(worldTopology, worldTopology.objects.countries);
-    //   this.drawCountries();
-    //   this.drawCountryLabels();
-    //   this.startRotation();
-    // });
-
-    // For now, create a simple world outline
-    this.createSimpleWorldData();
-    this.drawCountries();
-    this.drawCountryLabels();
-    this.startRotation();
-  }
-
-  private createSimpleWorldData() {
-    // Create basic world feature collection for demonstration
-    // In production, you should use proper world topology data
-    this.countries = {
-      type: 'FeatureCollection',
-      features: this.skillData.map(country => ({
-        type: 'Feature',
-        geometry: {
-          type: 'Point',
-          coordinates: [country.lng, country.lat]
-        },
-        properties: {
-          name: country.country,
-          code: country.code
-        }
-      }))
-    };
-  }
-
-  private determineLabelSize(countryName: string): 'major' | 'normal' | 'small' {
-    const majorCountries = [
-      'United States', 'China', 'India', 'Brazil', 'Russia', 
-      'Canada', 'Australia', 'Germany', 'France', 'United Kingdom', 
-      'Japan', 'South Africa', 'Mexico', 'Argentina', 'Egypt'
-    ];
-    
-    const normalCountries = [
-      'Spain', 'Italy', 'Turkey', 'Poland', 'Ukraine', 'Iran', 
-      'Thailand', 'Myanmar', 'Kenya', 'Tanzania', 'Nigeria', 
-      'Colombia', 'Venezuela', 'Peru', 'Chile', 'Kazakhstan'
-    ];
-
-    if (majorCountries.includes(countryName)) return 'major';
-    if (normalCountries.includes(countryName)) return 'normal';
-    return 'small';
-  }
-
   private drawCountries() {
-    this.svg.selectAll('.globe-country').remove();
+    this.svg.selectAll('.country').remove();
 
-    this.svg.selectAll('.globe-country')
+    this.svg.selectAll('.country')
       .data(this.countries.features)
       .enter()
       .append('path')
-      .attr('class', 'globe-country')
+      .attr('class', 'country')
       .attr('d', this.path)
-      .attr('fill', GLOBE_COLORS.countries.default)
-      .attr('stroke', GLOBE_COLORS.stroke.default)
-      .attr('stroke-width', 0.3)
+      .attr('fill', (d: any) => this.getCountryColor(d))
+      .attr('stroke', STROKE_COLOR_COUNTRY)
+      .attr('stroke-width', 0.5)
       .style('cursor', 'pointer')
       .on('mouseover', (event: any, d: any) => {
-        this.handleCountryHover(event, d);
+        this.isRotating = false;
+        this.showTooltip(event, d);
       })
-      .on('mousemove', (event: any) => {
-        this.moveTooltip(event);
-      })
+      .on('mousemove', (event: any) => this.moveTooltip(event))
       .on('mouseout', () => {
-        this.hideTooltip();
         if (!this.isDragging) {
           this.isRotating = true;
         }
-      })
-      .on('click', (event: any, d: any) => {
-        this.handleCountryClick(d);
+        this.hideTooltip();
       });
   }
 
-  private drawCountryLabels() {
-    this.svg.selectAll('.globe-country-label').remove();
-
-    const labels = this.svg.selectAll('.globe-country-label')
-      .data(this.skillData.filter(d => d.isVisible))
-      .enter()
-      .append('text')
-      .attr('class', (d: SkillSupplyData) => `globe-country-label ${d.labelSize}-country`)
-      .text((d: SkillSupplyData) => d.country)
-      .attr('font-size', (d: SkillSupplyData) => {
-        if (d.labelSize === 'major') return '12px';
-        if (d.labelSize === 'normal') return '10px';
-        return '8px';
-      })
-      .attr('fill', GLOBE_COLORS.labels)
-      .attr('text-anchor', 'middle')
-      .attr('pointer-events', 'none')
-      .style('text-shadow', '1px 1px 2px rgba(0, 0, 0, 0.7)');
-
-    this.updateCountryLabels();
-  }
-
-  private updateCountryLabels() {
-    this.svg.selectAll('.globe-country-label')
-      .attr('transform', (d: SkillSupplyData) => {
-        const coords = this.projection([d.lng, d.lat]);
-        if (!coords) return 'translate(-1000, -1000)';
-        
-        // Check if point is visible (on the front of the globe)
-        const currentCenter = this.projection.invert!([0, 0]) || [0, 0];
-        const distance = this.calculateDistance([d.lng, d.lat], currentCenter);
-        const isVisible = distance < Math.PI / 2;
-        
-        if (!isVisible) return 'translate(-1000, -1000)';
-        
-        return `translate(${coords[0]}, ${coords[1]})`;
-      })
-      .style('opacity', (d: SkillSupplyData) => {
-        const coords = this.projection([d.lng, d.lat]);
-        if (!coords) return 0;
-        
-        const currentCenter = this.projection.invert!([0, 0]) || [0, 0];
-        const distance = this.calculateDistance([d.lng, d.lat], currentCenter);
-        const isVisible = distance < Math.PI / 2;
-        
-        if (!isVisible) return 0;
-        
-        // Show small labels only when zoomed in
-        if (d.labelSize === 'small') {
-          return this.currentZoom > 1.5 ? 1 : 0;
-        }
-        
-        return 1;
-      });
-  }
-
-  private calculateDistance(point1: [number, number], point2: [number, number]): number {
-    // Simple spherical distance calculation
-    const lat1 = point1[1] * Math.PI / 180;
-    const lat2 = point2[1] * Math.PI / 180;
-    const deltaLat = (point2[1] - point1[1]) * Math.PI / 180;
-    const deltaLng = (point2[0] - point1[0]) * Math.PI / 180;
-
-    const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
-              Math.cos(lat1) * Math.cos(lat2) *
-              Math.sin(deltaLng / 2) * Math.sin(deltaLng / 2);
-    
-    return 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  }
-
-  private handleCountryHover(event: any, d: any) {
-    this.isRotating = false;
-    
-    // Find country data
-    const countryData = this.skillData.find(c => c.country === d.properties.name);
-    if (countryData) {
-      this.showTooltip(event, countryData);
-    }
-    
-    // Highlight country
-    d3.select(event.target)
-      .attr('fill', GLOBE_COLORS.countries.hover)
-      .attr('stroke', GLOBE_COLORS.stroke.hover)
-      .attr('stroke-width', 0.8);
-  }
-
-  private handleCountryClick(d: any) {
-    const countryData = this.skillData.find(c => c.country === d.properties.name);
-    if (countryData) {
-      this.selectCountry(countryData);
-    }
-  }
-
-  private showTooltip(event: any, country: SkillSupplyData) {
-    const tooltipContent = `
-      <div class="tooltip-header">
-        <img src="assets/images/flags/${country.code.toLowerCase()}.svg" 
-             alt="${country.country} flag" 
-             class="flag-icon">
-        <span>${country.country}</span>
-      </div>
-      <div class="tooltip-content">
-        <div class="tooltip-stat">
-          <span class="stat-label">Unique Skills</span>
-          <span class="stat-value">${country.uniqueSkills}</span>
+  private showTooltip(event: any, d: any) {
+    const entry = this.countriesList.find(c => c.country === d.properties.name);
+    if (entry) {
+      const tooltipContent = `
+        <div class="tooltip-header">
+          <img class="flag-icon" src="assets/images/flags/${entry.code.toLowerCase()}.svg"/>
+          <span>${entry.country}</span>
         </div>
-        <div class="tooltip-stat">
-          <span class="stat-label">Skill Supply (FTE)</span>
-          <span class="stat-value">${country.skillSupply}</span>
+        <div class="tooltip-row">
+          <span class="label">Unique Skills</span>
+          <span class="value">${entry.uniqueSkills}</span>
         </div>
-      </div>
-    `;
+        <div class="tooltip-row">
+          <span class="label">Skill Supply (FTE)</span>
+          <span class="value">${entry.skillSupply}</span>
+        </div>
+      `;
 
-    this.tooltip.html(tooltipContent)
-      .style('display', 'block');
-    
-    this.moveTooltip(event);
+      this.tooltip.html(tooltipContent).style('display', 'block');
+      this.moveTooltip(event);
+    }
   }
 
   private moveTooltip(event: any) {
     const rect = this.globeContainer.nativeElement.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    
     const offsetX = this.isMobile ? 10 : 15;
-    const offsetY = this.isMobile ? -40 : -35;
-    
+    const offsetY = this.isMobile ? 10 : 15;
+
     this.tooltip
       .style('left', (x + offsetX) + 'px')
       .style('top', (y + offsetY) + 'px');
@@ -511,62 +352,37 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
   private hideTooltip() {
     this.tooltip.style('display', 'none');
-    
-    // Remove hover effects
-    this.svg.selectAll('.globe-country')
-      .attr('fill', (d: any) => {
-        return d3.select('path.highlighted').empty() ? 
-               GLOBE_COLORS.countries.default : 
-               GLOBE_COLORS.countries.highlighted;
-      })
-      .attr('stroke', (d: any) => {
-        return d3.select('path.highlighted').empty() ? 
-               GLOBE_COLORS.stroke.default : 
-               GLOBE_COLORS.stroke.highlighted;
-      })
-      .attr('stroke-width', (d: any) => {
-        return d3.select('path.highlighted').empty() ? 0.3 : 2;
-      });
   }
 
-  private updateGlobe() {
-    // Update countries
-    this.svg.selectAll('.globe-country')
-      .attr('d', this.path);
-    
-    // Update graticule
-    this.svg.select('.globe-graticule')
-      .attr('d', this.path);
-    
-    // Update labels
-    this.updateCountryLabels();
-    
-    // Update globe sphere
-    const container = this.globeContainer.nativeElement;
-    const width = container.offsetWidth;
-    const height = container.offsetHeight;
-    
+  private createIconDataUrl(
+    color: string = '#1a73e8',
+    size: number = 64
+  ): string {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d')!;
+    canvas.width = size;
+    canvas.height = size;
+    ctx.font = `900 ${size - 12}px "Font Awesome 6 Pro"`;
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('\uf3c5', size / 2, size / 2);
+    return canvas.toDataURL('image/png');
+  }
+
+  private updateCountries() {
+    this.svg.selectAll('.country')
+      .attr('d', this.path)
+      .attr('fill', (d: any) => this.getCountryColor(d));
+
     this.svg.select('circle')
-      .attr('cx', width / 2)
-      .attr('cy', height / 2)
       .attr('r', this.currentRadius * this.currentZoom);
   }
 
-  private handleResize() {
-    if (!this.svg || !this.globeContainer) return;
-
-    const container = this.globeContainer.nativeElement;
-    const width = container.offsetWidth;
-    const height = container.offsetHeight;
-    this.currentRadius = this.getResponsiveRadius();
-
-    this.projection
-      .scale(this.currentRadius * this.currentZoom)
-      .translate([width / 2, height / 2]);
-
-    this.svg.attr('viewBox', `0 0 ${width} ${height}`);
-    
-    this.updateGlobe();
+  private getCountryColor(d: any): string {
+    const countryName = d.properties.name;
+    const entry = this.countriesList.find(c => c.country === countryName);
+    return entry ? this.countryColorScale(entry.uniqueSkills) : FALLBACK_COLOR;
   }
 
   private startRotation() {
@@ -574,113 +390,86 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       if (this.isRotating && !this.isDragging) {
         this.currentRotation[0] += ROTATION_SPEED;
         this.projection.rotate(this.currentRotation);
-        this.updateGlobe();
+        this.updateCountries();
       }
       requestAnimationFrame(rotate);
     };
     rotate();
   }
 
-  // Public Methods
-  selectCountry(country: SkillSupplyData) {
-    if (!country) return;
-
-    this.selectedCountry = country;
-    this.isRotating = false;
-
-    // Clear previous highlights
-    this.clearHighlights();
-
-    // Rotate to country
-    const targetRotation = [-country.lng, -country.lat];
-    this.currentRotation = targetRotation;
-    this.projection.rotate(this.currentRotation);
-    this.updateGlobe();
-
-    // Highlight country
-    this.highlightCountry(country);
-
-    // Auto-resume rotation after highlight period
-    if (this.highlightTimer) {
-      clearTimeout(this.highlightTimer);
-    }
-    
-    this.highlightTimer = window.setTimeout(() => {
-      this.clearHighlights();
-      this.isRotating = true;
-    }, HIGHLIGHT_DURATION);
-  }
-
-  private highlightCountry(country: SkillSupplyData) {
-    this.svg.selectAll('.globe-country')
-      .classed('highlighted', (d: any) => d.properties.name === country.country)
-      .attr('fill', (d: any) => {
-        return d.properties.name === country.country ? 
-               GLOBE_COLORS.countries.highlighted : 
-               GLOBE_COLORS.countries.default;
-      })
-      .attr('stroke', (d: any) => {
-        return d.properties.name === country.country ? 
-               GLOBE_COLORS.stroke.highlighted : 
-               GLOBE_COLORS.stroke.default;
-      })
-      .attr('stroke-width', (d: any) => {
-        return d.properties.name === country.country ? 2 : 0.3;
-      })
-      .attr('stroke-dasharray', (d: any) => {
-        return d.properties.name === country.country ? '3,3' : null;
-      });
-  }
-
-  private clearHighlights() {
-    this.svg.selectAll('.globe-country')
-      .classed('highlighted', false)
-      .attr('fill', GLOBE_COLORS.countries.default)
-      .attr('stroke', GLOBE_COLORS.stroke.default)
-      .attr('stroke-width', 0.3)
-      .attr('stroke-dasharray', null);
-  }
-
-  onSearchChange() {
-    if (!this.searchTerm.trim()) {
-      this.filteredCountries = [...this.skillData];
-    } else {
-      const searchLower = this.searchTerm.toLowerCase();
-      this.filteredCountries = this.skillData.filter(country =>
-        country.country.toLowerCase().includes(searchLower)
+  filterList() {
+    const q = (this.searchTerm || '').toLowerCase().trim();
+    this.filteredList = !q
+      ? [...this.countriesList]
+      : this.countriesList.filter(
+        c =>
+          c.country.toLowerCase().includes(q) ||
+          c.code.toLowerCase().includes(q)
       );
-    }
-    
-    // Sort by skill supply descending
-    this.filteredCountries.sort((a, b) => b.skillSupply - a.skillSupply);
   }
 
   zoomIn() {
-    this.currentZoom = Math.min(this.currentZoom + ZOOM_CONFIG.step, ZOOM_CONFIG.max);
+    this.currentZoom = Math.min(this.currentZoom + ZOOM.step, ZOOM.max);
     this.projection.scale(this.currentRadius * this.currentZoom);
-    this.updateGlobe();
-    
-    // Add zoom class for showing small labels
-    this.svg.classed('globe-zoomed', this.currentZoom > 1.5);
+    this.updateCountries();
   }
 
   zoomOut() {
-    this.currentZoom = Math.max(this.currentZoom - ZOOM_CONFIG.step, ZOOM_CONFIG.min);
+    this.currentZoom = Math.max(this.currentZoom - ZOOM.step, ZOOM.min);
     this.projection.scale(this.currentRadius * this.currentZoom);
-    this.updateGlobe();
-    
-    // Remove zoom class when zoomed out
-    this.svg.classed('globe-zoomed', this.currentZoom > 1.5);
+    this.updateCountries();
   }
 
-  toggleFullscreen() {
-    this.isFullscreen = !this.isFullscreen;
+  toggleLegend() {
+    if (!this.isMobile) {
+      this.legendCollapsed = !this.legendCollapsed;
+    }
+  }
+
+  focusOnCountry(country: CountrySkill) {
+    if (!country) return;
+
+    this.isRotating = false;
+    const targetRotation = [-country.lng, -country.lat];
+    this.currentRotation = targetRotation;
+    this.projection.rotate(this.currentRotation);
+    this.updateCountries();
+
+    this.svg.selectAll('.country-marker').remove();
+
+    const [x, y] = this.projection([country.lng, country.lat]) || [0, 0];
+    const iconUrl = this.createIconDataUrl('#d13a35ff', this.isMobile ? 64 : 96);
+
+    const pin = this.svg.append('image')
+      .attr('class', 'country-marker')
+      .attr('x', x - 24)
+      .attr('y', y - 48)
+      .attr('width', this.isMobile ? 36 : 48)
+      .attr('height', this.isMobile ? 36 : 48)
+      .attr('href', iconUrl);
+
+    pin.style('opacity', 0)
+      .transition().duration(400).style('opacity', 1);
+
+    setTimeout(() => {
+      pin.transition().duration(600).style('opacity', 0).remove();
+      this.isRotating = true;
+    }, 3000);
+  }
+
+  fullPageView() {
+    this.fullview = !this.fullview;
+    if (this.fullview === true) {
+      this.render.addClass(document.body, 'no-scroll');
+    } else {
+      this.render.removeClass(document.body, 'no-scroll');
+    }
+
     setTimeout(() => {
       this.handleResize();
-    }, 100);
-  }
-
-  trackByCountry(index: number, country: SkillSupplyData): string {
-    return country.code;
+      if (this.fullview && this.isMobile) {
+        this.legendCollapsed = false;
+      }
+    }, 150);
   }
 }
