@@ -20,32 +20,11 @@ type CountrySkill = {
   position?: THREE.Vector3;
 };
 
-type AdminDivision = {
-  code: string;
-  name: string;
-  lat: number;
-  lng: number;
-  countryCode: string;
-  type: 'state' | 'province' | 'region' | 'territory';
-};
-
 const CUSTOM_GLOBE_COLOR = '#84c9f6';
 const STROKE_COLOR_COUNTRY = '#7e8790';
 const FALLBACK_COLOR = '#e0e0e0';
 const ROTATION_SPEED = 0.5;
 const ZOOM = { initial: 1, step: 0.2, min: 0.5, max: 3 };
-
-// External data sources for administrative divisions
-const ADMIN_DATA_SOURCES = {
-  // Natural Earth data for administrative divisions
-  naturalEarth: 'https://cdn.jsdelivr.net/npm/world-atlas@3/countries-50m.json',
-  usStates: 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json',
-  worldAdmin: 'https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world_population.csv',
-  
-  // Alternative sources
-  restCountries: 'https://restcountries.com/v3.1/all?fields=name,cca2,cca3,latlng,region,subregion',
-  geoNames: 'http://api.geonames.org/countryInfoJSON?formatted=true&username=demo'
-};
 
 @Component({
   selector: 'app-ss-by-location',
@@ -68,7 +47,6 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   private projection: any;
   private path: any;
   private countries!: FeatureCollection<Geometry, any>;
-  private adminDivisions: FeatureCollection<Geometry, any> | null = null;
   private currentRotation = [0, 0];
   private isRotating = true;
   private tooltip: any;
@@ -80,9 +58,9 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     .domain([0, 1])
     .range(['#8db4ddff', '#144c88']);
 
-  // Dynamic admin divisions loaded from external sources
-  private adminDivisionData: AdminDivision[] = [];
-  private adminDivisionsCache = new Map<string, AdminDivision[]>();
+  // State/administrative division properties
+  private statesData: any = null;
+  private provincesData: any = null;
 
   isMobile = false;
   isTablet = false;
@@ -193,296 +171,56 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  private async loadAdministrativeDivisions() {
-    try {
-      // Load US States first (most reliable source)
-      await this.loadUSStates();
-      
-      // Load other administrative divisions using REST Countries API
-      await this.loadWorldAdminDivisions();
-      
-      // Alternative: Load using GeoNames API
-      // await this.loadGeoNamesData();
-      
-    } catch (error) {
-      console.log('Using fallback administrative division data');
-      this.loadFallbackAdminData();
-    }
-  }
-
-  private async loadUSStates(): Promise<void> {
-    try {
-      const data: any = await this.http.get(ADMIN_DATA_SOURCES.usStates).toPromise();
-      this.adminDivisions = topojson.feature(data, data.objects.states);
-      
-      // Extract state information from the topojson data
-      const usStates: AdminDivision[] = this.adminDivisions.features.map((feature: any) => ({
-        code: feature.properties.name.substring(0, 2).toUpperCase(), // Simplified code extraction
-        name: feature.properties.name,
-        lat: d3.geoCentroid(feature)[1],
-        lng: d3.geoCentroid(feature)[0],
-        countryCode: 'US',
-        type: 'state' as const
-      }));
-      
-      this.adminDivisionData.push(...usStates);
-      this.adminDivisionsCache.set('US', usStates);
-      
-    } catch (error) {
-      console.log('US states data not available:', error);
-    }
-  }
-
-  private async loadWorldAdminDivisions(): Promise<void> {
-    try {
-      const countries: any = await this.http.get(ADMIN_DATA_SOURCES.restCountries).toPromise();
-      
-      // For major countries, we can extract region information
-      countries.forEach((country: any) => {
-        if (country.subregion && country.latlng) {
-          const adminDiv: AdminDivision = {
-            code: country.cca2,
-            name: country.name.common,
-            lat: country.latlng[0],
-            lng: country.latlng[1],
-            countryCode: country.cca2,
-            type: 'region'
-          };
-          
-          if (!this.adminDivisionsCache.has(country.cca2)) {
-            this.adminDivisionsCache.set(country.cca2, []);
-          }
-          this.adminDivisionsCache.get(country.cca2)?.push(adminDiv);
-        }
-      });
-      
-    } catch (error) {
-      console.log('World admin divisions not available:', error);
-    }
-  }
-
-  private async loadGeoNamesData(): Promise<void> {
-    try {
-      // GeoNames API can provide administrative divisions
-      // Note: Requires API key for production use
-      const response: any = await this.http.get(
-        'http://api.geonames.org/searchJSON?q=*&fclass=A&fcode=ADM1&maxRows=1000&username=demo'
-      ).toPromise();
-      
-      const adminDivs: AdminDivision[] = response.geonames.map((item: any) => ({
-        code: item.adminCode1 || item.toponymName.substring(0, 2).toUpperCase(),
-        name: item.toponymName,
-        lat: parseFloat(item.lat),
-        lng: parseFloat(item.lng),
-        countryCode: item.countryCode,
-        type: 'region'
-      }));
-      
-      this.adminDivisionData.push(...adminDivs);
-      
-    } catch (error) {
-      console.log('GeoNames data not available:', error);
-    }
-  }
-
-  private loadFallbackAdminData(): void {
-    // Minimal fallback data for major regions only
-    const fallbackData: AdminDivision[] = [
-      { code: 'CA', name: 'California', lat: 36.7783, lng: -119.4179, countryCode: 'US', type: 'state' },
-      { code: 'TX', name: 'Texas', lat: 31.9686, lng: -99.9018, countryCode: 'US', type: 'state' },
-      { code: 'FL', name: 'Florida', lat: 27.7663, lng: -81.6868, countryCode: 'US', type: 'state' },
-      { code: 'NY', name: 'New York', lat: 40.7128, lng: -74.0060, countryCode: 'US', type: 'state' },
-      { code: 'ON', name: 'Ontario', lat: 51.2538, lng: -85.3232, countryCode: 'CA', type: 'province' },
-      { code: 'QC', name: 'Quebec', lat: 53.9214, lng: -73.2269, countryCode: 'CA', type: 'province' },
-    ];
+  private loadAdministrativeDivisions() {
+    // Try to load administrative divisions from Natural Earth data
+    const divisionsUrl = 'https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world_countries_admin.geojson';
     
-    this.adminDivisionData = fallbackData;
-  }
-
-  // Method to dynamically load admin divisions for a specific country
-  private async loadAdminDivisionsForCountry(countryCode: string): Promise<AdminDivision[]> {
-    if (this.adminDivisionsCache.has(countryCode)) {
-      return this.adminDivisionsCache.get(countryCode) || [];
-    }
-
-    try {
-      // For specific countries, you could load detailed subdivision data
-      // Example for different data sources:
-      
-      if (countryCode === 'US') {
-        return await this.loadUSStateDetails();
-      } else if (countryCode === 'CA') {
-        return await this.loadCanadianProvinces();
-      } else if (countryCode === 'GB') {
-        return await this.loadUKRegions();
+    this.http.get(divisionsUrl).subscribe({
+      next: (data: any) => {
+        this.statesData = data;
+        this.drawCountries(); // Redraw to include state labels
+      },
+      error: () => {
+        // Fallback: use REST Countries API for basic country data
+        this.loadCountryCentroids();
       }
-      
-      // Generic approach for other countries
-      return await this.loadGenericAdminDivisions(countryCode);
-      
-    } catch (error) {
-      console.log(`Admin divisions for ${countryCode} not available:`, error);
-      return [];
-    }
+    });
   }
 
-  private async loadUSStateDetails(): Promise<AdminDivision[]> {
-    // This could load from a more detailed US states API
-    // For now, return cached data
-    return this.adminDivisionsCache.get('US') || [];
+  private loadCountryCentroids() {
+    // Fallback method using country centroids for major subdivisions
+    this.http.get('https://restcountries.com/v3.1/all?fields=name,cca2,latlng,subregion').subscribe({
+      next: (countries: any[]) => {
+        this.processCountryData(countries);
+        this.drawCountries();
+      },
+      error: (error) => {
+        console.log('Could not load country data:', error);
+      }
+    });
   }
 
-  private async loadCanadianProvinces(): Promise<AdminDivision[]> {
-    try {
-      // Could load from Statistics Canada API or similar
-      const response: any = await this.http.get(
-        'https://api.example.com/canada/provinces' // Replace with actual API
-      ).toPromise();
-      
-      return response.provinces.map((province: any) => ({
-        code: province.code,
-        name: province.name,
-        lat: province.lat,
-        lng: province.lng,
-        countryCode: 'CA',
-        type: 'province'
-      }));
-    } catch (error) {
-      return []; // Return empty array if API fails
-    }
-  }
-
-  private async loadUKRegions(): Promise<AdminDivision[]> {
-    // Similar pattern for UK regions
-    return [];
-  }
-
-  private async loadGenericAdminDivisions(countryCode: string): Promise<AdminDivision[]> {
-    try {
-      // Use GeoNames or similar service for generic country subdivisions
-      const response: any = await this.http.get(
-        `http://api.geonames.org/childrenJSON?geonameId=country&username=demo`
-      ).toPromise();
-      
-      return response.geonames.map((item: any) => ({
-        code: item.adminCode1 || item.name.substring(0, 2).toUpperCase(),
-        name: item.name,
-        lat: parseFloat(item.lat),
-        lng: parseFloat(item.lng),
-        countryCode: countryCode,
-        type: 'region'
-      }));
-    } catch (error) {
-      return [];
-    }
-  }
-
-  @HostListener('window:resize', ['$event'])
-  onWindowResize(event: Event) {
-    this.checkScreenSize();
-    this.handleResize();
-  }
-
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: any) {
-    // Handle document clicks if needed
-  }
-
-  private setupMediaQueries() {
-    if (typeof window !== 'undefined') {
-      this.mediaQueryMobile = window.matchMedia('(max-width: 767px)');
-      this.mediaQueryTablet = window.matchMedia('(min-width: 768px) and (max-width: 1023px)');
-      this.updateResponsiveState();
-      this.mediaQueryMobile.addEventListener('change', () => this.updateResponsiveState());
-      this.mediaQueryTablet.addEventListener('change', () => this.updateResponsiveState());
-    }
-  }
-
-  private updateResponsiveState() {
-    this.isMobile = this.mediaQueryMobile?.matches || false;
-    this.isTablet = this.mediaQueryTablet?.matches || false;
-    if (this.isMobile) {
-      this.legendCollapsed = false;
-    }
-    if (this.svg) {
-      setTimeout(() => {
-        this.handleResize();
-      }, 100);
-    }
-  }
-
-  private checkScreenSize() {
-    const width = window.innerWidth;
-    this.isMobile = width <= 767;
-    this.isTablet = width >= 768 && width <= 1024;
-  }
-
-  private getResponsiveRadius(): number {
-    const container = this.globeContainer?.nativeElement;
-    if (!container) return 300;
-    const width = container.offsetWidth;
-    const height = container.offsetHeight;
-    const minDimension = Math.min(width, height);
-    if (this.isMobile) {
-      return Math.min(minDimension * 0.35, 150);
-    } else if (this.isTablet) {
-      return Math.min(minDimension * 0.4, 200);
-    } else {
-      return Math.min(minDimension * 0.45, 300);
-    }
-  }
-
-  private latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
-    const phi = (90 - lat) * (Math.PI / 180);
-    const theta = (lng + 180) * (Math.PI / 180);
-    const x = -radius * Math.sin(phi) * Math.cos(theta);
-    const y = radius * Math.cos(phi);
-    const z = radius * Math.sin(phi) * Math.sin(theta);
-    const v = new THREE.Vector3(x, y, z);
-    v.applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
-    return v;
-  }
-
-  ngAfterViewInit() {
-    this.setupResizeObserver();
-    this.initializeGlobe();
-    this.loadData();
-    this.loadUSStatesData();
-  }
-
-  ngOnDestroy() {
-    if (this.resizeObserver) {
-      this.resizeObserver.disconnect();
-    }
-    if (this.mediaQueryMobile) {
-      this.mediaQueryMobile.removeEventListener('change', () => this.updateResponsiveState());
-    }
-    if (this.mediaQueryTablet) {
-      this.mediaQueryTablet.removeEventListener('change', () => this.updateResponsiveState());
-    }
-  }
-
-  private setupResizeObserver() {
-    if (typeof ResizeObserver !== 'undefined') {
-      this.resizeObserver = new ResizeObserver(() => {
-        this.handleResize();
-      });
-      this.resizeObserver.observe(this.globeContainer.nativeElement);
-    }
-  }
-
-  private loadUSStatesData() {
-    // Try to load US states data from a CDN
-    this.http.get('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json')
-      .subscribe({
-        next: (data: any) => {
-          this.usStates = topojson.feature(data, data.objects.states);
-          this.drawCountries(); // Redraw to include state boundaries
+  private processCountryData(countries: any[]) {
+    // Extract major countries and create subdivision points
+    const majorCountries = countries.filter(country => 
+      ['US', 'CA', 'AU', 'BR', 'IN', 'CN', 'RU', 'DE', 'GB'].includes(country.cca2)
+    );
+    
+    this.statesData = {
+      type: "FeatureCollection",
+      features: majorCountries.map(country => ({
+        type: "Feature",
+        properties: {
+          NAME: country.name.common,
+          ISO_A2: country.cca2,
+          TYPE: "Country"
         },
-        error: (error) => {
-          console.log('US states data not available, using coordinates only:', error);
+        geometry: {
+          type: "Point",
+          coordinates: [country.latlng[1], country.latlng[0]]
         }
-      });
+      }))
+    };
   }
 
   private initializeGlobe() {
@@ -611,7 +349,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   private drawCountries() {
     this.svg.selectAll('.country').remove();
     this.svg.selectAll('.country-label').remove();
-    this.svg.selectAll('.state-boundary').remove();
+    this.svg.selectAll('.state-label').remove();
 
     this.svg.selectAll('.country')
       .data(this.countries.features)
@@ -634,20 +372,6 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         }
         this.hideTooltip();
       });
-
-    // Draw US state boundaries if available
-    if (this.usStates) {
-      this.svg.selectAll('.state-boundary')
-        .data(this.usStates.features)
-        .enter()
-        .append('path')
-        .attr('class', 'state-boundary')
-        .attr('d', this.path)
-        .attr('fill', 'none')
-        .attr('stroke', '#999')
-        .attr('stroke-width', 0.3)
-        .attr('opacity', 0.6);
-    }
 
     this.addCountryLabels();
     this.addStateLabels();
@@ -754,118 +478,157 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   }
 
   private addStateLabels() {
+    if (!this.statesData || this.currentZoom < 1.5) return;
+
     this.svg.selectAll('.state-label').remove();
     this.svg.selectAll('.state-label-shadow').remove();
 
     const usedPositions: Array<{x: number, y: number}> = [];
     const minDistance = this.isMobile ? 20 : 25;
 
-    // Get visible states based on current zoom level
-    const visibleStates = this.getVisibleStates();
-
-    visibleStates.forEach(state => {
-      if (this.isPointInFrontHemisphere(state.lng, state.lat)) {
-        const coordinates = [state.lng, state.lat];
-        const projected = this.projection(coordinates);
-        
-        if (projected && projected[0] && projected[1] && !isNaN(projected[0]) && !isNaN(projected[1])) {
-          const globeDiv = this.globeContainer.nativeElement;
-          const centerX = globeDiv.offsetWidth / 2;
-          const centerY = globeDiv.offsetHeight / 2;
-          
-          const distance = Math.sqrt(
-            Math.pow(projected[0] - centerX, 2) + Math.pow(projected[1] - centerY, 2)
-          );
-          
-          const maxDistance = this.currentRadius * this.currentZoom * 0.85;
-          
-          if (distance <= maxDistance) {
-            // Check for overlap
-            let canPlace = true;
-            for (const pos of usedPositions) {
-              const labelDistance = Math.sqrt(
-                Math.pow(projected[0] - pos.x, 2) + Math.pow(projected[1] - pos.y, 2)
+    // Process features from the loaded geojson
+    if (this.statesData.features) {
+      this.statesData.features.forEach((feature: any) => {
+        if (this.isFeatureVisible(feature)) {
+          const coords = this.getFeatureCoordinates(feature);
+          if (coords && this.isPointInFrontHemisphere(coords[0], coords[1])) {
+            const projected = this.projection(coords);
+            
+            if (projected && projected[0] && projected[1]) {
+              const globeDiv = this.globeContainer.nativeElement;
+              const centerX = globeDiv.offsetWidth / 2;
+              const centerY = globeDiv.offsetHeight / 2;
+              
+              const distance = Math.sqrt(
+                Math.pow(projected[0] - centerX, 2) + Math.pow(projected[1] - centerY, 2)
               );
-              if (labelDistance < minDistance) {
-                canPlace = false;
-                break;
+              
+              const maxDistance = this.currentRadius * this.currentZoom * 0.85;
+              
+              if (distance <= maxDistance) {
+                // Check for overlap
+                let canPlace = true;
+                for (const pos of usedPositions) {
+                  const labelDistance = Math.sqrt(
+                    Math.pow(projected[0] - pos.x, 2) + Math.pow(projected[1] - pos.y, 2)
+                  );
+                  if (labelDistance < minDistance) {
+                    canPlace = false;
+                    break;
+                  }
+                }
+
+                if (canPlace) {
+                  usedPositions.push({x: projected[0], y: projected[1]});
+                  this.createStateLabel(projected, feature.properties, distance, maxDistance);
+                }
               }
-            }
-
-            if (canPlace) {
-              usedPositions.push({x: projected[0], y: projected[1]});
-
-              const normalizedDistance = distance / maxDistance;
-              const opacity = Math.max(0.4, Math.min(0.8, 1 - normalizedDistance * 0.4));
-
-              // Add state code shadow
-              const stateShadow = this.svg.append('text')
-                .attr('class', 'state-label-shadow')
-                .attr('x', projected[0] + 0.3)
-                .attr('y', projected[1] + 0.3)
-                .attr('text-anchor', 'middle')
-                .attr('dominant-baseline', 'central')
-                .style('font-size', this.isMobile ? '6px' : '8px')
-                .style('font-weight', '500')
-                .style('font-family', 'Arial, sans-serif')
-                .style('fill', 'rgba(0,0,0,0.4)')
-                .style('pointer-events', 'none')
-                .style('user-select', 'none')
-                .style('opacity', opacity * 0.6)
-                .text(state.code);
-
-              // Add state code label
-              const stateLabel = this.svg.append('text')
-                .attr('class', 'state-label')
-                .attr('x', projected[0])
-                .attr('y', projected[1])
-                .attr('text-anchor', 'middle')
-                .attr('dominant-baseline', 'central')
-                .style('font-size', this.isMobile ? '6px' : '8px')
-                .style('font-weight', '500')
-                .style('font-family', 'Arial, sans-serif')
-                .style('fill', '#2d4a3e')
-                .style('stroke', 'white')
-                .style('stroke-width', '1px')
-                .style('stroke-linejoin', 'round')
-                .style('paint-order', 'stroke fill')
-                .style('pointer-events', 'none')
-                .style('user-select', 'none')
-                .style('opacity', opacity)
-                .text(state.code);
             }
           }
         }
-      }
-    });
+      });
+    }
   }
 
-  private getVisibleStates(): StateInfo[] {
-    // Only show state labels when zoomed in enough
-    if (this.currentZoom < 1.5) {
-      return [];
-    }
-
-    // Filter states based on what's currently visible and zoom level
-    const currentCountry = this.getCurrentlyFocusedCountry();
+  private isFeatureVisible(feature: any): boolean {
+    // Only show subdivisions for countries currently in focus
+    const countryCode = feature.properties.ISO_A2 || feature.properties.ADM0_A3;
+    const focusedCountry = this.getCurrentlyFocusedCountry();
     
-    if (currentCountry === 'US' || currentCountry === 'United States') {
-      // Show US states
-      return this.stateData.filter(state => 
-        state.countryCode === 'US' && 
-        Math.abs(state.lng - (-this.currentRotation[0])) < 30 &&
-        Math.abs(state.lat - (-this.currentRotation[1])) < 20
-      );
-    } else if (currentCountry === 'CA' || currentCountry === 'Canada') {
-      // Show Canadian provinces
-      return this.stateData.filter(state => 
-        state.countryCode === 'CA' &&
-        Math.abs(state.lng - (-this.currentRotation[0])) < 40 &&
-        Math.abs(state.lat - (-this.currentRotation[1])) < 25
-      );
+    return countryCode === focusedCountry;
+  }
+
+  private getFeatureCoordinates(feature: any): [number, number] | null {
+    if (feature.geometry.type === 'Point') {
+      return feature.geometry.coordinates;
+    } else if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
+      // Calculate centroid for polygons
+      const centroid = this.calculateCentroid(feature.geometry);
+      return centroid;
+    }
+    return null;
+  }
+
+  private calculateCentroid(geometry: any): [number, number] {
+    // Simple centroid calculation for polygons
+    let totalX = 0, totalY = 0, count = 0;
+    
+    const processCoordinates = (coords: any[]) => {
+      coords.forEach(coord => {
+        if (Array.isArray(coord[0])) {
+          processCoordinates(coord);
+        } else {
+          totalX += coord[0];
+          totalY += coord[1];
+          count++;
+        }
+      });
+    };
+
+    if (geometry.type === 'Polygon') {
+      processCoordinates(geometry.coordinates[0]);
+    } else if (geometry.type === 'MultiPolygon') {
+      geometry.coordinates.forEach((polygon: any) => {
+        processCoordinates(polygon[0]);
+      });
     }
 
-    return [];
+    return count > 0 ? [totalX / count, totalY / count] : [0, 0];
+  }
+
+  private createStateLabel(projected: [number, number], properties: any, distance: number, maxDistance: number) {
+    const stateCode = this.extractStateCode(properties);
+    if (!stateCode) return;
+
+    const normalizedDistance = distance / maxDistance;
+    const opacity = Math.max(0.4, Math.min(0.8, 1 - normalizedDistance * 0.4));
+
+    // Add shadow
+    const shadow = this.svg.append('text')
+      .attr('class', 'state-label-shadow')
+      .attr('x', projected[0] + 0.3)
+      .attr('y', projected[1] + 0.3)
+      .attr('text-anchor', 'middle')
+      .attr('dominant-baseline', 'central')
+      .style('font-size', this.isMobile ? '6px' : '8px')
+      .style('font-weight', '500')
+      .style('font-family', 'Arial, sans-serif')
+      .style('fill', 'rgba(0,0,0,0.4)')
+      .style('pointer-events', 'none')
+      .style('user-select', 'none')
+      .style('opacity', opacity * 0.6)
+      .text(stateCode);
+
+    // Add main label
+    const label = this.svg.append('text')
+      .attr('class', 'state-label')
+      .attr('x', projected[0])
+      .attr('y', projected[1])
+      .attr('text-anchor', 'middle')
+      .attr('dominant-baseline', 'central')
+      .style('font-size', this.isMobile ? '6px' : '8px')
+      .style('font-weight', '500')
+      .style('font-family', 'Arial, sans-serif')
+      .style('fill', '#2d4a3e')
+      .style('stroke', 'white')
+      .style('stroke-width', '1px')
+      .style('stroke-linejoin', 'round')
+      .style('paint-order', 'stroke fill')
+      .style('pointer-events', 'none')
+      .style('user-select', 'none')
+      .style('opacity', opacity)
+      .text(stateCode);
+  }
+
+  private extractStateCode(properties: any): string | null {
+    // Extract state/province code from various possible property names
+    return properties.postal || 
+           properties.code_hasc || 
+           properties.iso_3166_2 || 
+           properties.ADM1_CODE ||
+           properties.NAME_1?.substring(0, 3).toUpperCase() ||
+           properties.NAME?.substring(0, 2).toUpperCase() ||
+           null;
   }
 
   private getCurrentlyFocusedCountry(): string | null {
@@ -880,6 +643,17 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       } else if (centerLng > -125 && centerLng < -65 && centerLat > 25 && centerLat < 50) {
         return 'US'; // United States
       }
+    }
+    
+    // Check for other major countries with states/provinces
+    if (centerLng > 70 && centerLng < 135 && centerLat > -45 && centerLat < -10) {
+      return 'AU'; // Australia
+    }
+    if (centerLng > -75 && centerLng < -35 && centerLat > -35 && centerLat < 5) {
+      return 'BR'; // Brazil
+    }
+    if (centerLng > 68 && centerLng < 97 && centerLat > 8 && centerLat < 37) {
+      return 'IN'; // India
     }
 
     return null;
@@ -977,12 +751,6 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
     this.svg.select('circle')
       .attr('r', this.currentRadius * this.currentZoom);
-
-    // Update state boundaries if they exist
-    if (this.usStates) {
-      this.svg.selectAll('.state-boundary')
-        .attr('d', this.path);
-    }
 
     // Update labels to rotate with the globe
     this.addCountryLabels();
