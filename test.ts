@@ -328,7 +328,8 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     const labelsToShow = this.laborData.filter(country => {
       const isMajor = MAJOR_COUNTRIES.includes(country.country);
       const isZoomedIn = this.currentZoom > 1.5;
-      return isMajor || (isZoomedIn && country.population > 10000000);
+      const hasPopulation = country.population && country.population > 10000000;
+      return isMajor || (isZoomedIn && hasPopulation);
     });
 
     this.svg.selectAll('.country-label')
@@ -549,3 +550,4 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   trackByCountry(index: number, country: CountryCost): string {
     return country.code;
   }
+}
