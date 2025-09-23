@@ -341,7 +341,8 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         const coordinates = [country.lng, country.lat];
         const projected = this.projection(coordinates);
         
-        if (projected) {
+        // D3 returns null for points that are on the back hemisphere
+        if (projected && projected[0] !== null && projected[1] !== null) {
           const globeDiv = this.globeContainer.nativeElement;
           const centerX = globeDiv.offsetWidth / 2;
           const centerY = globeDiv.offsetHeight / 2;
@@ -349,7 +350,8 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
             Math.pow(projected[0] - centerX, 2) + Math.pow(projected[1] - centerY, 2)
           );
           
-          if (distance <= this.currentRadius * this.currentZoom - 10) {
+          // Only show labels well within the globe circle (not at the edges)
+          if (distance <= (this.currentRadius * this.currentZoom - 20)) {
             // Check for overlap with existing labels
             let canPlace = true;
             for (const pos of usedPositions) {
@@ -400,9 +402,9 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
                 .style('user-select', 'none')
                 .text(country.country);
 
-              // Calculate opacity based on distance from center and edge
+              // Calculate opacity based on distance from center
               const normalizedDistance = distance / (this.currentRadius * this.currentZoom);
-              const opacity = Math.max(0.4, Math.min(1, (1 - normalizedDistance) * 1.5));
+              const opacity = Math.max(0.5, Math.min(1, (1 - normalizedDistance) * 2));
               
               label.style('opacity', opacity);
               shadow.style('opacity', opacity * 0.7);
@@ -414,22 +416,25 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   }
 
   private isCountryVisible(lat: number, lng: number): boolean {
-    // Convert to radians
-    const latRad = lat * Math.PI / 180;
-    const lngRad = lng * Math.PI / 180;
+    // Use a more precise 3D visibility check
+    const lambda = lng * Math.PI / 180; // longitude in radians
+    const phi = lat * Math.PI / 180;     // latitude in radians
     
-    // Apply rotation to get the rotated coordinates
-    const rotatedLng = lngRad - (this.currentRotation[0] * Math.PI / 180);
-    const rotatedLat = latRad - (this.currentRotation[1] * Math.PI / 180);
+    // Apply the current rotation
+    const rotLambda = lambda - (this.currentRotation[0] * Math.PI / 180);
+    const rotPhi = phi - (this.currentRotation[1] * Math.PI / 180);
     
-    // Calculate the 3D position on the sphere
-    const x = Math.cos(rotatedLat) * Math.cos(rotatedLng);
-    const y = Math.cos(rotatedLat) * Math.sin(rotatedLng);
-    const z = Math.sin(rotatedLat);
+    // For orthographic projection, check if the point is on the visible hemisphere
+    // The point is visible if the dot product with the viewing direction is positive
+    const cosPhi = Math.cos(rotPhi);
+    const cosLambda = Math.cos(rotLambda);
     
-    // For orthographic projection, only points with positive z-coordinate (facing viewer) are visible
-    // Add a small buffer to prevent flickering at the edges
-    return z > 0.05;
+    // The z-component (depth) determines visibility
+    const z = cosPhi * cosLambda;
+    
+    // Only show points that are clearly on the front hemisphere
+    // Use a larger threshold to ensure back points don't show through
+    return z > 0.2;
   }
 
   private showTooltip(event: any, d: any) {
