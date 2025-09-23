@@ -263,66 +263,93 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   }
 
   private createCountryPatterns(defs: any) {
-    // Create crosshatch patterns with different intensities like in the reference image
+    // Create Google Maps-style terrain patterns with organic elevation shading
     const patterns = [
-      { id: 'crosshatch-light', base: '#c8e6c8', line: '#9ccc9c', spacing: 3, opacity: 0.3 },
-      { id: 'crosshatch-medium', base: '#a8d5a8', line: '#7bb87b', spacing: 2.5, opacity: 0.4 },
-      { id: 'crosshatch-dark', base: '#88c488', line: '#5a9d5a', spacing: 2, opacity: 0.5 },
-      { id: 'crosshatch-darker', base: '#68a368', line: '#3a7a3a', spacing: 1.5, opacity: 0.6 }
+      { id: 'terrain-light', colors: ['#e6f3e6', '#d9eed9', '#cce8cc'] },
+      { id: 'terrain-medium', colors: ['#b3ddb3', '#a6d6a6', '#99d099'] },
+      { id: 'terrain-dark', colors: ['#80cc80', '#73c573', '#66bf66'] },
+      { id: 'terrain-darker', colors: ['#4db84d', '#40b140', '#33aa33'] }
     ];
 
-    patterns.forEach(patternConfig => {
+    patterns.forEach((patternConfig, index) => {
       const pattern = defs.append('pattern')
         .attr('id', patternConfig.id)
         .attr('patternUnits', 'userSpaceOnUse')
-        .attr('width', 8)
-        .attr('height', 8);
+        .attr('width', 20)
+        .attr('height', 20);
 
-      // Base color
+      // Create base gradient for elevation effect
+      const gradient = defs.append('linearGradient')
+        .attr('id', `elevation-gradient-${index}`)
+        .attr('x1', '0%')
+        .attr('y1', '0%')
+        .attr('x2', '100%')
+        .attr('y2', '100%');
+
+      gradient.append('stop')
+        .attr('offset', '0%')
+        .attr('stop-color', patternConfig.colors[0]);
+
+      gradient.append('stop')
+        .attr('offset', '50%')
+        .attr('stop-color', patternConfig.colors[1]);
+
+      gradient.append('stop')
+        .attr('offset', '100%')
+        .attr('stop-color', patternConfig.colors[2]);
+
+      // Base terrain with gradient
       pattern.append('rect')
-        .attr('width', 8)
-        .attr('height', 8)
-        .attr('fill', patternConfig.base);
+        .attr('width', 20)
+        .attr('height', 20)
+        .attr('fill', `url(#elevation-gradient-${index})`);
 
-      // Create diagonal crosshatch lines
-      const lineGroup = pattern.append('g')
-        .attr('stroke', patternConfig.line)
-        .attr('stroke-width', 0.5)
-        .attr('opacity', patternConfig.opacity);
+      // Add organic terrain variation with random shapes
+      const terrainGroup = pattern.append('g')
+        .attr('opacity', 0.3);
 
-      // Diagonal lines going top-left to bottom-right
-      for (let i = -8; i <= 16; i += patternConfig.spacing) {
-        lineGroup.append('line')
-          .attr('x1', i)
-          .attr('y1', 0)
-          .attr('x2', i + 8)
-          .attr('y2', 8);
+      // Create irregular terrain patches
+      for (let i = 0; i < 8; i++) {
+        const x = Math.random() * 20;
+        const y = Math.random() * 20;
+        const size = Math.random() * 3 + 1;
+        
+        terrainGroup.append('circle')
+          .attr('cx', x)
+          .attr('cy', y)
+          .attr('r', size)
+          .attr('fill', patternConfig.colors[Math.floor(Math.random() * 3)])
+          .attr('opacity', 0.4);
       }
 
-      // Diagonal lines going top-right to bottom-left
-      for (let i = -8; i <= 16; i += patternConfig.spacing) {
-        lineGroup.append('line')
-          .attr('x1', i)
-          .attr('y1', 8)
-          .attr('x2', i + 8)
-          .attr('y2', 0);
-      }
-
-      // Add subtle elevation-style contour lines
+      // Add subtle elevation contours
       const contourGroup = pattern.append('g')
-        .attr('stroke', patternConfig.line)
+        .attr('stroke', patternConfig.colors[2])
         .attr('stroke-width', 0.3)
         .attr('fill', 'none')
-        .attr('opacity', patternConfig.opacity * 0.7);
+        .attr('opacity', 0.2);
 
-      // Curved contour lines for topographic effect
+      // Organic contour lines
       contourGroup.append('path')
-        .attr('d', 'M0,2 Q4,1.5 8,2')
-        .attr('opacity', 0.4);
-      
+        .attr('d', `M0,${5 + Math.random() * 3} Q${10 + Math.random() * 2},${7 + Math.random() * 2} 20,${6 + Math.random() * 3}`)
+        .attr('opacity', 0.3);
+
       contourGroup.append('path')
-        .attr('d', 'M0,6 Q4,5.5 8,6')
-        .attr('opacity', 0.4);
+        .attr('d', `M0,${12 + Math.random() * 3} Q${10 + Math.random() * 2},${14 + Math.random() * 2} 20,${13 + Math.random() * 3}`)
+        .attr('opacity', 0.3);
+
+      // Add texture noise for realistic terrain feel
+      const noiseGroup = pattern.append('g')
+        .attr('opacity', 0.1);
+
+      for (let i = 0; i < 15; i++) {
+        noiseGroup.append('rect')
+          .attr('x', Math.random() * 20)
+          .attr('y', Math.random() * 20)
+          .attr('width', 0.5)
+          .attr('height', 0.5)
+          .attr('fill', patternConfig.colors[2]);
+      }
     });
   }
 
@@ -634,22 +661,22 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     const entry = this.countriesList.find(c => c.country === countryName);
     
     if (entry) {
-      // Use crosshatch patterns based on skill levels
+      // Use Google Maps-style terrain patterns based on skill levels
       const totalSkills = entry.uniqueSkills + entry.skillSupply;
       
       if (totalSkills >= 80) {
-        return 'url(#crosshatch-darker)';  // Highest skill level
+        return 'url(#terrain-darker)';  // Highest skill level - darkest green
       } else if (totalSkills >= 60) {
-        return 'url(#crosshatch-dark)';    // High skill level  
+        return 'url(#terrain-dark)';    // High skill level - dark green
       } else if (totalSkills >= 40) {
-        return 'url(#crosshatch-medium)';  // Medium skill level
+        return 'url(#terrain-medium)';  // Medium skill level - medium green
       } else {
-        return 'url(#crosshatch-light)';   // Lower skill level
+        return 'url(#terrain-light)';   // Lower skill level - light green
       }
     }
     
-    // Default crosshatch pattern for countries without data
-    return 'url(#crosshatch-light)';
+    // Default terrain pattern for countries without data
+    return 'url(#terrain-light)';
   }
 
   private startRotation() {
