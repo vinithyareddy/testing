@@ -337,21 +337,29 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     const minDistance = this.isMobile ? 25 : 35;
 
     labeledCountries.forEach(country => {
-      if (this.isCountryVisible(country.lat, country.lng)) {
-        const coordinates = [country.lng, country.lat];
-        const projected = this.projection(coordinates);
+      // Use the SAME coordinates as the projection system
+      const coordinates = [country.lng, country.lat];
+      
+      // Check visibility using the same projection
+      const projected = this.projection(coordinates);
+      
+      if (projected && projected[0] && projected[1] && !isNaN(projected[0]) && !isNaN(projected[1])) {
+        const globeDiv = this.globeContainer.nativeElement;
+        const centerX = globeDiv.offsetWidth / 2;
+        const centerY = globeDiv.offsetHeight / 2;
         
-        // D3 returns null for points that are on the back hemisphere
-        if (projected && projected[0] !== null && projected[1] !== null) {
-          const globeDiv = this.globeContainer.nativeElement;
-          const centerX = globeDiv.offsetWidth / 2;
-          const centerY = globeDiv.offsetHeight / 2;
-          const distance = Math.sqrt(
-            Math.pow(projected[0] - centerX, 2) + Math.pow(projected[1] - centerY, 2)
-          );
-          
-          // Only show labels well within the globe circle (not at the edges)
-          if (distance <= (this.currentRadius * this.currentZoom - 20)) {
+        // Calculate distance from center
+        const distance = Math.sqrt(
+          Math.pow(projected[0] - centerX, 2) + Math.pow(projected[1] - centerY, 2)
+        );
+        
+        // Only show labels that are well within the visible globe area
+        const maxDistance = this.currentRadius * this.currentZoom * 0.85; // 85% of radius
+        
+        if (distance <= maxDistance) {
+          // Additional visibility check - make sure the point is actually visible
+          // by checking if it's in the front hemisphere
+          if (this.isPointInFrontHemisphere(country.lng, country.lat)) {
             // Check for overlap with existing labels
             let canPlace = true;
             for (const pos of usedPositions) {
@@ -403,8 +411,8 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
                 .text(country.country);
 
               // Calculate opacity based on distance from center
-              const normalizedDistance = distance / (this.currentRadius * this.currentZoom);
-              const opacity = Math.max(0.5, Math.min(1, (1 - normalizedDistance) * 2));
+              const normalizedDistance = distance / maxDistance;
+              const opacity = Math.max(0.6, Math.min(1, 1 - normalizedDistance * 0.5));
               
               label.style('opacity', opacity);
               shadow.style('opacity', opacity * 0.7);
@@ -415,26 +423,34 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  private isCountryVisible(lat: number, lng: number): boolean {
-    // Use a more precise 3D visibility check
-    const lambda = lng * Math.PI / 180; // longitude in radians
-    const phi = lat * Math.PI / 180;     // latitude in radians
+  private isPointInFrontHemisphere(lng: number, lat: number): boolean {
+    // Convert degrees to radians
+    const lambda = (lng * Math.PI) / 180;
+    const phi = (lat * Math.PI) / 180;
     
-    // Apply the current rotation
-    const rotLambda = lambda - (this.currentRotation[0] * Math.PI / 180);
-    const rotPhi = phi - (this.currentRotation[1] * Math.PI / 180);
+    // Get current rotation in radians
+    const rotLambda = (this.currentRotation[0] * Math.PI) / 180;
+    const rotPhi = (this.currentRotation[1] * Math.PI) / 180;
     
-    // For orthographic projection, check if the point is on the visible hemisphere
-    // The point is visible if the dot product with the viewing direction is positive
-    const cosPhi = Math.cos(rotPhi);
-    const cosLambda = Math.cos(rotLambda);
+    // Apply rotation
+    const adjustedLng = lambda + rotLambda;
+    const adjustedLat = phi + rotPhi;
     
-    // The z-component (depth) determines visibility
+    // Calculate if point is in front hemisphere
+    // For orthographic projection, we need to check the z-coordinate
+    const cosPhi = Math.cos(adjustedLat);
+    const cosLambda = Math.cos(adjustedLng);
+    
+    // Z coordinate determines if point faces viewer
     const z = cosPhi * cosLambda;
     
-    // Only show points that are clearly on the front hemisphere
-    // Use a larger threshold to ensure back points don't show through
-    return z > 0.2;
+    // Only show points clearly in front (with margin for edge fading)
+    return z > 0.3;
+  }
+
+  private isCountryVisible(lat: number, lng: number): boolean {
+    // Simplified - just use the projection system and hemisphere check
+    return this.isPointInFrontHemisphere(lng, lat);
   }
 
   private showTooltip(event: any, d: any) {
