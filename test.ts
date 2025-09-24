@@ -442,7 +442,6 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     if (!this.oceans) return;
 
     this.svg.selectAll('.ocean-label').remove();
-    this.svg.selectAll('.ocean-label-shadow').remove();
 
     this.oceans.features.forEach((feature: any) => {
       const coords = feature.geometry.coordinates;
@@ -451,42 +450,20 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       if (!this.isPointVisible(coords)) return;
 
       const [x, y] = projected;
-
       const perspectiveScale = this.getPerspectiveScale(coords);
-      const distanceScale = Math.max(0.7, 1 - this.getDistanceFromCenter(coords) * 0.3);
-      const finalScale = perspectiveScale * distanceScale;
-
-      const baseFontSize = 12;
-      const fontSize = baseFontSize * finalScale;
-      const opacity = Math.max(0.3, finalScale * 0.7);
-
-      this.svg.append('text')
-        .attr('class', 'ocean-label-shadow')
-        .attr('x', x + 1)
-        .attr('y', y + 1)
-        .attr('text-anchor', 'middle')
-        .style('font-size', `${fontSize}px`)
-        .style('fill', 'rgba(26,75,122,0.3)')
-        .style('font-weight', '600')
-        .style('opacity', opacity * 0.8)
-        .style('pointer-events', 'none')
-        .style('transform-origin', `${x}px ${y}px`)
-        .style('transform', `scale(${finalScale})`)
-        .text(feature.properties.name);
 
       this.svg.append('text')
         .attr('class', 'ocean-label')
         .attr('x', x)
         .attr('y', y)
         .attr('text-anchor', 'middle')
-        .style('font-size', `${fontSize}px`)
+        .style('font-size', '12px')
         .style('fill', '#1a4b7a')
         .style('font-weight', '600')
-        .style('opacity', opacity)
+        .style('opacity', 0.7)
         .style('pointer-events', 'none')
         .style('transform-origin', `${x}px ${y}px`)
-        .style('transform', `scale(${finalScale})`)
-        .style('filter', 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))')
+        .style('transform', `scale(${perspectiveScale})`)
         .text(feature.properties.name);
     });
   }
@@ -682,22 +659,17 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       usedPositions.push({ x, y });
 
       const perspectiveScale = this.getPerspectiveScale(data.centroid);
-      const distanceScale = Math.max(0.8, 1 - this.getDistanceFromCenter(data.centroid) * 0.2);
-      const finalScale = perspectiveScale * distanceScale;
+      const finalScale = perspectiveScale;
 
-      const baseFontSize = Math.max(4, Math.min(8, 6 + this.currentZoom));
-      const fontSize = baseFontSize * finalScale;
-      const opacity = Math.max(0.4, finalScale);
+      const fontSize = Math.max(4, Math.min(8, 6 + this.currentZoom));
 
-      const shadowOffset = Math.max(0.3, 0.8 * finalScale);
       this.svg.append('text')
         .attr('class', 'state-label-shadow')
-        .attr('x', x + shadowOffset)
-        .attr('y', y + shadowOffset)
+        .attr('x', x + 0.8)
+        .attr('y', y + 0.8)
         .attr('text-anchor', 'middle')
         .style('font-size', `${fontSize}px`)
         .style('fill', 'rgba(0,0,0,0.4)')
-        .style('opacity', opacity * 0.7)
         .style('pointer-events', 'none')
         .style('transform-origin', `${x}px ${y}px`)
         .style('transform', `scale(${finalScale})`)
@@ -713,13 +685,11 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         .style('font-family', 'Arial, sans-serif')
         .style('fill', '#2b2b2b')
         .style('stroke', 'white')
-        .style('stroke-width', `${Math.max(0.3, 0.6 * finalScale)}px`)
+        .style('stroke-width', '0.6px')
         .style('paint-order', 'stroke fill')
         .style('pointer-events', 'none')
-        .style('opacity', opacity)
         .style('transform-origin', `${x}px ${y}px`)
         .style('transform', `scale(${finalScale})`)
-        .style('filter', 'drop-shadow(0 1px 1px rgba(0,0,0,0.2))')
         .text(data.label);
     });
   }
@@ -729,7 +699,6 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
     this.svg.selectAll('.country-label').remove();
     this.svg.selectAll('.country-label-shadow').remove();
-    this.svg.selectAll('.country-label-path').remove();
 
     const usedPositions: Array<{ x: number; y: number }> = [];
     const baseMinDistance = this.isMobile ? 20 : 30;
@@ -752,7 +721,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       return area > minAreaThreshold;
     });
 
-    visibleLabels.forEach((data, index) => {
+    visibleLabels.forEach((data) => {
       const projected = this.projection(data.centroid);
       if (!projected) return;
 
@@ -771,39 +740,23 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       usedPositions.push({ x, y });
 
       const perspectiveScale = this.getPerspectiveScale(data.centroid);
-      const distanceScale = Math.max(0.7, 1 - this.getDistanceFromCenter(data.centroid) * 0.3);
-      const finalScale = perspectiveScale * distanceScale;
+      const finalScale = perspectiveScale;
 
-      const baseFontSize = Math.max(6, Math.min(12, 8 + this.currentZoom * 1.5));
-      const fontSize = baseFontSize * finalScale;
+      const fontSize = Math.max(6, Math.min(12, 8 + this.currentZoom * 1.5));
 
-      const pathId = `country-path-${index}`;
-      const pathData = this.createCurvedTextPath(data.name, data.centroid, pathId);
-
-      if (pathData) {
-        this.svg.append('defs').append('path')
-          .attr('id', pathId)
-          .attr('d', pathData)
-          .attr('class', 'country-label-path');
-      }
-
-      const opacity = Math.max(0.3, finalScale);
-
-      const shadowOffset = Math.max(0.5, 1 * finalScale);
       this.svg.append('text')
         .attr('class', 'country-label-shadow')
-        .attr('x', x + shadowOffset)
-        .attr('y', y + shadowOffset)
+        .attr('x', x + 1)
+        .attr('y', y + 1)
         .attr('text-anchor', 'middle')
         .style('font-size', `${fontSize}px`)
         .style('fill', 'rgba(0,0,0,0.4)')
-        .style('opacity', opacity * 0.8)
         .style('pointer-events', 'none')
         .style('transform-origin', `${x}px ${y}px`)
         .style('transform', `scale(${finalScale})`)
         .text(data.name);
 
-      const textElement = this.svg.append('text')
+      this.svg.append('text')
         .attr('class', 'country-label')
         .attr('x', x)
         .attr('y', y)
@@ -813,15 +766,12 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         .style('font-family', 'Arial, sans-serif')
         .style('fill', '#111')
         .style('stroke', 'white')
-        .style('stroke-width', `${Math.max(0.5, 1 * finalScale)}px`)
+        .style('stroke-width', '1px')
         .style('paint-order', 'stroke fill')
         .style('pointer-events', 'none')
-        .style('opacity', opacity)
         .style('transform-origin', `${x}px ${y}px`)
         .style('transform', `scale(${finalScale})`)
         .text(data.name);
-
-      textElement.style('filter', 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))');
     });
   }
 
