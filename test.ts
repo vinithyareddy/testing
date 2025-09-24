@@ -199,74 +199,13 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .attr('viewBox', `0 0 ${width} ${height}`)
       .attr('preserveAspectRatio', 'xMidYMid meet');
 
-    // Add globe shadow/glow effect
-    const defs = this.svg.append('defs');
-    
-    // Create radial gradient for glow effect
-    const glowGradient = defs.append('radialGradient')
-      .attr('id', 'globe-glow')
-      .attr('cx', '50%')
-      .attr('cy', '50%')
-      .attr('r', '60%');
-    
-    glowGradient.append('stop')
-      .attr('offset', '0%')
-      .style('stop-color', '#ffffff')
-      .style('stop-opacity', 0.1);
-    
-    glowGradient.append('stop')
-      .attr('offset', '70%')
-      .style('stop-color', '#87ceeb')
-      .style('stop-opacity', 0.3);
-    
-    glowGradient.append('stop')
-      .attr('offset', '100%')
-      .style('stop-color', '#4682b4')
-      .style('stop-opacity', 0.6);
-
-    // Create filter for outer shadow
-    const filter = defs.append('filter')
-      .attr('id', 'globe-shadow')
-      .attr('x', '-50%')
-      .attr('y', '-50%')
-      .attr('width', '200%')
-      .attr('height', '200%');
-
-    filter.append('feGaussianBlur')
-      .attr('in', 'SourceGraphic')
-      .attr('stdDeviation', '8');
-
-    filter.append('feOffset')
-      .attr('dx', '3')
-      .attr('dy', '3')
-      .attr('result', 'offset');
-
-    filter.append('feComponentTransfer')
-      .append('feFuncA')
-      .attr('type', 'discrete')
-      .attr('tableValues', '0.3');
-
-    const feMerge = filter.append('feMerge');
-    feMerge.append('feMergeNode').attr('in', 'offset');
-    feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
-
-    // Add outer glow circle (larger)
-    this.svg.append('circle')
-      .attr('cx', width / 2)
-      .attr('cy', height / 2)
-      .attr('r', this.currentRadius + 12)
-      .attr('fill', 'url(#globe-glow)')
-      .attr('opacity', 0.7);
-
-    // Add main globe circle with shadow
     this.svg.append('circle')
       .attr('cx', width / 2)
       .attr('cy', height / 2)
       .attr('r', this.currentRadius)
       .attr('fill', CUSTOM_GLOBE_COLOR)
-      .attr('stroke', '#5a9fd4')
-      .attr('stroke-width', 2)
-      .attr('filter', 'url(#globe-shadow)');
+      .attr('stroke', '#ccc')
+      .attr('stroke-width', 1);
 
     this.countries = topojson.feature(
       worldData as any,
@@ -298,15 +237,9 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
     this.svg.attr('viewBox', `0 0 ${width} ${height}`);
 
-    // Update both glow circle and main circle
-    this.svg.selectAll('circle')
+    this.svg.select('circle')
       .attr('cx', width / 2)
-      .attr('cy', height / 2);
-    
-    this.svg.select('circle:first-child')
-      .attr('r', this.currentRadius * this.currentZoom + 12);
-    
-    this.svg.select('circle:last-child')
+      .attr('cy', height / 2)
       .attr('r', this.currentRadius * this.currentZoom);
 
     this.updateCountries();
@@ -314,36 +247,22 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   }
 
   private setupInteractions() {
-    let lastUpdate = 0;
-    const throttleDelay = 16; // ~60fps
-
     const drag = d3.drag()
       .on('start', (event: any) => {
         this.isDragging = true;
         this.isRotating = false;
       })
       .on('drag', (event: any) => {
-        const now = Date.now();
-        if (now - lastUpdate < throttleDelay) return;
-        lastUpdate = now;
-
         const sensitivity = this.isMobile ? 0.4 : 0.25;
         this.currentRotation[0] += event.dx * sensitivity;
         this.currentRotation[1] -= event.dy * sensitivity;
         this.currentRotation[1] = Math.max(-90, Math.min(90, this.currentRotation[1]));
         this.projection.rotate(this.currentRotation);
-        
-        // Only update countries, skip labels during drag for performance
-        this.svg.selectAll('.country').attr('d', this.path);
-        this.svg.selectAll('.state').attr('d', this.path);
+        this.updateCountries();
+        this.updateStates();
       })
       .on('end', () => {
         this.isDragging = false;
-        // Update labels after drag ends
-        requestAnimationFrame(() => {
-          this.updateCountryLabels();
-          this.updateStateLabels();
-        });
         setTimeout(() => {
           if (!this.isDragging) {
             this.isRotating = true;
@@ -382,7 +301,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       this.startRotation();
     });
 
-    // Load states/provinces
+    // Load states/provinces - they should be from world-atlas or similar
     this.http.get<any>('assets/json/globe-states.json').subscribe(data => {
       this.states = topojson.feature(
         data,
@@ -407,27 +326,12 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   // Initialize state label data once
   private initializeStateLabels() {
     if (!this.states) return;
-    
+
     this.stateLabelData = this.states.features
       .map((feature: any) => {
         const centroid = d3.geoCentroid(feature);
         const props = feature.properties;
-        
-        // Extract only the state code part, removing country prefix
-        let label = props?.code_hasc || props?.iso_3166_2 || props?.name;
-        if (label && typeof label === 'string') {
-          // Remove country code prefix (e.g., "US.TX" -> "TX", "CA.ON" -> "ON")
-          const dotIndex = label.indexOf('.');
-          if (dotIndex !== -1) {
-            label = label.substring(dotIndex + 1);
-          }
-          // Remove country code prefix with dash (e.g., "US-TX" -> "TX")
-          const dashIndex = label.indexOf('-');
-          if (dashIndex !== -1) {
-            label = label.substring(dashIndex + 1);
-          }
-        }
-        
+        const label = props?.code_hasc || props?.iso_3166_2 || props?.name;
         return label ? { feature, centroid, label } : null;
       })
       .filter((item): item is { feature: any; centroid: [number, number]; label: string } => item !== null);
@@ -450,8 +354,8 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         this.isRotating = false;
         this.showTooltip(event, d);
       })
-      .on('mousemove', (event: any, d: any) => this.moveTooltip(event))
-      .on('mouseout', (event: any, d: any) => {
+      .on('mousemove', (event: any) => this.moveTooltip(event))
+      .on('mouseout', () => {
         if (!this.isDragging) {
           this.isRotating = true;
         }
@@ -474,7 +378,9 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .attr('d', this.path)
       .attr('fill', 'transparent')
       .attr('stroke', '#aaa')
-      .attr('stroke-width', 0.3);
+      .attr('stroke-width', 0.3)
+      // IMPORTANT: Set pointer-events to none so they don't block country tooltips
+      .style('pointer-events', 'none');
 
     this.updateStateLabels();
   }
@@ -484,11 +390,11 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     try {
       const pathString = this.path(feature);
       if (!pathString) return 0;
-      
+
       // Simple approximation of path area based on bounding box
       const bounds = this.path.bounds(feature);
       if (!bounds || bounds.length < 2) return 0;
-      
+
       const width = bounds[1][0] - bounds[0][0];
       const height = bounds[1][1] - bounds[0][1];
       return width * height;
@@ -497,72 +403,95 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  // Determine if a point is visible on the front hemisphere
+  private isPointVisible(centroid: [number, number]): boolean {
+    const projected = this.projection(centroid);
+    if (!projected) return false;
+
+    // Check if the point is on the visible hemisphere
+    const [lng, lat] = centroid;
+    const lambda = (lng * Math.PI) / 180;
+    const phi = (lat * Math.PI) / 180;
+    const rotLambda = (this.currentRotation[0] * Math.PI) / 180;
+    const rotPhi = (this.currentRotation[1] * Math.PI) / 180;
+
+    const adjustedLng = lambda + rotLambda;
+    const cosPhi = Math.cos(phi + rotPhi);
+    const cosLambda = Math.cos(adjustedLng);
+    const dotProduct = cosPhi * cosLambda;
+
+    return dotProduct > 0;
+  }
+
+  private shouldShowStates(): boolean {
+    // Show states based on zoom level - more states visible when zoomed in
+    return this.currentZoom > 1.2;
+  }
+
+  private getMinStateAreaThreshold(): number {
+    // Smaller threshold means more states show
+    // Base threshold adjusted by zoom level
+    const baseThreshold = this.isMobile ? 15 : 25;
+    const zoomFactor = Math.max(0.3, 2 / (this.currentZoom * this.currentZoom));
+    return baseThreshold * zoomFactor;
+  }
+
   private updateStateLabels() {
-    if (!this.stateLabelData.length) return;
+    if (!this.stateLabelData.length || !this.shouldShowStates()) {
+      this.svg.selectAll('.state-label').remove();
+      this.svg.selectAll('.state-label-shadow').remove();
+      return;
+    }
 
     this.svg.selectAll('.state-label').remove();
     this.svg.selectAll('.state-label-shadow').remove();
 
     const usedPositions: Array<{ x: number; y: number }> = [];
-    const baseMinDistance = this.isMobile ? 6 : 12;
-    const minDistance = baseMinDistance / Math.sqrt(this.currentZoom);
+    const baseMinDistance = this.isMobile ? 8 : 15;
+    const minDistance = baseMinDistance / this.currentZoom;
 
-    // Optimize filtering with early exits and batch operations
+    // Filter labels based on zoom level and visibility
     const visibleLabels = this.stateLabelData.filter(data => {
+      if (!this.isPointVisible(data.centroid)) return false;
+
       const projected = this.projection(data.centroid);
       if (!projected) return false;
-      
-      // Simple visibility check first
-      const [lng, lat] = data.centroid;
-      const lambda = (lng * Math.PI) / 180;
-      const rotLambda = (this.currentRotation[0] * Math.PI) / 180;
-      const adjustedLng = lambda + rotLambda;
-      const cosPhi = Math.cos(lat * Math.PI / 180);
-      const cosLambda = Math.cos(adjustedLng);
-      const dotProduct = cosPhi * cosLambda;
-      
-      if (dotProduct < -0.3) return false;
-      
-      // Quick area check - avoid expensive calculations for obviously small features
-      if (this.currentZoom < 1.5) {
-        const area = this.getProjectedArea(data.feature);
-        return area > 50 / (this.currentZoom * this.currentZoom);
-      }
-      
-      return true; // Show more at higher zoom
+
+      // Calculate feature area for zoom-based filtering
+      const area = this.getProjectedArea(data.feature);
+      const minAreaThreshold = this.getMinStateAreaThreshold();
+
+      return area > minAreaThreshold;
     });
 
-    // Limit number of labels to prevent performance issues
-    const maxLabels = this.isMobile ? 30 : 50;
-    const sortedLabels = visibleLabels
-      .sort((a, b) => this.getProjectedArea(b.feature) - this.getProjectedArea(a.feature))
-      .slice(0, maxLabels);
-
-    sortedLabels.forEach((data) => {
+    visibleLabels.forEach((data) => {
       const projected = this.projection(data.centroid);
       if (!projected) return;
 
       const [x, y] = projected;
 
-      // Quick overlap check
-      const canPlace = !usedPositions.some(pos => {
+      // Check for label overlap
+      let canPlace = true;
+      for (const pos of usedPositions) {
         const dist = Math.sqrt((x - pos.x) ** 2 + (y - pos.y) ** 2);
-        return dist < minDistance;
-      });
-      
+        if (dist < minDistance) {
+          canPlace = false;
+          break;
+        }
+      }
       if (!canPlace) return;
       usedPositions.push({ x, y });
 
-      const fontSize = Math.max(5, Math.min(10, 6 + this.currentZoom * 1.2));
+      const fontSize = Math.max(4, Math.min(8, 6 + this.currentZoom));
 
-      // Lighter shadow for better visibility
+      // Shadow
       this.svg.append('text')
         .attr('class', 'state-label-shadow')
-        .attr('x', x + 0.5)
-        .attr('y', y + 0.5)
+        .attr('x', x + 0.8)
+        .attr('y', y + 0.8)
         .attr('text-anchor', 'middle')
         .style('font-size', `${fontSize}px`)
-        .style('fill', 'rgba(255,255,255,0.8)')
+        .style('fill', 'rgba(0,0,0,0.4)')
         .style('pointer-events', 'none')
         .text(data.label);
 
@@ -579,6 +508,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         .style('stroke', 'white')
         .style('stroke-width', '0.6px')
         .style('paint-order', 'stroke fill')
+        .style('pointer-events', 'none')
         .text(data.label);
     });
   }
@@ -590,65 +520,51 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     this.svg.selectAll('.country-label-shadow').remove();
 
     const usedPositions: Array<{ x: number; y: number }> = [];
-    const baseMinDistance = this.isMobile ? 15 : 25;
-    const minDistance = baseMinDistance / Math.sqrt(this.currentZoom);
+    const baseMinDistance = this.isMobile ? 20 : 30;
+    const minDistance = baseMinDistance / this.currentZoom;
 
-    // Optimize filtering with early exits and batch operations
+    // Filter labels based on zoom level and visibility
     const visibleLabels = this.countryLabelData.filter(data => {
+      if (!this.isPointVisible(data.centroid)) return false;
+
       const projected = this.projection(data.centroid);
       if (!projected) return false;
-      
-      // Simple visibility check first
-      const [lng, lat] = data.centroid;
-      const lambda = (lng * Math.PI) / 180;
-      const rotLambda = (this.currentRotation[0] * Math.PI) / 180;
-      const adjustedLng = lambda + rotLambda;
-      const cosPhi = Math.cos(lat * Math.PI / 180);
-      const cosLambda = Math.cos(adjustedLng);
-      const dotProduct = cosPhi * cosLambda;
-      
-      if (dotProduct < -0.2) return false;
-      
-      // Quick area check - avoid expensive calculations
-      if (this.currentZoom < 1.2) {
-        const area = this.getProjectedArea(data.feature);
-        return area > 200 / (this.currentZoom * this.currentZoom);
-      }
-      
-      return true; // Show more at higher zoom
+
+      // Calculate feature area for zoom-based filtering
+      const area = this.getProjectedArea(data.feature);
+      const minAreaThreshold = Math.max(100, 500 / (this.currentZoom * this.currentZoom));
+
+      return area > minAreaThreshold;
     });
 
-    // Limit number of labels to prevent performance issues
-    const maxLabels = this.isMobile ? 20 : 35;
-    const sortedLabels = visibleLabels
-      .sort((a, b) => this.getProjectedArea(b.feature) - this.getProjectedArea(a.feature))
-      .slice(0, maxLabels);
-
-    sortedLabels.forEach((data) => {
+    visibleLabels.forEach((data) => {
       const projected = this.projection(data.centroid);
       if (!projected) return;
 
       const [x, y] = projected;
 
-      // Quick overlap check
-      const canPlace = !usedPositions.some(pos => {
+      // Check for label overlap
+      let canPlace = true;
+      for (const pos of usedPositions) {
         const dist = Math.sqrt((x - pos.x) ** 2 + (y - pos.y) ** 2);
-        return dist < minDistance;
-      });
-      
+        if (dist < minDistance) {
+          canPlace = false;
+          break;
+        }
+      }
       if (!canPlace) return;
       usedPositions.push({ x, y });
 
-      const fontSize = Math.max(7, Math.min(14, 9 + this.currentZoom * 1.5));
+      const fontSize = Math.max(6, Math.min(12, 8 + this.currentZoom * 1.5));
 
-      // Lighter shadow for better visibility
+      // Shadow
       this.svg.append('text')
         .attr('class', 'country-label-shadow')
-        .attr('x', x + 0.5)
-        .attr('y', y + 0.5)
+        .attr('x', x + 1)
+        .attr('y', y + 1)
         .attr('text-anchor', 'middle')
         .style('font-size', `${fontSize}px`)
-        .style('fill', 'rgba(255,255,255,0.8)')
+        .style('fill', 'rgba(0,0,0,0.4)')
         .style('pointer-events', 'none')
         .text(data.name);
 
@@ -665,154 +581,17 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         .style('stroke', 'white')
         .style('stroke-width', '1px')
         .style('paint-order', 'stroke fill')
+        .style('pointer-events', 'none')
         .text(data.name);
     });
   }
 
-  private addStateLabels() {
-    if (!this.states) return;
-
-    this.svg.selectAll('.state-label').remove();
-    this.svg.selectAll('.state-label-shadow').remove();
-
-    const usedPositions: Array<{ x: number; y: number }> = [];
-    const minDistance = this.isMobile ? 10 : 18;
-
-    this.states.features.forEach((d: any) => {
-      const centroid = d3.geoCentroid(d);
-      const projected = this.projection(centroid);
-
-      if (!projected) return;
-      const [x, y] = projected;
-
-      const props = d.properties;
-      let label = props?.code_hasc || props?.iso_3166_2 || props?.name;
-      if (!label) return;
-
-      // Extract only the state code part, removing country prefix
-      if (typeof label === 'string') {
-        // Remove country code prefix (e.g., "US.TX" -> "TX", "CA.ON" -> "ON")
-        const dotIndex = label.indexOf('.');
-        if (dotIndex !== -1) {
-          label = label.substring(dotIndex + 1);
-        }
-        // Remove country code prefix with dash (e.g., "US-TX" -> "TX")
-        const dashIndex = label.indexOf('-');
-        if (dashIndex !== -1) {
-          label = label.substring(dashIndex + 1);
-        }
-      }
-
-      let canPlace = true;
-      for (const pos of usedPositions) {
-        const dist = Math.sqrt((x - pos.x) ** 2 + (y - pos.y) ** 2);
-        if (dist < minDistance) {
-          canPlace = false;
-          break;
-        }
-      }
-      if (!canPlace) return;
-      usedPositions.push({ x, y });
-
-      // Lighter shadow for better visibility
-      this.svg.append('text')
-        .attr('class', 'state-label-shadow')
-        .attr('x', x + 0.5)
-        .attr('y', y + 0.5)
-        .attr('text-anchor', 'middle')
-        .style('font-size', this.isMobile ? '5px' : '7px')
-        .style('fill', 'rgba(255,255,255,0.8)')
-        .style('pointer-events', 'none')
-        .text(label);
-
-      this.svg.append('text')
-        .attr('class', 'state-label')
-        .attr('x', x)
-        .attr('y', y)
-        .attr('text-anchor', 'middle')
-        .style('font-size', this.isMobile ? '5px' : '7px')
-        .style('font-weight', '500')
-        .style('font-family', 'Arial, sans-serif')
-        .style('fill', '#2b2b2b')
-        .style('stroke', 'white')
-        .style('stroke-width', '0.6px')
-        .style('paint-order', 'stroke fill')
-        .text(label);
-    });
-  }
-
-  private addCountryLabels() {
-    this.svg.selectAll('.country-label').remove();
-    this.svg.selectAll('.country-label-shadow').remove();
-
-    const usedPositions: Array<{ x: number; y: number }> = [];
-    const minDistance = this.isMobile ? 25 : 35;
-
-    this.countries.features.forEach((d: any) => {
-      const centroid = d3.geoCentroid(d);
-      const projected = this.projection(centroid);
-
-      if (!projected) return;
-      const [x, y] = projected;
-
-      const name = d.properties?.name;
-      if (!name) return;
-
-      let canPlace = true;
-      for (const pos of usedPositions) {
-        const dist = Math.sqrt((x - pos.x) ** 2 + (y - pos.y) ** 2);
-        if (dist < minDistance) {
-          canPlace = false;
-          break;
-        }
-      }
-      if (!canPlace) return;
-      usedPositions.push({ x, y });
-
-      // Lighter shadow for better visibility
-      this.svg.append('text')
-        .attr('class', 'country-label-shadow')
-        .attr('x', x + 0.5)
-        .attr('y', y + 0.5)
-        .attr('text-anchor', 'middle')
-        .style('font-size', this.isMobile ? '8px' : '10px')
-        .style('fill', 'rgba(255,255,255,0.8)')
-        .style('pointer-events', 'none')
-        .text(name);
-
-      this.svg.append('text')
-        .attr('class', 'country-label')
-        .attr('x', x)
-        .attr('y', y)
-        .attr('text-anchor', 'middle')
-        .style('font-size', this.isMobile ? '8px' : '10px')
-        .style('font-weight', '600')
-        .style('font-family', 'Arial, sans-serif')
-        .style('fill', '#111')
-        .style('stroke', 'white')
-        .style('stroke-width', '1px')
-        .style('paint-order', 'stroke fill')
-        .text(name);
-    });
-  }
-
   private showTooltip(event: any, d: any) {
-    // Make sure we have the country data
-    if (!d || !d.properties) return;
-    
-    const countryName = d.properties.name;
-    if (!countryName) return;
-
-    const entry = this.countriesList.find(c => 
-      c.country === countryName || 
-      c.country.toLowerCase() === countryName.toLowerCase() ||
-      c.code === countryName
-    );
-    
+    const entry = this.countriesList.find(c => c.country === d.properties.name);
     if (entry) {
       const tooltipContent = `
         <div class="tooltip-header">
-          <img class="flag-icon" src="assets/images/flags/${entry.code.toLowerCase()}.svg" onerror="this.style.display='none'"/>
+          <img class="flag-icon" src="assets/images/flags/${entry.code.toLowerCase()}.svg"/>
           <span>${entry.country}</span>
         </div>
         <div class="tooltip-row">
@@ -825,19 +604,6 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         </div>
       `;
       this.tooltip.html(tooltipContent).style('display', 'block');
-      this.moveTooltip(event);
-    } else {
-      // Debug: Show basic info even if no data match found
-      const fallbackContent = `
-        <div class="tooltip-header">
-          <span>${countryName}</span>
-        </div>
-        <div class="tooltip-row">
-          <span class="label">No data available</span>
-          <span class="value">-</span>
-        </div>
-      `;
-      this.tooltip.html(fallbackContent).style('display', 'block');
       this.moveTooltip(event);
     }
   }
@@ -863,26 +629,21 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .attr('d', this.path)
       .attr('fill', (d: any) => this.getCountryColor(d));
 
-    // Update both circles for zoom
-    this.svg.select('circle:first-child')
-      .attr('r', this.currentRadius * this.currentZoom + 12);
-    
-    this.svg.select('circle:last-child')
+    this.svg.select('circle')
       .attr('r', this.currentRadius * this.currentZoom);
 
-    if (!this.isDragging) {
-      this.updateCountryLabels();
-    }
+    this.updateCountryLabels();
   }
 
   private updateStates() {
     if (!this.states) return;
-    this.svg.selectAll('.state')
-      .attr('d', this.path);
     
-    if (!this.isDragging) {
-      this.updateStateLabels();
-    }
+    // Update state paths
+    this.svg.selectAll('.state')
+      .attr('d', this.path)
+      .style('opacity', this.shouldShowStates() ? 1 : 0);
+    
+    this.updateStateLabels();
   }
 
   private getCountryColor(d: any): string {
@@ -918,21 +679,15 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   zoomIn() {
     this.currentZoom = Math.min(this.currentZoom + ZOOM.step, ZOOM.max);
     this.projection.scale(this.currentRadius * this.currentZoom);
-    // Use throttled updates to prevent hanging
-    requestAnimationFrame(() => {
-      this.updateCountries();
-      this.updateStates();
-    });
+    this.updateCountries();
+    this.updateStates();
   }
 
   zoomOut() {
     this.currentZoom = Math.max(this.currentZoom - ZOOM.step, ZOOM.min);
     this.projection.scale(this.currentRadius * this.currentZoom);
-    // Use throttled updates to prevent hanging
-    requestAnimationFrame(() => {
-      this.updateCountries();
-      this.updateStates();
-    });
+    this.updateCountries();
+    this.updateStates();
   }
 
   toggleLegend() {
@@ -972,42 +727,11 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         .duration(400)
         .style('opacity', 1);
 
-      // Show tooltip while highlighted
-      const centroid = d3.geoCentroid(countryFeature);
-      const projected = this.projection(centroid);
-      if (projected) {
-        const [x, y] = projected;
-        
-        const tooltipContent = `
-          <div class="tooltip-header">
-            <img class="flag-icon" src="assets/images/flags/${country.code.toLowerCase()}.svg" onerror="this.style.display='none'"/>
-            <span>${country.country}</span>
-          </div>
-          <div class="tooltip-row">
-            <span class="label">Unique Skills</span>
-            <span class="value">${country.uniqueSkills}</span>
-          </div>
-          <div class="tooltip-row">
-            <span class="label">Skill Supply (FTE)</span>
-            <span class="value">${country.skillSupply}</span>
-          </div>
-        `;
-        
-        this.tooltip
-          .html(tooltipContent)
-          .style('display', 'block')
-          .style('left', (x + 15) + 'px')
-          .style('top', (y + 15) + 'px');
-      }
-
       setTimeout(() => {
         highlight.transition()
           .duration(600)
           .style('opacity', 0)
           .remove();
-        
-        // Hide tooltip when highlight disappears
-        this.tooltip.style('display', 'none');
         this.isRotating = true;
       }, 3000);
     } else {
