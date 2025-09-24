@@ -425,23 +425,45 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
   private shouldShowStates(): boolean {
     // Show states based on zoom level - more states visible when zoomed in
-    return this.currentZoom > 1.0;
+    return this.currentZoom > 0.8;
   }
 
-  private getMinStateAreaThreshold(): number {
-    // Much more aggressive threshold reduction for small countries
-    const baseThreshold = this.isMobile ? 10 : 15;
+  private getGeographicAreaThreshold(): number {
+    // Use geographic area threshold that gets smaller with zoom
+    // This works better for small countries and islands
+    const baseThreshold = 0.001; // Base geographic area threshold
     
-    // Exponential reduction - gets very small at high zoom
-    const zoomFactor = Math.pow(0.5, this.currentZoom - 1);
-    const threshold = baseThreshold * zoomFactor;
+    // Exponential reduction based on zoom
+    const zoomReduction = Math.pow(0.3, this.currentZoom - 1);
     
-    // At high zoom, allow even tiny states to show
+    return baseThreshold * zoomReduction;
+  }
+
+  private shouldShowStateLabel(feature: any): boolean {
+    // Multi-criteria approach for showing state labels
+    const geographicArea = this.getGeographicArea(feature);
+    const projectedArea = this.getProjectedArea(feature);
+    
+    // Geographic area threshold (helps small countries)
+    const geoThreshold = this.getGeographicAreaThreshold();
+    const passesGeoTest = geographicArea > geoThreshold;
+    
+    // Projected area threshold (helps with screen space)
+    const minProjectedArea = Math.max(1, 10 / (this.currentZoom * this.currentZoom));
+    const passesProjectedTest = projectedArea > minProjectedArea;
+    
+    // At high zoom, be more lenient
     if (this.currentZoom > 2.0) {
-      return Math.max(threshold, 1); // Minimum threshold of 1
+      return passesGeoTest || projectedArea > 0.5;
     }
     
-    return Math.max(threshold, 5); // Minimum threshold of 5 at lower zoom
+    // At medium zoom, need both criteria
+    if (this.currentZoom > 1.5) {
+      return passesGeoTest || passesProjectedTest;
+    }
+    
+    // At low zoom, need significant size
+    return passesGeoTest && passesProjectedTest;
   }
 
   private updateStateLabels() {
@@ -455,36 +477,36 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     this.svg.selectAll('.state-label-shadow').remove();
 
     const usedPositions: Array<{ x: number; y: number }> = [];
-    const baseMinDistance = this.isMobile ? 6 : 10;
+    const baseMinDistance = this.isMobile ? 5 : 8;
     const minDistance = baseMinDistance / Math.sqrt(this.currentZoom);
 
-    // Get minimum area threshold
-    const minAreaThreshold = this.getMinStateAreaThreshold();
-
-    // Filter labels based on zoom level and visibility
+    // Filter labels based on new criteria
     const visibleLabels = this.stateLabelData.filter(data => {
       if (!this.isPointVisible(data.centroid)) return false;
 
       const projected = this.projection(data.centroid);
       if (!projected) return false;
 
-      // Calculate feature area for zoom-based filtering
-      const area = this.getProjectedArea(data.feature);
-      
-      // Debug: log some areas to see what we're working with
-      if (Math.random() < 0.01) { // Only log 1% of the time to avoid spam
-        console.log(`State area: ${area}, threshold: ${minAreaThreshold}, zoom: ${this.currentZoom}`);
-      }
-
-      return area > minAreaThreshold;
+      // Use new multi-criteria approach
+      return this.shouldShowStateLabel(data.feature);
     });
 
-    // Sort by area (largest first) to prioritize important labels
+    // Sort by geographic area first, then by projected area
     visibleLabels.sort((a, b) => {
-      const areaA = this.getProjectedArea(a.feature);
-      const areaB = this.getProjectedArea(b.feature);
-      return areaB - areaA;
+      const geoAreaA = this.getGeographicArea(a.feature);
+      const geoAreaB = this.getGeographicArea(b.feature);
+      
+      if (Math.abs(geoAreaA - geoAreaB) > 0.0001) {
+        return geoAreaB - geoAreaA; // Larger geographic areas first
+      }
+      
+      // If similar geographic areas, sort by projected area
+      const projAreaA = this.getProjectedArea(a.feature);
+      const projAreaB = this.getProjectedArea(b.feature);
+      return projAreaB - projAreaA;
     });
+
+    console.log(`Showing ${visibleLabels.length} state labels at zoom ${this.currentZoom}`);
 
     visibleLabels.forEach((data) => {
       const projected = this.projection(data.centroid);
@@ -492,7 +514,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
       const [x, y] = projected;
 
-      // Check for label overlap with reduced strictness at high zoom
+      // Check for label overlap
       let canPlace = true;
       for (const pos of usedPositions) {
         const dist = Math.sqrt((x - pos.x) ** 2 + (y - pos.y) ** 2);
@@ -504,8 +526,9 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       if (!canPlace) return;
       usedPositions.push({ x, y });
 
-      // Smaller font sizes for state labels to fit more
-      const fontSize = Math.max(3, Math.min(7, 4 + this.currentZoom * 0.8));
+      // Adaptive font size
+      const baseFontSize = this.isMobile ? 3 : 4;
+      const fontSize = Math.max(baseFontSize, Math.min(8, baseFontSize + this.currentZoom * 0.8));
 
       // Shadow
       this.svg.append('text')
