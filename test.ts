@@ -430,40 +430,52 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
   private getGeographicAreaThreshold(): number {
     // Use geographic area threshold that gets smaller with zoom
-    // This works better for small countries and islands
-    const baseThreshold = 0.001; // Base geographic area threshold
+    // Adjusted for the new geographic area calculation method
+    const baseThreshold = 1.0; // Base geographic area threshold (degrees squared)
     
     // Exponential reduction based on zoom
-    const zoomReduction = Math.pow(0.3, this.currentZoom - 1);
+    const zoomReduction = Math.pow(0.2, this.currentZoom - 1);
     
-    return baseThreshold * zoomReduction;
+    return Math.max(0.01, baseThreshold * zoomReduction); // Minimum threshold
   }
 
   private shouldShowStateLabel(feature: any): boolean {
-    // Multi-criteria approach for showing state labels
-    const geographicArea = this.getGeographicArea(feature);
-    const projectedArea = this.getProjectedArea(feature);
-    
-    // Geographic area threshold (helps small countries)
-    const geoThreshold = this.getGeographicAreaThreshold();
-    const passesGeoTest = geographicArea > geoThreshold;
-    
-    // Projected area threshold (helps with screen space)
-    const minProjectedArea = Math.max(1, 10 / (this.currentZoom * this.currentZoom));
-    const passesProjectedTest = projectedArea > minProjectedArea;
-    
-    // At high zoom, be more lenient
-    if (this.currentZoom > 2.0) {
-      return passesGeoTest || projectedArea > 0.5;
+    try {
+      if (!feature) return false;
+      
+      // Multi-criteria approach for showing state labels
+      const geographicArea = this.getGeographicArea(feature);
+      const projectedArea = this.getProjectedArea(feature);
+      
+      // Geographic area threshold (helps small countries)
+      const geoThreshold = this.getGeographicAreaThreshold();
+      const passesGeoTest = geographicArea > geoThreshold;
+      
+      // Projected area threshold (helps with screen space)
+      const minProjectedArea = Math.max(0.5, 15 / (this.currentZoom * this.currentZoom));
+      const passesProjectedTest = projectedArea > minProjectedArea;
+      
+      // At high zoom, be very lenient
+      if (this.currentZoom > 2.5) {
+        return geographicArea > 0.001 || projectedArea > 0.1;
+      }
+      
+      // At medium-high zoom, be more lenient
+      if (this.currentZoom > 2.0) {
+        return passesGeoTest || projectedArea > 0.5;
+      }
+      
+      // At medium zoom, need either criteria
+      if (this.currentZoom > 1.5) {
+        return passesGeoTest || passesProjectedTest;
+      }
+      
+      // At low zoom, need significant size
+      return passesGeoTest && passesProjectedTest;
+    } catch (error) {
+      console.warn('Error in shouldShowStateLabel:', error);
+      return false;
     }
-    
-    // At medium zoom, need both criteria
-    if (this.currentZoom > 1.5) {
-      return passesGeoTest || passesProjectedTest;
-    }
-    
-    // At low zoom, need significant size
-    return passesGeoTest && passesProjectedTest;
   }
 
   private updateStateLabels() {
@@ -482,80 +494,93 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
     // Filter labels based on new criteria
     const visibleLabels = this.stateLabelData.filter(data => {
-      if (!this.isPointVisible(data.centroid)) return false;
+      try {
+        if (!this.isPointVisible(data.centroid)) return false;
 
-      const projected = this.projection(data.centroid);
-      if (!projected) return false;
+        const projected = this.projection(data.centroid);
+        if (!projected) return false;
 
-      // Use new multi-criteria approach
-      return this.shouldShowStateLabel(data.feature);
+        // Use new multi-criteria approach
+        return this.shouldShowStateLabel(data.feature);
+      } catch (error) {
+        console.warn('Error filtering state label:', error);
+        return false;
+      }
     });
 
     // Sort by geographic area first, then by projected area
     visibleLabels.sort((a, b) => {
-      const geoAreaA = this.getGeographicArea(a.feature);
-      const geoAreaB = this.getGeographicArea(b.feature);
-      
-      if (Math.abs(geoAreaA - geoAreaB) > 0.0001) {
-        return geoAreaB - geoAreaA; // Larger geographic areas first
+      try {
+        const geoAreaA = this.getGeographicArea(a.feature);
+        const geoAreaB = this.getGeographicArea(b.feature);
+        
+        if (Math.abs(geoAreaA - geoAreaB) > 0.1) {
+          return geoAreaB - geoAreaA; // Larger geographic areas first
+        }
+        
+        // If similar geographic areas, sort by projected area
+        const projAreaA = this.getProjectedArea(a.feature);
+        const projAreaB = this.getProjectedArea(b.feature);
+        return projAreaB - projAreaA;
+      } catch (error) {
+        return 0;
       }
-      
-      // If similar geographic areas, sort by projected area
-      const projAreaA = this.getProjectedArea(a.feature);
-      const projAreaB = this.getProjectedArea(b.feature);
-      return projAreaB - projAreaA;
     });
 
-    console.log(`Showing ${visibleLabels.length} state labels at zoom ${this.currentZoom}`);
+    console.log(`Showing ${visibleLabels.length} state labels at zoom ${this.currentZoom.toFixed(2)}`);
 
     visibleLabels.forEach((data) => {
-      const projected = this.projection(data.centroid);
-      if (!projected) return;
+      try {
+        const projected = this.projection(data.centroid);
+        if (!projected) return;
 
-      const [x, y] = projected;
+        const [x, y] = projected;
 
-      // Check for label overlap
-      let canPlace = true;
-      for (const pos of usedPositions) {
-        const dist = Math.sqrt((x - pos.x) ** 2 + (y - pos.y) ** 2);
-        if (dist < minDistance) {
-          canPlace = false;
-          break;
+        // Check for label overlap
+        let canPlace = true;
+        for (const pos of usedPositions) {
+          const dist = Math.sqrt((x - pos.x) ** 2 + (y - pos.y) ** 2);
+          if (dist < minDistance) {
+            canPlace = false;
+            break;
+          }
         }
+        if (!canPlace) return;
+        usedPositions.push({ x, y });
+
+        // Adaptive font size
+        const baseFontSize = this.isMobile ? 3 : 4;
+        const fontSize = Math.max(baseFontSize, Math.min(8, baseFontSize + this.currentZoom * 0.8));
+
+        // Shadow
+        this.svg.append('text')
+          .attr('class', 'state-label-shadow')
+          .attr('x', x + 0.5)
+          .attr('y', y + 0.5)
+          .attr('text-anchor', 'middle')
+          .style('font-size', `${fontSize}px`)
+          .style('fill', 'rgba(0,0,0,0.4)')
+          .style('pointer-events', 'none')
+          .text(data.label || '');
+
+        // Main label
+        this.svg.append('text')
+          .attr('class', 'state-label')
+          .attr('x', x)
+          .attr('y', y)
+          .attr('text-anchor', 'middle')
+          .style('font-size', `${fontSize}px`)
+          .style('font-weight', '500')
+          .style('font-family', 'Arial, sans-serif')
+          .style('fill', '#2b2b2b')
+          .style('stroke', 'white')
+          .style('stroke-width', '0.5px')
+          .style('paint-order', 'stroke fill')
+          .style('pointer-events', 'none')
+          .text(data.label || '');
+      } catch (error) {
+        console.warn('Error rendering state label:', error);
       }
-      if (!canPlace) return;
-      usedPositions.push({ x, y });
-
-      // Adaptive font size
-      const baseFontSize = this.isMobile ? 3 : 4;
-      const fontSize = Math.max(baseFontSize, Math.min(8, baseFontSize + this.currentZoom * 0.8));
-
-      // Shadow
-      this.svg.append('text')
-        .attr('class', 'state-label-shadow')
-        .attr('x', x + 0.5)
-        .attr('y', y + 0.5)
-        .attr('text-anchor', 'middle')
-        .style('font-size', `${fontSize}px`)
-        .style('fill', 'rgba(0,0,0,0.4)')
-        .style('pointer-events', 'none')
-        .text(data.label);
-
-      // Main label
-      this.svg.append('text')
-        .attr('class', 'state-label')
-        .attr('x', x)
-        .attr('y', y)
-        .attr('text-anchor', 'middle')
-        .style('font-size', `${fontSize}px`)
-        .style('font-weight', '500')
-        .style('font-family', 'Arial, sans-serif')
-        .style('fill', '#2b2b2b')
-        .style('stroke', 'white')
-        .style('stroke-width', '0.5px')
-        .style('paint-order', 'stroke fill')
-        .style('pointer-events', 'none')
-        .text(data.label);
     });
   }
 
