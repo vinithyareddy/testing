@@ -199,13 +199,74 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .attr('viewBox', `0 0 ${width} ${height}`)
       .attr('preserveAspectRatio', 'xMidYMid meet');
 
+    // Add globe shadow/glow effect
+    const defs = this.svg.append('defs');
+    
+    // Create radial gradient for glow effect
+    const glowGradient = defs.append('radialGradient')
+      .attr('id', 'globe-glow')
+      .attr('cx', '50%')
+      .attr('cy', '50%')
+      .attr('r', '60%');
+    
+    glowGradient.append('stop')
+      .attr('offset', '0%')
+      .style('stop-color', '#ffffff')
+      .style('stop-opacity', 0.1);
+    
+    glowGradient.append('stop')
+      .attr('offset', '70%')
+      .style('stop-color', '#87ceeb')
+      .style('stop-opacity', 0.3);
+    
+    glowGradient.append('stop')
+      .attr('offset', '100%')
+      .style('stop-color', '#4682b4')
+      .style('stop-opacity', 0.6);
+
+    // Create filter for outer shadow
+    const filter = defs.append('filter')
+      .attr('id', 'globe-shadow')
+      .attr('x', '-50%')
+      .attr('y', '-50%')
+      .attr('width', '200%')
+      .attr('height', '200%');
+
+    filter.append('feGaussianBlur')
+      .attr('in', 'SourceGraphic')
+      .attr('stdDeviation', '8');
+
+    filter.append('feOffset')
+      .attr('dx', '3')
+      .attr('dy', '3')
+      .attr('result', 'offset');
+
+    filter.append('feComponentTransfer')
+      .append('feFuncA')
+      .attr('type', 'discrete')
+      .attr('tableValues', '0.3');
+
+    const feMerge = filter.append('feMerge');
+    feMerge.append('feMergeNode').attr('in', 'offset');
+    feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
+
+    // Add outer glow circle (larger)
+    this.svg.append('circle')
+      .attr('cx', width / 2)
+      .attr('cy', height / 2)
+      .attr('r', this.currentRadius + 12)
+      .attr('fill', 'url(#globe-glow)')
+      .attr('opacity', 0.7);
+
+    // Add main globe circle with shadow
     this.svg.append('circle')
       .attr('cx', width / 2)
       .attr('cy', height / 2)
       .attr('r', this.currentRadius)
       .attr('fill', CUSTOM_GLOBE_COLOR)
-      .attr('stroke', '#ccc')
-      .attr('stroke-width', 1);
+      .attr('stroke', '#5a9fd4')
+      .attr('stroke-width', 2)
+      .attr('filter', 'url(#globe-shadow)');
 
     this.countries = topojson.feature(
       worldData as any,
@@ -237,9 +298,15 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
     this.svg.attr('viewBox', `0 0 ${width} ${height}`);
 
-    this.svg.select('circle')
+    // Update both glow circle and main circle
+    this.svg.selectAll('circle')
       .attr('cx', width / 2)
-      .attr('cy', height / 2)
+      .attr('cy', height / 2);
+    
+    this.svg.select('circle:first-child')
+      .attr('r', this.currentRadius * this.currentZoom + 12);
+    
+    this.svg.select('circle:last-child')
       .attr('r', this.currentRadius * this.currentZoom);
 
     this.updateCountries();
@@ -247,22 +314,36 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   }
 
   private setupInteractions() {
+    let lastUpdate = 0;
+    const throttleDelay = 16; // ~60fps
+
     const drag = d3.drag()
       .on('start', (event: any) => {
         this.isDragging = true;
         this.isRotating = false;
       })
       .on('drag', (event: any) => {
+        const now = Date.now();
+        if (now - lastUpdate < throttleDelay) return;
+        lastUpdate = now;
+
         const sensitivity = this.isMobile ? 0.4 : 0.25;
         this.currentRotation[0] += event.dx * sensitivity;
         this.currentRotation[1] -= event.dy * sensitivity;
         this.currentRotation[1] = Math.max(-90, Math.min(90, this.currentRotation[1]));
         this.projection.rotate(this.currentRotation);
-        this.updateCountries();
-        this.updateStates();
+        
+        // Only update countries, skip labels during drag for performance
+        this.svg.selectAll('.country').attr('d', this.path);
+        this.svg.selectAll('.state').attr('d', this.path);
       })
       .on('end', () => {
         this.isDragging = false;
+        // Update labels after drag ends
+        requestAnimationFrame(() => {
+          this.updateCountryLabels();
+          this.updateStateLabels();
+        });
         setTimeout(() => {
           if (!this.isDragging) {
             this.isRotating = true;
@@ -477,11 +558,11 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       // Lighter shadow for better visibility
       this.svg.append('text')
         .attr('class', 'state-label-shadow')
-        .attr('x', x + 0.8)
-        .attr('y', y + 0.8)
+        .attr('x', x + 0.5)
+        .attr('y', y + 0.5)
         .attr('text-anchor', 'middle')
         .style('font-size', `${fontSize}px`)
-        .style('fill', 'rgba(0,0,0,0.2)')
+        .style('fill', 'rgba(255,255,255,0.8)')
         .style('pointer-events', 'none')
         .text(data.label);
 
@@ -563,11 +644,11 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       // Lighter shadow for better visibility
       this.svg.append('text')
         .attr('class', 'country-label-shadow')
-        .attr('x', x + 1)
-        .attr('y', y + 1)
+        .attr('x', x + 0.5)
+        .attr('y', y + 0.5)
         .attr('text-anchor', 'middle')
         .style('font-size', `${fontSize}px`)
-        .style('fill', 'rgba(0,0,0,0.2)')
+        .style('fill', 'rgba(255,255,255,0.8)')
         .style('pointer-events', 'none')
         .text(data.name);
 
@@ -636,11 +717,11 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       // Lighter shadow for better visibility
       this.svg.append('text')
         .attr('class', 'state-label-shadow')
-        .attr('x', x + 0.8)
-        .attr('y', y + 0.8)
+        .attr('x', x + 0.5)
+        .attr('y', y + 0.5)
         .attr('text-anchor', 'middle')
         .style('font-size', this.isMobile ? '5px' : '7px')
-        .style('fill', 'rgba(0,0,0,0.2)')
+        .style('fill', 'rgba(255,255,255,0.8)')
         .style('pointer-events', 'none')
         .text(label);
 
@@ -691,11 +772,11 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       // Lighter shadow for better visibility
       this.svg.append('text')
         .attr('class', 'country-label-shadow')
-        .attr('x', x + 1)
-        .attr('y', y + 1)
+        .attr('x', x + 0.5)
+        .attr('y', y + 0.5)
         .attr('text-anchor', 'middle')
         .style('font-size', this.isMobile ? '8px' : '10px')
-        .style('fill', 'rgba(0,0,0,0.2)')
+        .style('fill', 'rgba(255,255,255,0.8)')
         .style('pointer-events', 'none')
         .text(name);
 
@@ -782,17 +863,26 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .attr('d', this.path)
       .attr('fill', (d: any) => this.getCountryColor(d));
 
-    this.svg.select('circle')
+    // Update both circles for zoom
+    this.svg.select('circle:first-child')
+      .attr('r', this.currentRadius * this.currentZoom + 12);
+    
+    this.svg.select('circle:last-child')
       .attr('r', this.currentRadius * this.currentZoom);
 
-    this.updateCountryLabels();
+    if (!this.isDragging) {
+      this.updateCountryLabels();
+    }
   }
 
   private updateStates() {
     if (!this.states) return;
     this.svg.selectAll('.state')
       .attr('d', this.path);
-    this.updateStateLabels();
+    
+    if (!this.isDragging) {
+      this.updateStateLabels();
+    }
   }
 
   private getCountryColor(d: any): string {
