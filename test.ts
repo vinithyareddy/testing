@@ -1,17 +1,12 @@
-this.stateLabelData = this.states.features
-  .map((feature: any) => {
-    const centroid = d3.geoCentroid(feature);
-    const props = feature.properties;
+// Dynamic threshold based on zoom level
+const baseThreshold = 80; // was 100
+const scaleFactor = 400;  // was 500
 
-    let label = props?.code_hasc || props?.iso_3166_2 || props?.name;
+const minAreaThreshold = Math.max(10, baseThreshold / (this.currentZoom * this.currentZoom));
 
-    if (label && label.includes(".")) {
-      label = label.split(".").pop();
-    }
-    if (label && label.includes("-")) {
-      label = label.split("-").pop();
-    }
+// Allow small countries to show if zoomed in enough
+if (this.currentZoom >= 1.3 && area > minAreaThreshold / 2) {
+  return true;
+}
 
-    return label ? { feature, centroid, label } : null;
-  })
-  .filter((item): item is { feature: any; centroid: [number, number]; label: string } => item !== null);
+return area > minAreaThreshold;
