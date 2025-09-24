@@ -317,10 +317,10 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     this.countryLabelData = this.countries.features
       .map((feature: any) => {
         const centroid = d3.geoCentroid(feature);
-        const name = feature.properties.name;
+        const name = feature.properties?.name;
         return name ? { feature, centroid, name } : null;
       })
-      .filter(Boolean);
+      .filter((item): item is { feature: any; centroid: [number, number]; name: string } => item !== null);
   }
 
   // Initialize state label data once
@@ -331,10 +331,10 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .map((feature: any) => {
         const centroid = d3.geoCentroid(feature);
         const props = feature.properties;
-        const label = props.code_hasc || props.iso_3166_2 || props.name;
+        const label = props?.code_hasc || props?.iso_3166_2 || props?.name;
         return label ? { feature, centroid, label } : null;
       })
-      .filter(Boolean);
+      .filter((item): item is { feature: any; centroid: [number, number]; label: string } => item !== null);
   }
 
   private drawCountries() {
@@ -385,16 +385,20 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
   // Calculate area of projected feature for label sizing
   private getProjectedArea(feature: any): number {
-    const pathString = this.path(feature);
-    if (!pathString) return 0;
-    
-    // Simple approximation of path area based on bounding box
-    const bounds = this.path.bounds(feature);
-    if (!bounds) return 0;
-    
-    const width = bounds[1][0] - bounds[0][0];
-    const height = bounds[1][1] - bounds[0][1];
-    return width * height;
+    try {
+      const pathString = this.path(feature);
+      if (!pathString) return 0;
+      
+      // Simple approximation of path area based on bounding box
+      const bounds = this.path.bounds(feature);
+      if (!bounds || bounds.length < 2) return 0;
+      
+      const width = bounds[1][0] - bounds[0][0];
+      const height = bounds[1][1] - bounds[0][1];
+      return width * height;
+    } catch (error) {
+      return 0;
+    }
   }
 
   // Determine if a point is visible on the front hemisphere
