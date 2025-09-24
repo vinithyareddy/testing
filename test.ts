@@ -1,22 +1,15 @@
-private drawOceans() {
-  if (!this.oceans) return;
-
-  this.svg.selectAll('.ocean-label').remove();
-
-  this.oceans.features.forEach((feature: any) => {
-    const coords = feature.geometry.coordinates;
-    const projected = this.projection([coords[0], coords[1]]);
-    if (!projected) return;
-
-    this.svg.append('text')
-      .attr('class', 'ocean-label')
-      .attr('x', projected[0])
-      .attr('y', projected[1])
-      .attr('text-anchor', 'middle')
-      .style('font-size', '12px')
-      .style('fill', '#1a4b7a')
-      .style('font-weight', '600')
-      .style('opacity', 0.7)
-      .text(feature.properties.name);
+this.svg.selectAll('.ocean-label')
+  .attr('x', (d: any, i: number) => {
+    const coords = this.oceans.features[i].geometry.coordinates;
+    const projected = this.projection(coords);
+    return projected ? projected[0] : 0;
+  })
+  .attr('y', (d: any, i: number) => {
+    const coords = this.oceans.features[i].geometry.coordinates;
+    const projected = this.projection(coords);
+    return projected ? projected[1] : 0;
+  })
+  .style('opacity', (d: any, i: number) => {
+    const coords = this.oceans.features[i].geometry.coordinates;
+    return this.isPointVisible([coords[0], coords[1]]) ? 0.7 : 0;
   });
-}
