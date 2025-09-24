@@ -4,11 +4,9 @@ private addStateLabels() {
   this.svg.selectAll('.state-label').remove();
   this.svg.selectAll('.state-label-shadow').remove();
 
-  // Sort states to prioritize visibility (optional: by area or code)
   const labeledStates = this.states.features;
-
   const usedPositions: Array<{ x: number; y: number }> = [];
-  const minDistance = this.isMobile ? 12 : 20; // tighter spacing than countries
+  const minDistance = this.isMobile ? 12 : 20; // tighter than countries
 
   labeledStates.forEach((d: any) => {
     const centroid = this.path.centroid(d);
@@ -18,23 +16,26 @@ private addStateLabels() {
     const props = d.properties;
     const label = props.code_hasc || props.iso_3166_2 || props.name;
 
-    // Only show if in visible hemisphere
-    const coords = d3.geoCentroid(d); // true lat/lon
+    // Use true lat/lon for hemisphere check
+    const coords = d3.geoCentroid(d); 
     if (!this.isPointInFrontHemisphere(coords[0], coords[1])) return;
 
     const globeDiv = this.globeContainer.nativeElement;
     const centerX = globeDiv.offsetWidth / 2;
     const centerY = globeDiv.offsetHeight / 2;
 
-    // Distance from globe center
-    const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
-    const maxDistance = this.currentRadius * this.currentZoom * 0.95;
+    const distance = Math.sqrt(
+      Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2)
+    );
+    const maxDistance = this.currentRadius * this.currentZoom * 0.9;
     if (distance > maxDistance) return;
 
-    // Prevent overlaps
+    // prevent overlaps
     let canPlace = true;
     for (const pos of usedPositions) {
-      const labelDistance = Math.sqrt(Math.pow(x - pos.x, 2) + Math.pow(y - pos.y, 2));
+      const labelDistance = Math.sqrt(
+        Math.pow(x - pos.x, 2) + Math.pow(y - pos.y, 2)
+      );
       if (labelDistance < minDistance) {
         canPlace = false;
         break;
@@ -43,11 +44,11 @@ private addStateLabels() {
     if (!canPlace) return;
     usedPositions.push({ x, y });
 
-    // Opacity fade near edge
+    // fade near edges
     const normalizedDistance = distance / maxDistance;
-    const opacity = Math.max(0.4, Math.min(1, 1 - normalizedDistance * 0.3));
+    const opacity = Math.max(0.5, Math.min(1, 1 - normalizedDistance * 0.3));
 
-    // Shadow (for better contrast)
+    // shadow
     this.svg.append('text')
       .attr('class', 'state-label-shadow')
       .attr('x', x + 0.5)
@@ -59,7 +60,7 @@ private addStateLabels() {
       .style('opacity', opacity * 0.7)
       .text(label);
 
-    // Foreground label
+    // main label
     this.svg.append('text')
       .attr('class', 'state-label')
       .attr('x', x)
