@@ -1,24 +1,17 @@
-private updateCountries() {
-  this.svg.selectAll('.country')
+private drawEquator() {
+  const equator = d3.geoCircle()
+    .center([0, 0])   // longitude 0, latitude 0
+    .radius(90);      // 90° from the pole = equator
+
+  this.svg.selectAll('.equator').remove();
+
+  this.svg.append('path')
+    .datum(equator())
+    .attr('class', 'equator')
     .attr('d', this.path)
-    .attr('fill', (d: any) => this.getCountryColor(d));
-
-  this.svg.select('circle')
-    .attr('r', this.currentRadius * this.currentZoom);
-
-  // Update oceans
-  if (this.oceans) {
-    this.svg.selectAll('.ocean')
-      .attr('d', this.path);
-
-    this.svg.selectAll<SVGTextElement, any>('.ocean-label')
-      .attr('x', (d: any) => this.projection(d3.geoCentroid(d))[0])
-      .attr('y', (d: any) => this.projection(d3.geoCentroid(d))[1]);
-  }
-
-  // Update equator
-  this.svg.selectAll('.equator')
-    .attr('d', this.path);
-
-  this.updateCountryLabels();
+    .attr('fill', 'none')
+    .attr('stroke', '#222')       // darker so it's visible
+    .attr('stroke-width', 1)
+    .attr('stroke-dasharray', '4,2')
+    .style('pointer-events', 'none');
 }
