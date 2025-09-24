@@ -428,52 +428,29 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     return this.currentZoom > 0.8;
   }
 
-  private getGeographicAreaThreshold(): number {
-    // Use geographic area threshold that gets smaller with zoom
-    // Adjusted for the new geographic area calculation method
-    const baseThreshold = 1.0; // Base geographic area threshold (degrees squared)
-    
-    // Exponential reduction based on zoom
-    const zoomReduction = Math.pow(0.2, this.currentZoom - 1);
-    
-    return Math.max(0.01, baseThreshold * zoomReduction); // Minimum threshold
-  }
-
   private shouldShowStateLabel(feature: any): boolean {
     try {
       if (!feature) return false;
       
-      // Multi-criteria approach for showing state labels
-      const geographicArea = this.getGeographicArea(feature);
+      // Get both areas
+      const featureArea = this.getFeatureArea(feature);
       const projectedArea = this.getProjectedArea(feature);
       
-      // Geographic area threshold (helps small countries)
-      const geoThreshold = this.getGeographicAreaThreshold();
-      const passesGeoTest = geographicArea > geoThreshold;
-      
-      // Projected area threshold (helps with screen space)
-      const minProjectedArea = Math.max(0.5, 15 / (this.currentZoom * this.currentZoom));
-      const passesProjectedTest = projectedArea > minProjectedArea;
-      
-      // At high zoom, be very lenient
+      // Very simple zoom-based thresholds
       if (this.currentZoom > 2.5) {
-        return geographicArea > 0.001 || projectedArea > 0.1;
+        // At very high zoom, show almost everything
+        return featureArea > 0.01 || projectedArea > 0.5;
+      } else if (this.currentZoom > 2.0) {
+        // At high zoom, be lenient
+        return featureArea > 0.1 || projectedArea > 1.0;
+      } else if (this.currentZoom > 1.5) {
+        // At medium zoom
+        return featureArea > 0.5 || projectedArea > 5.0;
+      } else {
+        // At low zoom, only large features
+        return featureArea > 2.0 && projectedArea > 10.0;
       }
-      
-      // At medium-high zoom, be more lenient
-      if (this.currentZoom > 2.0) {
-        return passesGeoTest || projectedArea > 0.5;
-      }
-      
-      // At medium zoom, need either criteria
-      if (this.currentZoom > 1.5) {
-        return passesGeoTest || passesProjectedTest;
-      }
-      
-      // At low zoom, need significant size
-      return passesGeoTest && passesProjectedTest;
     } catch (error) {
-      console.warn('Error in shouldShowStateLabel:', error);
       return false;
     }
   }
@@ -492,36 +469,28 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     const baseMinDistance = this.isMobile ? 5 : 8;
     const minDistance = baseMinDistance / Math.sqrt(this.currentZoom);
 
-    // Filter labels based on new criteria
+    // Filter labels with simple criteria
     const visibleLabels = this.stateLabelData.filter(data => {
       try {
+        if (!data || !data.centroid || !data.feature) return false;
+        
         if (!this.isPointVisible(data.centroid)) return false;
 
         const projected = this.projection(data.centroid);
         if (!projected) return false;
 
-        // Use new multi-criteria approach
         return this.shouldShowStateLabel(data.feature);
       } catch (error) {
-        console.warn('Error filtering state label:', error);
         return false;
       }
     });
 
-    // Sort by geographic area first, then by projected area
+    // Simple sort by projected area
     visibleLabels.sort((a, b) => {
       try {
-        const geoAreaA = this.getGeographicArea(a.feature);
-        const geoAreaB = this.getGeographicArea(b.feature);
-        
-        if (Math.abs(geoAreaA - geoAreaB) > 0.1) {
-          return geoAreaB - geoAreaA; // Larger geographic areas first
-        }
-        
-        // If similar geographic areas, sort by projected area
-        const projAreaA = this.getProjectedArea(a.feature);
-        const projAreaB = this.getProjectedArea(b.feature);
-        return projAreaB - projAreaA;
+        const areaA = this.getProjectedArea(a.feature);
+        const areaB = this.getProjectedArea(b.feature);
+        return areaB - areaA;
       } catch (error) {
         return 0;
       }
@@ -529,8 +498,10 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
     console.log(`Showing ${visibleLabels.length} state labels at zoom ${this.currentZoom.toFixed(2)}`);
 
-    visibleLabels.forEach((data) => {
+    visibleLabels.forEach((data, index) => {
       try {
+        if (index > 50) return; // Limit total labels to prevent overcrowding
+        
         const projected = this.projection(data.centroid);
         if (!projected) return;
 
@@ -548,9 +519,10 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         if (!canPlace) return;
         usedPositions.push({ x, y });
 
-        // Adaptive font size
-        const baseFontSize = this.isMobile ? 3 : 4;
-        const fontSize = Math.max(baseFontSize, Math.min(8, baseFontSize + this.currentZoom * 0.8));
+        const fontSize = Math.max(3, Math.min(7, 3 + this.currentZoom * 0.8));
+        const labelText = data.label || '';
+        
+        if (!labelText) return; // Skip if no label
 
         // Shadow
         this.svg.append('text')
@@ -561,7 +533,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
           .style('font-size', `${fontSize}px`)
           .style('fill', 'rgba(0,0,0,0.4)')
           .style('pointer-events', 'none')
-          .text(data.label || '');
+          .text(labelText);
 
         // Main label
         this.svg.append('text')
@@ -577,9 +549,9 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
           .style('stroke-width', '0.5px')
           .style('paint-order', 'stroke fill')
           .style('pointer-events', 'none')
-          .text(data.label || '');
+          .text(labelText);
       } catch (error) {
-        console.warn('Error rendering state label:', error);
+        // Silently skip problematic labels
       }
     });
   }
