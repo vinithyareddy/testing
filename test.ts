@@ -1,19 +1,26 @@
 private drawEquator() {
-  // A circle around the globe at latitude 0 (equator)
-  const equator = d3.geoCircle()
-    .center([0, 0])     // start at [lon=0, lat=0]
-    .radius(90)         // equator is 90° from the pole
-    .precision(100);    // smoother curve
+  // Create equator as a great circle at latitude 0
+  const equatorCoords = [];
+  for (let lng = -180; lng <= 180; lng += 2) {
+    equatorCoords.push([lng, 0]); // longitude varies, latitude is 0 (equator)
+  }
+
+  // Create a GeoJSON LineString for the equator
+  const equatorGeoJSON = {
+    type: "LineString",
+    coordinates: equatorCoords
+  };
 
   this.svg.selectAll('.equator').remove();
 
   this.svg.append('path')
-    .datum(equator())
+    .datum(equatorGeoJSON)
     .attr('class', 'equator')
     .attr('d', this.path)
     .attr('fill', 'none')
-    .attr('stroke', 'red')     // test color to confirm
-    .attr('stroke-width', 1.2)
-    .attr('stroke-dasharray', '4,2')
-    .style('pointer-events', 'none');
+    .attr('stroke', '#ff6b6b')     // Orange-red color for visibility
+    .attr('stroke-width', 2)
+    .attr('stroke-dasharray', '5,3')
+    .style('pointer-events', 'none')
+    .style('opacity', 0.8);
 }
