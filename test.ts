@@ -425,15 +425,23 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
   private shouldShowStates(): boolean {
     // Show states based on zoom level - more states visible when zoomed in
-    return this.currentZoom > 1.2;
+    return this.currentZoom > 1.0;
   }
 
   private getMinStateAreaThreshold(): number {
-    // Smaller threshold means more states show
-    // Base threshold adjusted by zoom level
-    const baseThreshold = this.isMobile ? 15 : 25;
-    const zoomFactor = Math.max(0.3, 2 / (this.currentZoom * this.currentZoom));
-    return baseThreshold * zoomFactor;
+    // Much more aggressive threshold reduction for small countries
+    const baseThreshold = this.isMobile ? 10 : 15;
+    
+    // Exponential reduction - gets very small at high zoom
+    const zoomFactor = Math.pow(0.5, this.currentZoom - 1);
+    const threshold = baseThreshold * zoomFactor;
+    
+    // At high zoom, allow even tiny states to show
+    if (this.currentZoom > 2.0) {
+      return Math.max(threshold, 1); // Minimum threshold of 1
+    }
+    
+    return Math.max(threshold, 5); // Minimum threshold of 5 at lower zoom
   }
 
   private updateStateLabels() {
@@ -447,8 +455,11 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     this.svg.selectAll('.state-label-shadow').remove();
 
     const usedPositions: Array<{ x: number; y: number }> = [];
-    const baseMinDistance = this.isMobile ? 8 : 15;
-    const minDistance = baseMinDistance / this.currentZoom;
+    const baseMinDistance = this.isMobile ? 6 : 10;
+    const minDistance = baseMinDistance / Math.sqrt(this.currentZoom);
+
+    // Get minimum area threshold
+    const minAreaThreshold = this.getMinStateAreaThreshold();
 
     // Filter labels based on zoom level and visibility
     const visibleLabels = this.stateLabelData.filter(data => {
@@ -459,9 +470,20 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
       // Calculate feature area for zoom-based filtering
       const area = this.getProjectedArea(data.feature);
-      const minAreaThreshold = this.getMinStateAreaThreshold();
+      
+      // Debug: log some areas to see what we're working with
+      if (Math.random() < 0.01) { // Only log 1% of the time to avoid spam
+        console.log(`State area: ${area}, threshold: ${minAreaThreshold}, zoom: ${this.currentZoom}`);
+      }
 
       return area > minAreaThreshold;
+    });
+
+    // Sort by area (largest first) to prioritize important labels
+    visibleLabels.sort((a, b) => {
+      const areaA = this.getProjectedArea(a.feature);
+      const areaB = this.getProjectedArea(b.feature);
+      return areaB - areaA;
     });
 
     visibleLabels.forEach((data) => {
@@ -470,7 +492,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
       const [x, y] = projected;
 
-      // Check for label overlap
+      // Check for label overlap with reduced strictness at high zoom
       let canPlace = true;
       for (const pos of usedPositions) {
         const dist = Math.sqrt((x - pos.x) ** 2 + (y - pos.y) ** 2);
@@ -482,13 +504,14 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       if (!canPlace) return;
       usedPositions.push({ x, y });
 
-      const fontSize = Math.max(4, Math.min(8, 6 + this.currentZoom));
+      // Smaller font sizes for state labels to fit more
+      const fontSize = Math.max(3, Math.min(7, 4 + this.currentZoom * 0.8));
 
       // Shadow
       this.svg.append('text')
         .attr('class', 'state-label-shadow')
-        .attr('x', x + 0.8)
-        .attr('y', y + 0.8)
+        .attr('x', x + 0.5)
+        .attr('y', y + 0.5)
         .attr('text-anchor', 'middle')
         .style('font-size', `${fontSize}px`)
         .style('fill', 'rgba(0,0,0,0.4)')
@@ -506,7 +529,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         .style('font-family', 'Arial, sans-serif')
         .style('fill', '#2b2b2b')
         .style('stroke', 'white')
-        .style('stroke-width', '0.6px')
+        .style('stroke-width', '0.5px')
         .style('paint-order', 'stroke fill')
         .style('pointer-events', 'none')
         .text(data.label);
