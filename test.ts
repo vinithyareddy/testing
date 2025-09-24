@@ -2,14 +2,19 @@
 const defs = this.svg.append('defs');
 
 const filter = defs.append('filter')
-  .attr('id', 'glow');
+  .attr('id', 'glow')
+  .attr('x', '-50%')   // expand filter region so glow isn't cut off
+  .attr('y', '-50%')
+  .attr('width', '200%')
+  .attr('height', '200%');
 
 filter.append('feGaussianBlur')
-  .attr('stdDeviation', 25)   // blur size, adjust as needed
+  .attr('stdDeviation', 40)   // bigger = softer + wider glow
   .attr('result', 'coloredBlur');
 
 filter.append('feFlood')
-  .attr('flood-color', CUSTOM_GLOBE_COLOR) // same as globe color
+  .attr('flood-color', CUSTOM_GLOBE_COLOR) // same as ocean color
+  .attr('flood-opacity', 1)                // 1 = max brightness
   .attr('result', 'color');
 
 filter.append('feComposite')
@@ -21,13 +26,3 @@ filter.append('feComposite')
 const feMerge = filter.append('feMerge');
 feMerge.append('feMergeNode').attr('in', 'softGlow');
 feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
-
-
-this.svg.append('circle')
-  .attr('cx', width / 2)
-  .attr('cy', height / 2)
-  .attr('r', this.currentRadius)
-  .attr('fill', CUSTOM_GLOBE_COLOR)
-  .attr('stroke', '#ccc')
-  .attr('stroke-width', 1)
-  .style('filter', 'url(#glow)');   // <-- apply the glow here
