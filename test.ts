@@ -331,7 +331,22 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .map((feature: any) => {
         const centroid = d3.geoCentroid(feature);
         const props = feature.properties;
-        const label = props?.code_hasc || props?.iso_3166_2 || props?.name;
+        
+        // Extract only the state code part, removing country prefix
+        let label = props?.code_hasc || props?.iso_3166_2 || props?.name;
+        if (label && typeof label === 'string') {
+          // Remove country code prefix (e.g., "US.TX" -> "TX", "CA.ON" -> "ON")
+          const dotIndex = label.indexOf('.');
+          if (dotIndex !== -1) {
+            label = label.substring(dotIndex + 1);
+          }
+          // Remove country code prefix with dash (e.g., "US-TX" -> "TX")
+          const dashIndex = label.indexOf('-');
+          if (dashIndex !== -1) {
+            label = label.substring(dashIndex + 1);
+          }
+        }
+        
         return label ? { feature, centroid, label } : null;
       })
       .filter((item): item is { feature: any; centroid: [number, number]; label: string } => item !== null);
@@ -354,8 +369,8 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         this.isRotating = false;
         this.showTooltip(event, d);
       })
-      .on('mousemove', (event: any) => this.moveTooltip(event))
-      .on('mouseout', () => {
+      .on('mousemove', (event: any, d: any) => this.moveTooltip(event))
+      .on('mouseout', (event: any, d: any) => {
         if (!this.isDragging) {
           this.isRotating = true;
         }
@@ -401,26 +416,6 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  // Determine if a point is visible on the front hemisphere
-  private isPointVisible(centroid: [number, number]): boolean {
-    const projected = this.projection(centroid);
-    if (!projected) return false;
-    
-    // Check if the point is on the visible hemisphere
-    const [lng, lat] = centroid;
-    const lambda = (lng * Math.PI) / 180;
-    const phi = (lat * Math.PI) / 180;
-    const rotLambda = (this.currentRotation[0] * Math.PI) / 180;
-    const rotPhi = (this.currentRotation[1] * Math.PI) / 180;
-    
-    const adjustedLng = lambda + rotLambda;
-    const cosPhi = Math.cos(phi + rotPhi);
-    const cosLambda = Math.cos(adjustedLng);
-    const dotProduct = cosPhi * cosLambda;
-    
-    return dotProduct > 0;
-  }
-
   private updateStateLabels() {
     if (!this.stateLabelData.length) return;
 
@@ -428,21 +423,40 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     this.svg.selectAll('.state-label-shadow').remove();
 
     const usedPositions: Array<{ x: number; y: number }> = [];
-    const baseMinDistance = this.isMobile ? 8 : 15;
-    const minDistance = baseMinDistance / this.currentZoom;
+    const baseMinDistance = this.isMobile ? 6 : 12;
+    const minDistance = baseMinDistance / Math.sqrt(this.currentZoom);
 
-    // Filter labels based on zoom level and visibility
+    // Filter labels based on zoom level and visibility - more permissive
     const visibleLabels = this.stateLabelData.filter(data => {
-      if (!this.isPointVisible(data.centroid)) return false;
-      
       const projected = this.projection(data.centroid);
       if (!projected) return false;
       
-      // Calculate feature area for zoom-based filtering
-      const area = this.getProjectedArea(data.feature);
-      const minAreaThreshold = Math.max(20, 100 / (this.currentZoom * this.currentZoom));
+      // Check if point is roughly on visible hemisphere - more lenient
+      const [lng, lat] = data.centroid;
+      const lambda = (lng * Math.PI) / 180;
+      const phi = (lat * Math.PI) / 180;
+      const rotLambda = (this.currentRotation[0] * Math.PI) / 180;
       
-      return area > minAreaThreshold;
+      const adjustedLng = lambda + rotLambda;
+      const cosPhi = Math.cos(phi);
+      const cosLambda = Math.cos(adjustedLng);
+      const dotProduct = cosPhi * cosLambda;
+      
+      // More lenient visibility check
+      if (dotProduct < -0.3) return false;
+      
+      // Much more permissive area-based filtering
+      const area = this.getProjectedArea(data.feature);
+      const minAreaThreshold = Math.max(1, 50 / (this.currentZoom * this.currentZoom * this.currentZoom));
+      
+      return area > minAreaThreshold || this.currentZoom > 1.5; // Show more at higher zoom
+    });
+
+    // Sort by area (larger first) to prioritize important labels
+    visibleLabels.sort((a, b) => {
+      const areaA = this.getProjectedArea(a.feature);
+      const areaB = this.getProjectedArea(b.feature);
+      return areaB - areaA;
     });
 
     visibleLabels.forEach((data) => {
@@ -451,7 +465,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
       const [x, y] = projected;
 
-      // Check for label overlap
+      // More lenient overlap checking
       let canPlace = true;
       for (const pos of usedPositions) {
         const dist = Math.sqrt((x - pos.x) ** 2 + (y - pos.y) ** 2);
@@ -463,7 +477,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       if (!canPlace) return;
       usedPositions.push({ x, y });
 
-      const fontSize = Math.max(4, Math.min(8, 6 + this.currentZoom));
+      const fontSize = Math.max(5, Math.min(10, 6 + this.currentZoom * 1.2));
 
       // Shadow
       this.svg.append('text')
@@ -500,21 +514,40 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     this.svg.selectAll('.country-label-shadow').remove();
 
     const usedPositions: Array<{ x: number; y: number }> = [];
-    const baseMinDistance = this.isMobile ? 20 : 30;
-    const minDistance = baseMinDistance / this.currentZoom;
+    const baseMinDistance = this.isMobile ? 15 : 25;
+    const minDistance = baseMinDistance / Math.sqrt(this.currentZoom);
 
-    // Filter labels based on zoom level and visibility
+    // Filter labels based on zoom level and visibility - more permissive
     const visibleLabels = this.countryLabelData.filter(data => {
-      if (!this.isPointVisible(data.centroid)) return false;
-      
       const projected = this.projection(data.centroid);
       if (!projected) return false;
       
-      // Calculate feature area for zoom-based filtering
-      const area = this.getProjectedArea(data.feature);
-      const minAreaThreshold = Math.max(100, 500 / (this.currentZoom * this.currentZoom));
+      // Check if point is roughly on visible hemisphere - more lenient
+      const [lng, lat] = data.centroid;
+      const lambda = (lng * Math.PI) / 180;
+      const phi = (lat * Math.PI) / 180;
+      const rotLambda = (this.currentRotation[0] * Math.PI) / 180;
       
-      return area > minAreaThreshold;
+      const adjustedLng = lambda + rotLambda;
+      const cosPhi = Math.cos(phi);
+      const cosLambda = Math.cos(adjustedLng);
+      const dotProduct = cosPhi * cosLambda;
+      
+      // More lenient visibility check
+      if (dotProduct < -0.2) return false;
+      
+      // More permissive area-based filtering
+      const area = this.getProjectedArea(data.feature);
+      const minAreaThreshold = Math.max(10, 200 / (this.currentZoom * this.currentZoom));
+      
+      return area > minAreaThreshold || this.currentZoom > 1.2; // Show more at higher zoom
+    });
+
+    // Sort by area (larger first) to prioritize important labels
+    visibleLabels.sort((a, b) => {
+      const areaA = this.getProjectedArea(a.feature);
+      const areaB = this.getProjectedArea(b.feature);
+      return areaB - areaA;
     });
 
     visibleLabels.forEach((data) => {
@@ -523,7 +556,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
       const [x, y] = projected;
 
-      // Check for label overlap
+      // More lenient overlap checking
       let canPlace = true;
       for (const pos of usedPositions) {
         const dist = Math.sqrt((x - pos.x) ** 2 + (y - pos.y) ** 2);
@@ -535,7 +568,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       if (!canPlace) return;
       usedPositions.push({ x, y });
 
-      const fontSize = Math.max(6, Math.min(12, 8 + this.currentZoom * 1.5));
+      const fontSize = Math.max(7, Math.min(14, 9 + this.currentZoom * 1.5));
 
       // Shadow
       this.svg.append('text')
@@ -565,12 +598,148 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     });
   }
 
+  private addStateLabels() {
+    if (!this.states) return;
+
+    this.svg.selectAll('.state-label').remove();
+    this.svg.selectAll('.state-label-shadow').remove();
+
+    const usedPositions: Array<{ x: number; y: number }> = [];
+    const minDistance = this.isMobile ? 10 : 18;
+
+    this.states.features.forEach((d: any) => {
+      const centroid = d3.geoCentroid(d);
+      const projected = this.projection(centroid);
+
+      if (!projected) return;
+      const [x, y] = projected;
+
+      const props = d.properties;
+      let label = props?.code_hasc || props?.iso_3166_2 || props?.name;
+      if (!label) return;
+
+      // Extract only the state code part, removing country prefix
+      if (typeof label === 'string') {
+        // Remove country code prefix (e.g., "US.TX" -> "TX", "CA.ON" -> "ON")
+        const dotIndex = label.indexOf('.');
+        if (dotIndex !== -1) {
+          label = label.substring(dotIndex + 1);
+        }
+        // Remove country code prefix with dash (e.g., "US-TX" -> "TX")
+        const dashIndex = label.indexOf('-');
+        if (dashIndex !== -1) {
+          label = label.substring(dashIndex + 1);
+        }
+      }
+
+      let canPlace = true;
+      for (const pos of usedPositions) {
+        const dist = Math.sqrt((x - pos.x) ** 2 + (y - pos.y) ** 2);
+        if (dist < minDistance) {
+          canPlace = false;
+          break;
+        }
+      }
+      if (!canPlace) return;
+      usedPositions.push({ x, y });
+
+      this.svg.append('text')
+        .attr('class', 'state-label-shadow')
+        .attr('x', x + 0.8)
+        .attr('y', y + 0.8)
+        .attr('text-anchor', 'middle')
+        .style('font-size', this.isMobile ? '5px' : '7px')
+        .style('fill', 'rgba(0,0,0,0.4)')
+        .style('pointer-events', 'none')
+        .text(label);
+
+      this.svg.append('text')
+        .attr('class', 'state-label')
+        .attr('x', x)
+        .attr('y', y)
+        .attr('text-anchor', 'middle')
+        .style('font-size', this.isMobile ? '5px' : '7px')
+        .style('font-weight', '500')
+        .style('font-family', 'Arial, sans-serif')
+        .style('fill', '#2b2b2b')
+        .style('stroke', 'white')
+        .style('stroke-width', '0.6px')
+        .style('paint-order', 'stroke fill')
+        .text(label);
+    });
+  }
+
+  private addCountryLabels() {
+    this.svg.selectAll('.country-label').remove();
+    this.svg.selectAll('.country-label-shadow').remove();
+
+    const usedPositions: Array<{ x: number; y: number }> = [];
+    const minDistance = this.isMobile ? 25 : 35;
+
+    this.countries.features.forEach((d: any) => {
+      const centroid = d3.geoCentroid(d);
+      const projected = this.projection(centroid);
+
+      if (!projected) return;
+      const [x, y] = projected;
+
+      const name = d.properties?.name;
+      if (!name) return;
+
+      let canPlace = true;
+      for (const pos of usedPositions) {
+        const dist = Math.sqrt((x - pos.x) ** 2 + (y - pos.y) ** 2);
+        if (dist < minDistance) {
+          canPlace = false;
+          break;
+        }
+      }
+      if (!canPlace) return;
+      usedPositions.push({ x, y });
+
+      this.svg.append('text')
+        .attr('class', 'country-label-shadow')
+        .attr('x', x + 1)
+        .attr('y', y + 1)
+        .attr('text-anchor', 'middle')
+        .style('font-size', this.isMobile ? '8px' : '10px')
+        .style('fill', 'rgba(0,0,0,0.4)')
+        .style('pointer-events', 'none')
+        .text(name);
+
+      this.svg.append('text')
+        .attr('class', 'country-label')
+        .attr('x', x)
+        .attr('y', y)
+        .attr('text-anchor', 'middle')
+        .style('font-size', this.isMobile ? '8px' : '10px')
+        .style('font-weight', '600')
+        .style('font-family', 'Arial, sans-serif')
+        .style('fill', '#111')
+        .style('stroke', 'white')
+        .style('stroke-width', '1px')
+        .style('paint-order', 'stroke fill')
+        .text(name);
+    });
+  }
+
   private showTooltip(event: any, d: any) {
-    const entry = this.countriesList.find(c => c.country === d.properties.name);
+    // Make sure we have the country data
+    if (!d || !d.properties) return;
+    
+    const countryName = d.properties.name;
+    if (!countryName) return;
+
+    const entry = this.countriesList.find(c => 
+      c.country === countryName || 
+      c.country.toLowerCase() === countryName.toLowerCase() ||
+      c.code === countryName
+    );
+    
     if (entry) {
       const tooltipContent = `
         <div class="tooltip-header">
-          <img class="flag-icon" src="assets/images/flags/${entry.code.toLowerCase()}.svg"/>
+          <img class="flag-icon" src="assets/images/flags/${entry.code.toLowerCase()}.svg" onerror="this.style.display='none'"/>
           <span>${entry.country}</span>
         </div>
         <div class="tooltip-row">
@@ -583,6 +752,19 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         </div>
       `;
       this.tooltip.html(tooltipContent).style('display', 'block');
+      this.moveTooltip(event);
+    } else {
+      // Debug: Show basic info even if no data match found
+      const fallbackContent = `
+        <div class="tooltip-header">
+          <span>${countryName}</span>
+        </div>
+        <div class="tooltip-row">
+          <span class="label">No data available</span>
+          <span class="value">-</span>
+        </div>
+      `;
+      this.tooltip.html(fallbackContent).style('display', 'block');
       this.moveTooltip(event);
     }
   }
