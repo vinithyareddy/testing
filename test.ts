@@ -184,9 +184,11 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     // Create pattern for the globe texture
     const pattern = defs.append('pattern')
       .attr('id', 'globe-texture')
-      .attr('patternUnits', 'objectBoundingBox')
-      .attr('width', 1)
-      .attr('height', 1);
+      .attr('patternUnits', 'userSpaceOnUse')
+      .attr('width', this.currentRadius * 2)
+      .attr('height', this.currentRadius * 2)
+      .attr('x', width / 2 - this.currentRadius)
+      .attr('y', height / 2 - this.currentRadius);
 
     // Add the texture image to the pattern
     pattern.append('image')
@@ -251,15 +253,15 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .attr('stroke-width', 1)
       .style('filter', 'url(#glow)');
 
-    // Create texture overlay circle
+    // Create texture overlay circle - this will rotate with the coordinate system
     this.globeCircle = this.svg.append('circle')
       .attr('cx', width / 2)
       .attr('cy', height / 2)
       .attr('r', this.currentRadius)
       .attr('fill', 'url(#globe-texture)')
       .attr('stroke', 'none')
-      .style('opacity', 0.7) // Make texture semi-transparent to blend with base
-      .style('pointer-events', 'none'); // Let interactions pass through to base globe
+      .style('opacity', 0.7)
+      .style('pointer-events', 'none');
 
     this.countries = topojson.feature(
       worldData as any,
@@ -340,22 +342,16 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   }
 
   private updateTextureRotation() {
-    // The D3 projection rotates with this.currentRotation
-    // We need to match this exact rotation for the texture
-    const rotationX = this.currentRotation[0];
-    const rotationY = this.currentRotation[1];
-    
-    // Calculate the center point of the globe for rotation
+    // Update the pattern position to rotate with the globe
     const globeDiv = this.globeContainer.nativeElement;
     const width = globeDiv.offsetWidth;
     const height = globeDiv.offsetHeight;
-    const centerX = width / 2;
-    const centerY = height / 2;
+    const rotationX = this.currentRotation[0];
+    const rotationY = this.currentRotation[1];
     
-    // Apply the same rotation logic as the D3 projection
-    // Transform the texture image directly to match globe rotation
-    this.svg.select('#globe-texture image')
-      .attr('transform', `rotate(${rotationX} ${this.currentRadius} ${this.currentRadius}) rotate(${rotationY} ${this.currentRadius} ${this.currentRadius})`);
+    // Rotate the pattern around the globe center
+    this.svg.select('#globe-texture')
+      .attr('patternTransform', `rotate(${rotationX} ${width/2} ${height/2})`);
   }
 
   private loadData() {
