@@ -4,10 +4,15 @@ import { FormsModule } from '@angular/forms';
 import { AfterViewInit, Component, ElementRef, Renderer2, ViewChild, OnDestroy, HostListener } from '@angular/core';
 import * as THREE from 'three';
 import * as topojson from 'topojson-client';
-import worldData from 'world-atlas/countries-110m.json';
 import { FeatureCollection, Geometry } from 'geojson';
 import * as d3 from 'd3';
 import { LiftPopoverComponent } from '@lift/ui';
+
+// Alternative: If you want to use local world-atlas file, add this type declaration
+// declare module 'world-atlas/countries-110m.json' {
+//   const value: any;
+//   export default value;
+// }
 
 type CountrySkill = {
   country: string;
@@ -268,11 +273,16 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   }
 
   private loadData() {
-    // Initialize countries from world-atlas
-    this.countries = topojson.feature(
-      worldData,
-      worldData.objects.countries
-    ) as unknown as FeatureCollection<Geometry, any>;
+    // Load world topology data
+    this.http.get<any>('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').subscribe(worldData => {
+      this.countries = topojson.feature(
+        worldData,
+        worldData.objects.countries
+      ) as FeatureCollection<Geometry, any>;
+      
+      this.initializeCountryLabels();
+      this.drawCountries();
+    });
 
     this.http.get<any>('assets/json/world-globe-data.json').subscribe(data => {
       this.countriesList = data.countries.map((c: any) => ({
@@ -297,25 +307,29 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
           '#87c3ab'
         ]);
       this.filteredList = [...this.countriesList];
-      this.initializeCountryLabels();
-      this.drawCountries();
-      this.drawOceans();
-      this.drawEquator();
-      this.startRotation();
+      
+      // Only initialize and draw if countries are loaded
+      if (this.countries) {
+        this.drawOceans();
+        this.drawEquator();
+        this.startRotation();
+      }
     });
 
     this.http.get<any>('assets/json/globe-states.json').subscribe(data => {
       this.states = topojson.feature(
         data,
         data.objects.ne_50m_admin_1_states_provinces
-      ) as unknown as FeatureCollection<Geometry, any>;
+      ) as FeatureCollection<Geometry, any>;
       this.initializeStateLabels();
       this.drawStates();
     });
 
     this.http.get<any>('assets/json/oceans.json').subscribe(data => {
       this.oceans = data;
-      this.drawOceans();
+      if (this.countries) {
+        this.drawOceans();
+      }
     });
   }
 
