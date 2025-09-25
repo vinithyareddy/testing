@@ -340,10 +340,22 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   }
 
   private updateTextureRotation() {
-    // Remove texture rotation - let the texture stay static
-    // Only the country boundaries and labels will rotate, giving the appearance
-    // that we're looking at different parts of a textured globe
-    // This is actually more realistic as the texture represents the globe surface
+    // The D3 projection rotates with this.currentRotation
+    // We need to match this exact rotation for the texture
+    const rotationX = this.currentRotation[0];
+    const rotationY = this.currentRotation[1];
+    
+    // Calculate the center point of the globe for rotation
+    const globeDiv = this.globeContainer.nativeElement;
+    const width = globeDiv.offsetWidth;
+    const height = globeDiv.offsetHeight;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    
+    // Apply the same rotation logic as the D3 projection
+    // Transform the texture image directly to match globe rotation
+    this.svg.select('#globe-texture image')
+      .attr('transform', `rotate(${rotationX} ${this.currentRadius} ${this.currentRadius}) rotate(${rotationY} ${this.currentRadius} ${this.currentRadius})`);
   }
 
   private loadData() {
