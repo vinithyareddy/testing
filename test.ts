@@ -4,15 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { AfterViewInit, Component, ElementRef, Renderer2, ViewChild, OnDestroy, HostListener } from '@angular/core';
 import * as THREE from 'three';
 import * as topojson from 'topojson-client';
+import worldData from 'world-atlas/countries-110m.json';
 import { FeatureCollection, Geometry } from 'geojson';
 import * as d3 from 'd3';
 import { LiftPopoverComponent } from '@lift/ui';
-
-// Alternative: If you want to use local world-atlas file, add this type declaration
-// declare module 'world-atlas/countries-110m.json' {
-//   const value: any;
-//   export default value;
-// }
 
 type CountrySkill = {
   country: string;
@@ -49,8 +44,8 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   private svg: any;
   private projection: any;
   private path: any;
-  private countries: any;
-  private states: any;
+  private countries!: FeatureCollection<Geometry, any>;
+  private states!: FeatureCollection<Geometry, any>;
   private currentRotation = [0, 0];
   private isRotating = true;
   private tooltip: any;
@@ -58,12 +53,12 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   private resizeObserver?: ResizeObserver;
   currentZoom: number = ZOOM.initial;
   private currentRadius = 300;
-  private oceans: any;
+  private oceans!: FeatureCollection<Geometry, any>;
   private countryColorScale = d3.scaleLinear<string>()
     .domain([0, 1])
     .range(['#d9ead3', '#38761d']);
-  private countryLabelData: Array<any> = [];
-  private stateLabelData: Array<any> = [];
+  private countryLabelData: Array<{ feature: any, centroid: [number, number], name: string }> = [];
+  private stateLabelData: Array<{ feature: any, centroid: [number, number], label: string }> = [];
   isMobile = false;
   isTablet = false;
   private mediaQueryMobile!: MediaQueryList;
@@ -200,7 +195,19 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .attr('stroke', '#ccc')
       .attr('stroke-width', 1);
 
-    // Remove the static image overlay - we'll let countries handle the visuals
+    // Commented out texture to avoid rotation conflicts
+    /*
+    this.svg.append('image')
+      .attr('class', 'globe-texture')
+      .attr('href', 'assets/images/transparent-globe.png')
+      .attr('x', width / 2 - this.currentRadius)
+      .attr('y', height / 2 - this.currentRadius)
+      .attr('width', this.currentRadius * 2)
+      .attr('height', this.currentRadius * 2)
+      .attr('clip-path', 'url(#globe-clip)')
+      .attr('preserveAspectRatio', 'xMidYMid slice');
+    */
+
     d3.select(globeDiv).selectAll('.globe-tooltip').remove();
     this.tooltip = d3.select(globeDiv)
       .append('div')
@@ -232,15 +239,26 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .attr('cy', height / 2)
       .attr('r', this.currentRadius * this.currentZoom);
 
+    this.svg.select('.globe-texture')
+      .attr('x', width / 2 - this.currentRadius * this.currentZoom)
+      .attr('y', height / 2 - this.currentRadius * this.currentZoom)
+      .attr('width', this.currentRadius * 2 * this.currentZoom)
+      .attr('height', this.currentRadius * 2 * this.currentZoom);
+
     this.svg.select('#globe-clip circle')
       .attr('cx', width / 2)
       .attr('cy', height / 2)
       .attr('r', this.currentRadius * this.currentZoom);
 
+    this.svg.select('#globe-texture image')
+      .attr('width', width)
+      .attr('height', height);
+
+    this.svg.select('path')
+      .attr('d', this.path);
+
     this.updateCountries();
     this.updateStates();
-    this.drawOceans();
-    this.drawEquator();
   }
 
   private setupInteractions() {
@@ -257,6 +275,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         this.projection.rotate(this.currentRotation);
         this.updateCountries();
         this.updateStates();
+        this.drawOceans();
       })
       .on('end', () => {
         this.isDragging = false;
@@ -273,16 +292,11 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   }
 
   private loadData() {
-    // Load world topology data
-    this.http.get<any>('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').subscribe(worldData => {
-      this.countries = topojson.feature(
-        worldData,
-        worldData.objects.countries
-      ) as any;
-      
-      this.initializeCountryLabels();
-      this.drawCountries();
-    });
+    // Load countries data from world-atlas
+    this.countries = topojson.feature(
+      worldData,
+      worldData.objects.countries
+    ) as unknown as FeatureCollection<Geometry, any>;
 
     this.http.get<any>('assets/json/world-globe-data.json').subscribe(data => {
       this.countriesList = data.countries.map((c: any) => ({
@@ -308,41 +322,36 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         ]);
       this.filteredList = [...this.countriesList];
       
-      // Only initialize and draw if countries are loaded
-      if (this.countries) {
-        this.drawOceans();
-        this.drawEquator();
-        this.startRotation();
-      }
+      // Initialize and draw everything in the correct order
+      this.initializeCountryLabels();
+      this.drawCountries();
+      this.drawEquator();
+      this.startRotation();
     });
 
     this.http.get<any>('assets/json/globe-states.json').subscribe(data => {
       this.states = topojson.feature(
         data,
         data.objects.ne_50m_admin_1_states_provinces
-      ) as any;
+      ) as unknown as FeatureCollection<Geometry, any>;
       this.initializeStateLabels();
       this.drawStates();
     });
 
     this.http.get<any>('assets/json/oceans.json').subscribe(data => {
       this.oceans = data;
-      if (this.countries) {
-        this.drawOceans();
-      }
+      this.drawOceans();
     });
   }
 
   private drawOceans() {
     if (!this.oceans) return;
-
     this.svg.selectAll('.ocean-label').remove();
 
     this.oceans.features.forEach((feature: any) => {
       const coords = feature.geometry.coordinates;
       const projected = this.projection([coords[0], coords[1]]);
       if (!projected) return;
-
       if (!this.isPointVisible(coords)) return;
 
       this.svg.append('text')
@@ -361,69 +370,60 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   private drawEquator() {
     const equatorCoords = [];
     for (let lng = -180; lng <= 180; lng += 2) {
-      equatorCoords.push([lng, 0]); // Changed from -15 to 0 for actual equator
+      equatorCoords.push([lng, -15]);
     }
-
     const equatorGeoJSON = {
       type: "LineString",
       coordinates: equatorCoords
     };
 
     this.svg.selectAll('.equator').remove();
-
     this.svg.append('path')
       .datum(equatorGeoJSON)
       .attr('class', 'equator')
       .attr('d', this.path)
       .attr('fill', 'none')
       .attr('stroke', '#7697a4')
-      .attr('stroke-width', 1)
-      .attr('stroke-dasharray', '3,2')
+      .attr('stroke-width', 2)
+      .attr('stroke-dasharray', '5,3')
       .style('pointer-events', 'none')
-      .style('opacity', 0.4);
+      .style('opacity', 0.8);
   }
 
   private initializeCountryLabels() {
-    if (!this.countries) return;
-    
     this.countryLabelData = this.countries.features
       .map((feature: any) => {
         const centroid = d3.geoCentroid(feature);
-        const name = feature.properties?.NAME || feature.properties?.name;
+        const name = feature.properties?.name;
         return name ? { feature, centroid, name } : null;
       })
-      .filter((item: any) => item !== null);
+      .filter((item): item is { feature: any; centroid: [number, number]; name: string } => item !== null);
   }
 
   private initializeStateLabels() {
     if (!this.states) return;
-
     this.stateLabelData = this.states.features
       .map((feature: any) => {
         const centroid = d3.geoCentroid(feature);
         const props = feature.properties;
         let label = props?.code_hasc || props?.iso_3166_2 || props?.name;
-
         if (label && label.includes(".")) {
           label = label.split(".").pop();
         }
-
         if (label && label.includes("-")) {
           label = label.split("-").pop();
         }
-
         return label ? { feature, centroid, label } : null;
       })
-      .filter((item: any) => item !== null);
+      .filter((item): item is { feature: any; centroid: [number, number]; label: string } => item !== null);
   }
 
   private drawCountries() {
-    if (!this.countries) return;
-
+    // Remove existing countries first
     this.svg.selectAll('.country').remove();
     this.svg.selectAll('.country-hover').remove();
 
-    // Draw country paths
+    // Draw country paths with proper data binding
     this.svg.selectAll('.country')
       .data(this.countries.features)
       .enter()
@@ -463,7 +463,6 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
   private drawStates() {
     if (!this.states) return;
-
     this.svg.selectAll('.state').remove();
     this.svg.selectAll('.state')
       .data(this.states.features)
@@ -472,11 +471,8 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .attr('class', 'state')
       .attr('d', this.path)
       .attr('fill', 'transparent')
-      .attr('stroke', '#999')
-      .attr('stroke-width', 0.2)
       .attr('clip-path', 'url(#globe-clip)')
-      .style('pointer-events', 'none')
-      .style('opacity', this.shouldShowStates() ? 0.5 : 0);
+      .style('pointer-events', 'none');
 
     this.updateStateLabels();
   }
@@ -496,29 +492,26 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   }
 
   private isPointVisible(centroid: [number, number]): boolean {
+    const projected = this.projection(centroid);
+    if (!projected) return false;
     const [lng, lat] = centroid;
-    
-    // Convert to radians
     const lambda = (lng * Math.PI) / 180;
     const phi = (lat * Math.PI) / 180;
-    
-    // Current rotation in radians
-    const rotLambda = (-this.currentRotation[0] * Math.PI) / 180;
-    const rotPhi = (-this.currentRotation[1] * Math.PI) / 180;
-    
-    // Calculate if point is on visible hemisphere
-    const cosC = Math.sin(phi) * Math.sin(rotPhi) + 
-                 Math.cos(phi) * Math.cos(rotPhi) * Math.cos(lambda - rotLambda);
-    
-    return cosC >= 0;
+    const rotLambda = (this.currentRotation[0] * Math.PI) / 180;
+    const rotPhi = (this.currentRotation[1] * Math.PI) / 180;
+    const adjustedLng = lambda + rotLambda;
+    const cosPhi = Math.cos(phi + rotPhi);
+    const cosLambda = Math.cos(adjustedLng);
+    const dotProduct = cosPhi * cosLambda;
+    return dotProduct > 0;
   }
 
   private shouldShowStates(): boolean {
-    return this.currentZoom > 1.2;
+    return this.currentZoom > 0.9;
   }
 
   private getMinStateAreaThreshold(): number {
-    const baseThreshold = this.isMobile ? 8 : 15;
+    const baseThreshold = this.isMobile ? 5 : 10;
     const zoomFactor = Math.max(0.3, 2 / (this.currentZoom * this.currentZoom));
     return baseThreshold * zoomFactor;
   }
@@ -534,7 +527,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     this.svg.selectAll('.state-label-shadow').remove();
 
     const usedPositions: Array<{ x: number; y: number }> = [];
-    const baseMinDistance = this.isMobile ? 12 : 20;
+    const baseMinDistance = this.isMobile ? 8 : 15;
     const minDistance = baseMinDistance / this.currentZoom;
 
     const visibleLabels = this.stateLabelData.filter(data => {
@@ -549,9 +542,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     visibleLabels.forEach((data) => {
       const projected = this.projection(data.centroid);
       if (!projected) return;
-
       const [x, y] = projected;
-
       let canPlace = true;
       for (const pos of usedPositions) {
         const dist = Math.sqrt((x - pos.x) ** 2 + (y - pos.y) ** 2);
@@ -560,13 +551,11 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
           break;
         }
       }
-
       if (!canPlace) return;
+
       usedPositions.push({ x, y });
+      const fontSize = Math.max(4, Math.min(8, 6 + this.currentZoom));
 
-      const fontSize = Math.max(6, Math.min(10, 7 + this.currentZoom));
-
-      // Shadow
       this.svg.append('text')
         .attr('class', 'state-label-shadow')
         .attr('x', x + 0.8)
@@ -577,7 +566,6 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         .style('pointer-events', 'none')
         .text(data.label);
 
-      // Main label
       this.svg.append('text')
         .attr('class', 'state-label')
         .attr('x', x)
@@ -586,9 +574,9 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         .style('font-size', `${fontSize}px`)
         .style('font-weight', '500')
         .style('font-family', 'Arial, sans-serif')
-        .style('fill', '#333')
+        .style('fill', '#2b2b2b')
         .style('stroke', 'white')
-        .style('stroke-width', '0.8px')
+        .style('stroke-width', '0.6px')
         .style('paint-order', 'stroke fill')
         .style('pointer-events', 'none')
         .text(data.label);
@@ -602,7 +590,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     this.svg.selectAll('.country-label-shadow').remove();
 
     const usedPositions: Array<{ x: number; y: number }> = [];
-    const baseMinDistance = this.isMobile ? 25 : 35;
+    const baseMinDistance = this.isMobile ? 20 : 30;
     const minDistance = baseMinDistance / this.currentZoom;
 
     const visibleLabels = this.countryLabelData.filter(data => {
@@ -610,10 +598,9 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       const projected = this.projection(data.centroid);
       if (!projected) return false;
       const area = this.getProjectedArea(data.feature);
-      const baseThreshold = 100;
-      const minAreaThreshold = Math.max(20, baseThreshold / (this.currentZoom * this.currentZoom));
-      
-      if (this.currentZoom >= 1.5 && area > minAreaThreshold / 3) {
+      const baseThreshold = 80;
+      const minAreaThreshold = Math.max(10, baseThreshold / (this.currentZoom * this.currentZoom));
+      if (this.currentZoom >= 1.3 && area > minAreaThreshold / 2) {
         return true;
       }
       return area > minAreaThreshold;
@@ -622,9 +609,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     visibleLabels.forEach((data) => {
       const projected = this.projection(data.centroid);
       if (!projected) return;
-
       const [x, y] = projected;
-
       let canPlace = true;
       for (const pos of usedPositions) {
         const dist = Math.sqrt((x - pos.x) ** 2 + (y - pos.y) ** 2);
@@ -633,13 +618,11 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
           break;
         }
       }
-
       if (!canPlace) return;
+
       usedPositions.push({ x, y });
+      const fontSize = Math.max(6, Math.min(12, 8 + this.currentZoom * 1.5));
 
-      const fontSize = Math.max(8, Math.min(14, 10 + this.currentZoom * 1.2));
-
-      // Shadow
       this.svg.append('text')
         .attr('class', 'country-label-shadow')
         .attr('x', x + 1)
@@ -650,7 +633,6 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         .style('pointer-events', 'none')
         .text(data.name);
 
-      // Main label
       this.svg.append('text')
         .attr('class', 'country-label')
         .attr('x', x)
@@ -659,9 +641,9 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         .style('font-size', `${fontSize}px`)
         .style('font-weight', '600')
         .style('font-family', 'Arial, sans-serif')
-        .style('fill', '#222')
+        .style('fill', '#111')
         .style('stroke', 'white')
-        .style('stroke-width', '1.2px')
+        .style('stroke-width', '1px')
         .style('paint-order', 'stroke fill')
         .style('pointer-events', 'none')
         .text(data.name);
@@ -669,9 +651,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   }
 
   private showTooltip(event: any, d: any) {
-    const countryName = d.properties?.NAME || d.properties?.name;
-    const entry = this.countriesList.find(c => c.country === countryName);
-    
+    const entry = this.countriesList.find(c => c.country === d.properties.name);
     if (entry) {
       const tooltipContent = `
         <div class="tooltip-header">
@@ -687,7 +667,6 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
           <span class="value">${entry.skillSupply}</span>
         </div>
       `;
-
       this.tooltip.html(tooltipContent).style('display', 'block');
       this.moveTooltip(event);
     }
@@ -697,10 +676,8 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     const rect = this.globeContainer.nativeElement.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-
     const offsetX = this.isMobile ? 10 : 15;
     const offsetY = this.isMobile ? 10 : 15;
-
     this.tooltip
       .style('left', (x + offsetX) + 'px')
       .style('top', (y + offsetY) + 'px');
@@ -711,40 +688,48 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   }
 
   private updateCountries() {
-    if (!this.countries) return;
-
+    // Update country paths
     this.svg.selectAll('.country')
-      .attr('d', this.path)
-      .attr('fill', (d: any) => this.getCountryColor(d));
-
+      .attr('d', this.path);
+    
+    // Update country hover paths
     this.svg.selectAll('.country-hover')
       .attr('d', this.path);
 
+    // Update globe circle
+    const globeDiv = this.globeContainer.nativeElement;
+    const width = globeDiv.offsetWidth;
+    const height = globeDiv.offsetHeight;
+    
     this.svg.select('circle')
+      .attr('cx', width / 2)
+      .attr('cy', height / 2)
       .attr('r', this.currentRadius * this.currentZoom);
 
+    // Update clipping path
+    this.svg.select('#globe-clip circle')
+      .attr('cx', width / 2)
+      .attr('cy', height / 2)
+      .attr('r', this.currentRadius * this.currentZoom);
+
+    // Update equator
     this.svg.selectAll('.equator')
       .attr('d', this.path);
 
-    // Update ocean labels
-    this.drawOceans();
-    
-    // Update country labels
+    // Update labels - these will now move with the globe
     this.updateCountryLabels();
   }
 
   private updateStates() {
     if (!this.states) return;
-
     this.svg.selectAll('.state')
       .attr('d', this.path)
-      .style('opacity', this.shouldShowStates() ? 0.5 : 0);
-
+      .style('opacity', this.shouldShowStates() ? 1 : 0);
     this.updateStateLabels();
   }
 
   private getCountryColor(d: any): string {
-    const countryName = d.properties?.NAME || d.properties?.name;
+    const countryName = d.properties.name;
     const entry = this.countriesList.find(c => c.country === countryName);
     return entry ? this.countryColorScale(entry.uniqueSkills) : FALLBACK_COLOR;
   }
@@ -757,6 +742,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
         this.updateCountries();
         this.updateStates();
+        this.drawOceans(); // Update ocean labels during rotation
       }
       requestAnimationFrame(rotate);
     };
@@ -777,8 +763,6 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   zoomIn() {
     this.currentZoom = Math.min(this.currentZoom + ZOOM.step, ZOOM.max);
     this.projection.scale(this.currentRadius * this.currentZoom);
-    this.svg.select('circle').attr('r', this.currentRadius * this.currentZoom);
-    this.svg.select('#globe-clip circle').attr('r', this.currentRadius * this.currentZoom);
     this.updateCountries();
     this.updateStates();
   }
@@ -786,8 +770,6 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   zoomOut() {
     this.currentZoom = Math.max(this.currentZoom - ZOOM.step, ZOOM.min);
     this.projection.scale(this.currentRadius * this.currentZoom);
-    this.svg.select('circle').attr('r', this.currentRadius * this.currentZoom);
-    this.svg.select('#globe-clip circle').attr('r', this.currentRadius * this.currentZoom);
     this.updateCountries();
     this.updateStates();
   }
@@ -805,16 +787,14 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     const targetRotation = [-country.lng, -country.lat];
     this.currentRotation = targetRotation;
     this.projection.rotate(this.currentRotation);
-
     this.updateCountries();
     this.updateStates();
+    this.drawOceans();
 
     this.svg.selectAll('.country-highlight').remove();
-
-    const countryFeature = this.countries.features.find((feature: any) => {
-      const featureName = feature.properties?.NAME || feature.properties?.name;
-      return featureName === country.country;
-    });
+    const countryFeature = this.countries.features.find((feature: any) =>
+      feature.properties.name === country.country
+    );
 
     if (countryFeature) {
       const highlight = this.svg.append('path')
@@ -825,7 +805,6 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         .attr('stroke', '#ff4444')
         .attr('stroke-width', 3)
         .attr('stroke-dasharray', '8,4')
-        .attr('clip-path', 'url(#globe-clip)')
         .style('opacity', 0);
 
       highlight.transition()
@@ -839,7 +818,6 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
           clientX: projected[0] + this.globeContainer.nativeElement.getBoundingClientRect().left,
           clientY: projected[1] + this.globeContainer.nativeElement.getBoundingClientRect().top
         };
-
         this.showTooltip(fakeEvent, countryFeature);
       }
 
