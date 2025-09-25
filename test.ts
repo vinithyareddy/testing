@@ -241,15 +241,25 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     feMerge.append('feMergeNode').attr('in', 'glow2');
     feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
 
-    // Create globe circle with texture pattern
+    // Create base globe circle with original color and glow
+    this.svg.append('circle')
+      .attr('cx', width / 2)
+      .attr('cy', height / 2)
+      .attr('r', this.currentRadius)
+      .attr('fill', CUSTOM_GLOBE_COLOR)
+      .attr('stroke', '#ccc')
+      .attr('stroke-width', 1)
+      .style('filter', 'url(#glow)');
+
+    // Create texture overlay circle
     this.globeCircle = this.svg.append('circle')
       .attr('cx', width / 2)
       .attr('cy', height / 2)
       .attr('r', this.currentRadius)
       .attr('fill', 'url(#globe-texture)')
-      .attr('stroke', '#ccc')
-      .attr('stroke-width', 1)
-      .style('filter', 'url(#glow)');
+      .attr('stroke', 'none')
+      .style('opacity', 0.7) // Make texture semi-transparent to blend with base
+      .style('pointer-events', 'none'); // Let interactions pass through to base globe
 
     this.countries = topojson.feature(
       worldData as any,
@@ -281,7 +291,8 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
     this.svg.attr('viewBox', `0 0 ${width} ${height}`);
 
-    this.svg.select('circle')
+    // Update both base globe and texture overlay circles
+    this.svg.selectAll('circle')
       .attr('cx', width / 2)
       .attr('cy', height / 2)
       .attr('r', this.currentRadius * this.currentZoom);
@@ -322,7 +333,8 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         }, 2000);
       });
 
-    this.svg.select('circle').call(drag);
+    // Apply drag to both base globe and texture overlay
+    this.svg.selectAll('circle').call(drag);
     this.globeContainer.nativeElement.addEventListener('wheel', (event: WheelEvent) => {
     }, { passive: true });
   }
@@ -750,8 +762,8 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     this.svg.selectAll('.country')
       .attr('d', this.path);
 
-    // Update the globe circle size
-    this.svg.select('circle')
+    // Update both base globe and texture overlay circles
+    this.svg.selectAll('circle')
       .attr('r', this.currentRadius * this.currentZoom);
 
     // Update texture pattern
