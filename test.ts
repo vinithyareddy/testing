@@ -4,7 +4,7 @@ private initializeGlobe() {
   const height = globeDiv.offsetHeight;
   this.currentRadius = this.getResponsiveRadius();
 
-  // --- Setup D3 projection for labels ---
+  // --- D3 projection for labels ---
   this.projection = d3.geoOrthographic()
     .scale(this.currentRadius)
     .translate([width / 2, height / 2])
@@ -12,34 +12,44 @@ private initializeGlobe() {
 
   this.path = d3.geoPath().projection(this.projection);
 
-  // Clear any old svg
-  d3.select(globeDiv).selectAll('svg').remove();
-
-  // SVG overlay for labels, borders, tooltips
-  this.svg = d3.select(globeDiv)
-    .append('svg')
-    .attr('width', '100%')
-    .attr('height', '100%')
-    .attr('viewBox', `0 0 ${width} ${height}`)
-    .attr('preserveAspectRatio', 'xMidYMid meet');
-
-  // --- Three.js Globe ---
+  // --- Three.js globe ---
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-  camera.position.z = this.currentRadius * 3;
+  const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 2000);
+  camera.position.z = this.currentRadius * 2.2; // closer view
 
-  const renderer = new THREE.WebGLRenderer({ alpha: true });
+  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
   renderer.setSize(width, height);
+  renderer.setPixelRatio(window.devicePixelRatio);
+
+  // Make sure no old canvas exists
+  globeDiv.querySelectorAll('canvas').forEach(c => c.remove());
+  globeDiv.querySelectorAll('svg').forEach(s => s.remove());
+
+  // Append Three.js canvas first
+  renderer.domElement.style.position = 'absolute';
+  renderer.domElement.style.top = '0';
+  renderer.domElement.style.left = '0';
+  renderer.domElement.style.zIndex = '0';
   globeDiv.appendChild(renderer.domElement);
 
-  // Load your Natural Earth PNG texture
+  // Load your PNG texture (make sure path is correct under /assets/)
   const texture = new THREE.TextureLoader().load('assets/images/your-globe.png');
-  const geometry = new THREE.SphereGeometry(this.currentRadius, 64, 64);
+  const geometry = new THREE.SphereGeometry(this.currentRadius, 128, 128);
   const material = new THREE.MeshBasicMaterial({ map: texture });
   const globe = new THREE.Mesh(geometry, material);
   scene.add(globe);
 
-  // --- Tooltip ---
+  // --- D3 SVG overlay (labels, tooltips) ---
+  this.svg = d3.select(globeDiv)
+    .append('svg')
+    .style('position', 'absolute')
+    .style('top', '0')
+    .style('left', '0')
+    .style('z-index', '1')
+    .attr('width', width)
+    .attr('height', height);
+
+  // Tooltip container
   d3.select(globeDiv).selectAll('.globe-tooltip').remove();
   this.tooltip = d3.select(globeDiv)
     .append('div')
@@ -48,12 +58,12 @@ private initializeGlobe() {
     .style('pointer-events', 'none')
     .style('display', 'none');
 
-  // --- Rotation Loop ---
+  // --- Animation loop ---
   const animate = () => {
     requestAnimationFrame(animate);
 
     // Rotate globe
-    globe.rotation.y += 0.002; // adjust speed
+    globe.rotation.y += 0.002;
 
     // Sync D3 projection with globe rotation
     const rotationDeg = (globe.rotation.y * 180) / Math.PI;
@@ -67,6 +77,6 @@ private initializeGlobe() {
   };
   animate();
 
-  // --- Setup interactions (drag/zoom still on SVG) ---
+  // --- Interactions (drag, zoom, etc.) ---
   this.setupInteractions();
 }
