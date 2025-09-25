@@ -342,16 +342,16 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   }
 
   private updateTextureRotation() {
-    // Update the pattern position to rotate with the globe
+    // The D3 projection rotates the coordinate system, so we need to rotate 
+    // the texture in the opposite direction to make it appear synchronized
     const globeDiv = this.globeContainer.nativeElement;
     const width = globeDiv.offsetWidth;
     const height = globeDiv.offsetHeight;
     const rotationX = this.currentRotation[0];
-    const rotationY = this.currentRotation[1];
     
-    // Rotate the pattern around the globe center
+    // Rotate the texture pattern in the opposite direction to the projection
     this.svg.select('#globe-texture')
-      .attr('patternTransform', `rotate(${rotationX} ${width/2} ${height/2})`);
+      .attr('patternTransform', `rotate(${-rotationX} ${width/2} ${height/2})`);
   }
 
   private loadData() {
