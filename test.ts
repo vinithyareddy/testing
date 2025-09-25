@@ -3,17 +3,12 @@ this.svg.append('circle')
   .attr('cx', width / 2)
   .attr('cy', height / 2)
   .attr('r', this.currentRadius)
-  .attr('fill', GLOBE_TEAL_COLOR)
-  .attr('stroke', '#ccc')
-  .attr('stroke-width', 1);
+  .attr('fill', GLOBE_TEAL_COLOR);
 
-// Define pattern for land texture
+// Create mask from PNG (white = ocean will be transparent)
 const defs = this.svg.append('defs');
-defs.append('pattern')
-  .attr('id', 'globe-texture')
-  .attr('patternUnits', 'objectBoundingBox')
-  .attr('width', 1)
-  .attr('height', 1)
+defs.append('mask')
+  .attr('id', 'land-mask')
   .append('image')
   .attr('href', 'assets/images/globe-texture.png')
   .attr('width', this.currentRadius * 2)
@@ -21,11 +16,10 @@ defs.append('pattern')
   .attr('x', 0)
   .attr('y', 0);
 
-// Overlay continents (fixed on top of teal base)
+// Apply the mask on top of teal circle
 this.svg.append('circle')
   .attr('cx', width / 2)
   .attr('cy', height / 2)
   .attr('r', this.currentRadius)
-  .attr('fill', 'url(#globe-texture)')
-  .attr('stroke', '#ccc')
-  .attr('stroke-width', 1);
+  .attr('fill', 'black')   // mask will keep only land visible
+  .attr('mask', 'url(#land-mask)');
