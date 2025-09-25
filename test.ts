@@ -664,18 +664,9 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     const minDistance = baseMinDistance / this.currentZoom;
 
     const visibleLabels = this.countryLabelData.filter(data => {
-      // Use country data coordinates if available, otherwise use centroid
-      const countryData = this.countriesList.find(c => c.country === data.name);
-      let centroid = data.centroid;
-      
-      if (countryData && countryData.lat !== undefined && countryData.lng !== undefined) {
-        // Use the more accurate lat/lng from country data
-        centroid = [countryData.lng, countryData.lat];
-      }
-      
-      if (!this.isPointVisible(centroid)) return false;
+      if (!this.isPointVisible(data.centroid)) return false;
 
-      const projected = this.projection(centroid);
+      const projected = this.projection(data.centroid);
       if (!projected) return false;
 
       const area = this.getProjectedArea(data.feature);
@@ -690,15 +681,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     });
 
     visibleLabels.forEach((data) => {
-      // Use country data coordinates if available
-      const countryData = this.countriesList.find(c => c.country === data.name);
-      let centroid = data.centroid;
-      
-      if (countryData && countryData.lat !== undefined && countryData.lng !== undefined) {
-        centroid = [countryData.lng, countryData.lat];
-      }
-      
-      const projected = this.projection(centroid);
+      const projected = this.projection(data.centroid);
       if (!projected) return;
 
       const [x, y] = projected;
