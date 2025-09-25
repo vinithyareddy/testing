@@ -278,6 +278,9 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     let mouseDown = false;
     let mouseX = 0;
     let mouseY = 0;
+    
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
 
     canvas.addEventListener('mousedown', (event) => {
       mouseDown = true;
@@ -324,21 +327,132 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       this.currentZoom = Math.max(ZOOM.min, Math.min(ZOOM.max, this.currentZoom + delta));
       this.updateGlobeScale();
     }, { passive: false });
+
+    // Add touch support for mobile
+    canvas.addEventListener('touchstart', (event) => {
+      event.preventDefault();
+      if (event.touches.length === 1) {
+        mouseDown = true;
+        mouseX = event.touches[0].clientX;
+        mouseY = event.touches[0].clientY;
+        this.isDragging = true;
+        this.isRotating = false;
+      }
+    });
+
+    canvas.addEventListener('touchmove', (event) => {
+      event.preventDefault();
+      if (event.touches.length === 1 && mouseDown) {
+        const deltaX = event.touches[0].clientX - mouseX;
+        const deltaY = event.touches[0].clientY - mouseY;
+        
+        const sensitivity = 0.006;
+        
+        this.currentRotation[0] += deltaX * sensitivity * 180 / Math.PI;
+        this.currentRotation[1] -= deltaY * sensitivity * 180 / Math.PI;
+        this.currentRotation[1] = Math.max(-90, Math.min(90, this.currentRotation[1]));
+
+        this.updateGlobeRotation();
+
+        mouseX = event.touches[0].clientX;
+        mouseY = event.touches[0].clientY;
+      }
+    });
+
+    canvas.addEventListener('touchend', (event) => {
+      event.preventDefault();
+      mouseDown = false;
+      this.isDragging = false;
+      setTimeout(() => {
+        if (!this.isDragging) {
+          this.isRotating = true;
+        }
+      }, 2000);
+    });
   }
 
   private handleMouseMove(event: MouseEvent) {
-    // Handle hover effects and tooltip positioning
     const rect = this.renderer.domElement.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
     
-    // Convert screen coordinates to world coordinates for country detection
+    // Convert screen coordinates to normalized device coordinates
     const mouse = new THREE.Vector2();
     mouse.x = (x / rect.width) * 2 - 1;
     mouse.y = -(y / rect.height) * 2 + 1;
 
-    // Raycasting logic would go here for precise country detection
-    // For now, we'll use the existing tooltip positioning
+    // Create raycaster for detecting globe intersection
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, this.camera);
+
+    if (this.globe) {
+      const intersects = raycaster.intersectObject(this.globe);
+      
+      if (intersects.length > 0) {
+        const intersectionPoint = intersects[0].point;
+        
+        // Convert 3D point to lat/lng
+        const lat = Math.asin(intersectionPoint.y / 2) * 180 / Math.PI;
+        const lng = Math.atan2(intersectionPoint.z, -intersectionPoint.x) * 180 / Math.PI;
+        
+        // Adjust for current rotation
+        const adjustedLng = lng - this.currentRotation[0];
+        const adjustedLat = lat - this.currentRotation[1];
+        
+        // Find nearest country
+        const nearestCountry = this.findNearestCountry(adjustedLng, adjustedLat);
+        
+        if (nearestCountry) {
+          this.isRotating = false;
+          this.showTooltipForCountry(event, nearestCountry);
+          this.renderer.domElement.style.cursor = 'pointer';
+        } else {
+          this.hideTooltip();
+          this.renderer.domElement.style.cursor = 'grab';
+        }
+      } else {
+        this.hideTooltip();
+        this.renderer.domElement.style.cursor = 'grab';
+      }
+    }
+  }
+
+  private findNearestCountry(lng: number, lat: number): CountrySkill | null {
+    let nearestCountry: CountrySkill | null = null;
+    let minDistance = Infinity;
+    const maxDistance = 10; // Maximum distance in degrees to consider a "hit"
+
+    for (const country of this.countriesList) {
+      const distance = Math.sqrt(
+        Math.pow(country.lng - lng, 2) + Math.pow(country.lat - lat, 2)
+      );
+      
+      if (distance < minDistance && distance < maxDistance) {
+        minDistance = distance;
+        nearestCountry = country;
+      }
+    }
+
+    return nearestCountry;
+  }
+
+  private showTooltipForCountry(event: MouseEvent, country: CountrySkill) {
+    const tooltipContent = `
+      <div class="tooltip-header">
+        <img class="flag-icon" src="assets/images/flags/${country.code.toLowerCase()}.svg"/>
+        <span>${country.country}</span>
+      </div>
+      <div class="tooltip-row">
+        <span class="label">Unique Skills</span>
+        <span class="value">${country.uniqueSkills}</span>
+      </div>
+      <div class="tooltip-row">
+        <span class="label">Skill Supply (FTE)</span>
+        <span class="value">${country.skillSupply}</span>
+      </div>
+    `;
+
+    this.tooltip.html(tooltipContent).style('display', 'block');
     this.moveTooltip(event);
   }
 
@@ -368,11 +482,19 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     if (!this.countriesList.length) return;
 
     // Add country labels based on visibility and zoom level
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d')!;
+    
     this.countriesList.forEach(country => {
       if (this.shouldShowLabel(country)) {
-        this.createCountryLabel(country);
+        this.createCountryLabel(country, context);
       }
     });
+
+    // Add ocean labels if zoom level is appropriate
+    if (this.currentZoom >= 0.8) {
+      this.addOceanLabels();
+    }
   }
 
   private shouldShowLabel(country: CountrySkill): boolean {
@@ -383,29 +505,121 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     if (!projected) return false;
     
     // Check if point is visible (not on back side of globe)
-    return this.isPointVisible(coords);
+    const isVisible = this.isPointVisible(coords);
+    
+    // Only show labels for larger countries or when zoomed in
+    const shouldShow = this.currentZoom > 1.2 || country.uniqueSkills > 30;
+    
+    return isVisible && shouldShow;
   }
 
-  private createCountryLabel(country: CountrySkill) {
+  private createCountryLabel(country: CountrySkill, context: CanvasRenderingContext2D) {
     // Convert lat/lng to 3D position on sphere
     const phi = (90 - country.lat) * Math.PI / 180;
     const theta = (country.lng + 180) * Math.PI / 180;
     
-    const x = -(2.1 * Math.sin(phi) * Math.cos(theta));
-    const y = 2.1 * Math.cos(phi);
-    const z = 2.1 * Math.sin(phi) * Math.sin(theta);
-
-    // Create label sprite (simplified - you might want to use actual text sprites)
-    const labelDiv = document.createElement('div');
-    labelDiv.textContent = country.country;
-    labelDiv.style.position = 'absolute';
-    labelDiv.style.fontSize = '10px';
-    labelDiv.style.color = '#111';
-    labelDiv.style.fontWeight = '600';
-    labelDiv.style.pointerEvents = 'none';
+    // Apply current rotation
+    const rotatedTheta = theta + (this.currentRotation[0] * Math.PI / 180);
+    const rotatedPhi = phi + (this.currentRotation[1] * Math.PI / 180);
     
-    // Position would need proper 3D to 2D projection
-    // This is a simplified version
+    const x = -(2.15 * Math.sin(rotatedPhi) * Math.cos(rotatedTheta));
+    const y = 2.15 * Math.cos(rotatedPhi);
+    const z = 2.15 * Math.sin(rotatedPhi) * Math.sin(rotatedTheta);
+
+    // Create text sprite
+    const fontSize = Math.max(24, Math.min(48, 32 + this.currentZoom * 8));
+    context.font = `${fontSize}px Arial, sans-serif`;
+    context.fillStyle = '#ffffff';
+    context.strokeStyle = '#000000';
+    context.lineWidth = 3;
+    
+    const textMetrics = context.measureText(country.country);
+    const textWidth = textMetrics.width;
+    const textHeight = fontSize;
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = textWidth + 20;
+    canvas.height = textHeight + 10;
+    const ctx = canvas.getContext('2d')!;
+    
+    ctx.font = `${fontSize}px Arial, sans-serif`;
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 3;
+    ctx.fillStyle = '#ffffff';
+    
+    ctx.strokeText(country.country, 10, textHeight - 5);
+    ctx.fillText(country.country, 10, textHeight - 5);
+    
+    const texture = new THREE.Texture(canvas);
+    texture.needsUpdate = true;
+    
+    const spriteMaterial = new THREE.SpriteMaterial({ 
+      map: texture,
+      transparent: true,
+      alphaTest: 0.1
+    });
+    const sprite = new THREE.Sprite(spriteMaterial);
+    
+    sprite.position.set(x, y, z);
+    sprite.scale.set(2, 1, 1);
+    
+    this.labelGroup.add(sprite);
+  }
+
+  private addOceanLabels() {
+    // Add major ocean labels
+    const oceanLabels = [
+      { name: 'Pacific Ocean', lat: 0, lng: -160 },
+      { name: 'Atlantic Ocean', lat: 0, lng: -30 },
+      { name: 'Indian Ocean', lat: -10, lng: 80 },
+      { name: 'Arctic Ocean', lat: 80, lng: 0 }
+    ];
+
+    oceanLabels.forEach(ocean => {
+      if (this.isPointVisible([ocean.lng, ocean.lat])) {
+        this.createOceanLabel(ocean.name, ocean.lat, ocean.lng);
+      }
+    });
+  }
+
+  private createOceanLabel(name: string, lat: number, lng: number) {
+    const phi = (90 - lat) * Math.PI / 180;
+    const theta = (lng + 180) * Math.PI / 180;
+    
+    const rotatedTheta = theta + (this.currentRotation[0] * Math.PI / 180);
+    const rotatedPhi = phi + (this.currentRotation[1] * Math.PI / 180);
+    
+    const x = -(2.05 * Math.sin(rotatedPhi) * Math.cos(rotatedTheta));
+    const y = 2.05 * Math.cos(rotatedPhi);
+    const z = 2.05 * Math.sin(rotatedPhi) * Math.sin(rotatedTheta);
+
+    const fontSize = 32;
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 60;
+    const ctx = canvas.getContext('2d')!;
+    
+    ctx.font = `${fontSize}px Arial, sans-serif`;
+    ctx.fillStyle = '#1a4b7a';
+    ctx.globalAlpha = 0.7;
+    ctx.textAlign = 'center';
+    
+    ctx.fillText(name, 200, 40);
+    
+    const texture = new THREE.Texture(canvas);
+    texture.needsUpdate = true;
+    
+    const spriteMaterial = new THREE.SpriteMaterial({ 
+      map: texture,
+      transparent: true,
+      alphaTest: 0.1
+    });
+    const sprite = new THREE.Sprite(spriteMaterial);
+    
+    sprite.position.set(x, y, z);
+    sprite.scale.set(3, 0.75, 1);
+    
+    this.labelGroup.add(sprite);
   }
 
   private startRenderLoop() {
@@ -524,11 +738,112 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     if (!country) return;
 
     this.isRotating = false;
+    
+    // Calculate target rotation to center the country
     const targetRotation = [-country.lng, -country.lat];
-    this.currentRotation = targetRotation;
-    this.updateGlobeRotation();
+    
+    // Animate to the target rotation
+    this.animateToRotation(targetRotation, () => {
+      // Show highlight and tooltip after animation
+      this.highlightCountry(country);
+      this.showCountryTooltip(country);
+    });
+  }
 
-    // Show tooltip for focused country
+  private animateToRotation(targetRotation: number[], onComplete?: () => void) {
+    const startRotation = [...this.currentRotation];
+    const duration = 1000; // 1 second animation
+    const startTime = Date.now();
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function (ease-in-out)
+      const easeProgress = progress < 0.5 
+        ? 2 * progress * progress 
+        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+      // Interpolate rotation
+      this.currentRotation[0] = startRotation[0] + (targetRotation[0] - startRotation[0]) * easeProgress;
+      this.currentRotation[1] = startRotation[1] + (targetRotation[1] - startRotation[1]) * easeProgress;
+
+      this.updateGlobeRotation();
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else if (onComplete) {
+        onComplete();
+      }
+    };
+
+    animate();
+  }
+
+  private highlightCountry(country: CountrySkill) {
+    // Remove any existing highlight
+    const existingHighlight = this.scene.getObjectByName('country-highlight');
+    if (existingHighlight) {
+      this.scene.remove(existingHighlight);
+    }
+
+    // Create highlight ring around country location
+    const phi = (90 - country.lat) * Math.PI / 180;
+    const theta = (country.lng + 180) * Math.PI / 180;
+    
+    const rotatedTheta = theta + (this.currentRotation[0] * Math.PI / 180);
+    const rotatedPhi = phi + (this.currentRotation[1] * Math.PI / 180);
+    
+    const x = -(2.1 * Math.sin(rotatedPhi) * Math.cos(rotatedTheta));
+    const y = 2.1 * Math.cos(rotatedPhi);
+    const z = 2.1 * Math.sin(rotatedPhi) * Math.sin(rotatedTheta);
+
+    // Create pulsing ring geometry
+    const ringGeometry = new THREE.RingGeometry(0.1, 0.2, 32);
+    const ringMaterial = new THREE.MeshBasicMaterial({
+      color: 0xff4444,
+      transparent: true,
+      opacity: 0.8,
+      side: THREE.DoubleSide
+    });
+
+    const highlight = new THREE.Mesh(ringGeometry, ringMaterial);
+    highlight.position.set(x, y, z);
+    highlight.lookAt(0, 0, 0); // Face the center of the globe
+    highlight.name = 'country-highlight';
+
+    this.scene.add(highlight);
+
+    // Animate the highlight (pulsing effect)
+    let pulseDirection = 1;
+    let pulseScale = 1;
+
+    const pulseAnimation = () => {
+      pulseScale += pulseDirection * 0.02;
+      if (pulseScale > 1.3) {
+        pulseDirection = -1;
+      } else if (pulseScale < 0.8) {
+        pulseDirection = 1;
+      }
+
+      if (highlight.parent) {
+        highlight.scale.setScalar(pulseScale);
+        requestAnimationFrame(pulseAnimation);
+      }
+    };
+
+    pulseAnimation();
+
+    // Remove highlight after 3 seconds
+    setTimeout(() => {
+      if (highlight.parent) {
+        this.scene.remove(highlight);
+      }
+      this.isRotating = true;
+    }, 3000);
+  }
+
+  private showCountryTooltip(country: CountrySkill) {
     const tooltipContent = `
       <div class="tooltip-header">
         <img class="flag-icon" src="assets/images/flags/${country.code.toLowerCase()}.svg"/>
@@ -545,10 +860,18 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     `;
 
     this.tooltip.html(tooltipContent).style('display', 'block');
+    
+    // Position tooltip at center of screen
+    const rect = this.globeContainer.nativeElement.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    this.tooltip
+      .style('left', (centerX + 20) + 'px')
+      .style('top', (centerY - 50) + 'px');
 
     setTimeout(() => {
       this.hideTooltip();
-      this.isRotating = true;
     }, 3000);
   }
 
