@@ -315,16 +315,17 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         this.isRotating = false;
       })
       .on('drag', (event: any) => {
-        const sensitivity = this.isMobile ? 0.4 : 0.25;
-        this.currentRotation[0] += event.dx * sensitivity;
-        this.currentRotation[1] -= event.dy * sensitivity;
-        this.currentRotation[1] = Math.max(-90, Math.min(90, this.currentRotation[1]));
-        this.projection.rotate(this.currentRotation);
-        
-        // Update texture rotation by adjusting the pattern transform
-        this.updateTextureRotation();
-        this.updateCountries();
-        this.updateStates();
+        // Temporarily disable drag rotation to fix synchronization
+        // const sensitivity = this.isMobile ? 0.4 : 0.25;
+        // this.currentRotation[0] += event.dx * sensitivity;
+        // this.currentRotation[1] -= event.dy * sensitivity;
+        // this.currentRotation[1] = Math.max(-90, Math.min(90, this.currentRotation[1]));
+        // this.projection.rotate(this.currentRotation);
+        // 
+        // // Update texture rotation by adjusting the pattern transform
+        // this.updateTextureRotation();
+        // this.updateCountries();
+        // this.updateStates();
       })
       .on('end', () => {
         this.isDragging = false;
@@ -342,16 +343,8 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   }
 
   private updateTextureRotation() {
-    // The D3 projection rotates the coordinate system, so we need to rotate 
-    // the texture in the opposite direction to make it appear synchronized
-    const globeDiv = this.globeContainer.nativeElement;
-    const width = globeDiv.offsetWidth;
-    const height = globeDiv.offsetHeight;
-    const rotationX = this.currentRotation[0];
-    
-    // Rotate the texture pattern in the opposite direction to the projection
-    this.svg.select('#globe-texture')
-      .attr('patternTransform', `rotate(${-rotationX} ${width/2} ${height/2})`);
+    // No longer needed - texture is now part of the same projection system
+    // The texture overlay will rotate automatically with the projection
   }
 
   private loadData() {
@@ -483,6 +476,19 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
   private drawCountries() {
     this.svg.selectAll('.country').remove();
+    this.svg.selectAll('.texture-overlay').remove();
+    
+    // First, create the texture overlay as a geographic circle
+    // This makes it part of the same coordinate system as countries
+    const sphere = {type: "Sphere"};
+    
+    this.svg.append('path')
+      .datum(sphere)
+      .attr('class', 'texture-overlay')
+      .attr('d', this.path)
+      .attr('fill', 'url(#globe-texture)')
+      .style('opacity', 0.7)
+      .style('pointer-events', 'none');
     
     // Create invisible country paths for interaction
     this.svg.selectAll('.country')
@@ -766,6 +772,10 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     // Update invisible country boundaries for interaction
     this.svg.selectAll('.country')
       .attr('d', this.path);
+      
+    // Update the texture overlay with the same projection
+    this.svg.selectAll('.texture-overlay')
+      .attr('d', this.path);
 
     // Update both base globe and texture overlay circles
     this.svg.selectAll('circle')
@@ -821,13 +831,14 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
   private startRotation() {
     const rotate = () => {
-      if (this.isRotating && !this.isDragging) {
-        this.currentRotation[0] += ROTATION_SPEED;
-        this.projection.rotate(this.currentRotation);
-        this.updateTextureRotation();
-        this.updateCountries();
-        this.updateStates();
-      }
+      // Temporarily disable rotation to fix synchronization
+      // if (this.isRotating && !this.isDragging) {
+      //   this.currentRotation[0] += ROTATION_SPEED;
+      //   this.projection.rotate(this.currentRotation);
+      //   this.updateTextureRotation();
+      //   this.updateCountries();
+      //   this.updateStates();
+      // }
       requestAnimationFrame(rotate);
     };
     rotate();
