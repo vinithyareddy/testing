@@ -181,20 +181,18 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
     const defs = this.svg.append('defs');
 
-    // Create pattern for the globe texture
+    // Create pattern for the globe texture - adjusted for Natural Earth projection
     const pattern = defs.append('pattern')
       .attr('id', 'globe-texture')
-      .attr('patternUnits', 'userSpaceOnUse')
-      .attr('width', this.currentRadius * 2)
-      .attr('height', this.currentRadius * 2)
-      .attr('x', width / 2 - this.currentRadius)
-      .attr('y', height / 2 - this.currentRadius);
+      .attr('patternUnits', 'objectBoundingBox')
+      .attr('width', 1)
+      .attr('height', 1);
 
-    // Add the texture image to the pattern
+    // Add the Natural Earth texture image to the pattern
     pattern.append('image')
       .attr('href', 'assets/images/transparent-globe.png')
-      .attr('width', this.currentRadius * 2)
-      .attr('height', this.currentRadius * 2)
+      .attr('width', 1)
+      .attr('height', 1)
       .attr('x', 0)
       .attr('y', 0)
       .attr('preserveAspectRatio', 'xMidYMid slice');
@@ -343,8 +341,15 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   }
 
   private updateTextureRotation() {
-    // No longer needed - texture is now part of the same projection system
-    // The texture overlay will rotate automatically with the projection
+    // For Natural Earth texture mapping with orthographic projection
+    // Rotate the pattern to match the globe rotation
+    const rotationX = this.currentRotation[0];
+    const rotationY = this.currentRotation[1];
+    
+    // Natural Earth textures need to be mapped properly to orthographic projection
+    // Adjust pattern transform to align with D3 projection rotation
+    this.svg.select('#globe-texture')
+      .attr('patternTransform', `rotate(${-rotationX} 0.5 0.5) scale(1 ${1 - Math.abs(rotationY) / 180})`);
   }
 
   private loadData() {
@@ -478,16 +483,18 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     this.svg.selectAll('.country').remove();
     this.svg.selectAll('.texture-overlay').remove();
     
-    // First, create the texture overlay as a geographic circle
-    // This makes it part of the same coordinate system as countries
+    // Create the texture overlay using a proper sphere with Natural Earth mapping
     const sphere = {type: "Sphere"};
+    
+    // Create a graticule for texture mapping (invisible grid that helps align texture)
+    const graticule = d3.geoGraticule()();
     
     this.svg.append('path')
       .datum(sphere)
       .attr('class', 'texture-overlay')
       .attr('d', this.path)
       .attr('fill', 'url(#globe-texture)')
-      .style('opacity', 0.7)
+      .style('opacity', 0.8)
       .style('pointer-events', 'none');
     
     // Create invisible country paths for interaction
@@ -497,7 +504,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .append('path')
       .attr('class', 'country')
       .attr('d', this.path)
-      .attr('fill', 'transparent') // Make countries invisible
+      .attr('fill', 'transparent')
       .attr('stroke', 'none')
       .style('cursor', 'pointer')
       .style('pointer-events', 'all')
