@@ -62,8 +62,8 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   private countryColorScale = d3.scaleLinear<string>()
     .domain([0, 1])
     .range(['#d9ead3', '#38761d']);
-  private countryLabelData: Array<{ feature: any, centroid: [number, number], name: string }> = [];
-  private stateLabelData: Array<{ feature: any, centroid: [number, number], label: string }> = [];
+  private countryLabelData: Array<any> = [];
+  private stateLabelData: Array<any> = [];
   isMobile = false;
   isTablet = false;
   private mediaQueryMobile!: MediaQueryList;
@@ -392,7 +392,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         const name = feature.properties?.NAME || feature.properties?.name;
         return name ? { feature, centroid, name } : null;
       })
-      .filter((item): item is { feature: any; centroid: [number, number]; name: string } => item !== null);
+      .filter((item: any) => item !== null);
   }
 
   private initializeStateLabels() {
@@ -414,7 +414,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
         return label ? { feature, centroid, label } : null;
       })
-      .filter((item): item is { feature: any; centroid: [number, number]; label: string } => item !== null);
+      .filter((item: any) => item !== null);
   }
 
   private drawCountries() {
