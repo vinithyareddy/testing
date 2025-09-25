@@ -343,10 +343,9 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     const rotationX = this.currentRotation[0];
     const rotationY = this.currentRotation[1];
     
-    // Calculate transform for the texture to simulate globe rotation
-    this.svg.select('#globe-texture image')
-      .style('transform-origin', 'center')
-      .style('transform', `translateX(${-rotationX * 0.1}px)`);
+    // Update the pattern's patternTransform to rotate with the globe
+    this.svg.select('#globe-texture')
+      .attr('patternTransform', `rotate(${rotationX} 0.5 0.5) rotate(${rotationY} 0.5 0.5)`);
   }
 
   private loadData() {
