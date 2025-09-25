@@ -472,11 +472,13 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     ) as unknown as FeatureCollection<Geometry, any>;
   }
 
-  private isPointVisible(centroid: [number, number]): boolean {
+  private isPointVisible(centroid: [number, number] | number[]): boolean {
     const projected = this.projection(centroid);
     if (!projected) return false;
 
     const [lng, lat] = centroid;
+    if (lng === undefined || lat === undefined) return false;
+    
     const lambda = (lng * Math.PI) / 180;
     const phi = (lat * Math.PI) / 180;
     const rotLambda = (this.currentRotation[0] * Math.PI) / 180;
