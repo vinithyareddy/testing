@@ -430,18 +430,20 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   }
 
   private drawCountries() {
+    // Remove any existing country paths - we don't draw them anymore
     this.svg.selectAll('.country').remove();
-
-    this.svg.selectAll('.country')
+    
+    // Add invisible hover areas for country interaction
+    this.svg.selectAll('.country-hover')
       .data(this.countries.features)
       .enter()
       .append('path')
-      .attr('class', 'country')
+      .attr('class', 'country-hover')
       .attr('d', this.path)
-      .attr('fill', 'transparent') // Make countries transparent to show texture
-      .attr('stroke', STROKE_COLOR_COUNTRY)
-      .attr('stroke-width', 0.5)
+      .attr('fill', 'transparent')
+      .attr('stroke', 'none')
       .style('cursor', 'pointer')
+      .style('pointer-events', 'all')
       .on('mouseover', (event: any, d: any) => {
         this.isRotating = false;
         this.showTooltip(event, d);
@@ -460,19 +462,10 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   private drawStates() {
     if (!this.states) return;
 
+    // Remove drawn state boundaries - we don't draw them anymore
     this.svg.selectAll('.state').remove();
-
-    this.svg.selectAll('.state')
-      .data(this.states.features)
-      .enter()
-      .append('path')
-      .attr('class', 'state')
-      .attr('d', this.path)
-      .attr('fill', 'transparent')
-      .attr('stroke', '#aaa')
-      .attr('stroke-width', 0.3)
-      .style('pointer-events', 'none');
-
+    
+    // Still update state labels for display
     this.updateStateLabels();
   }
 
@@ -713,16 +706,14 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   }
 
   private updateCountries() {
-    this.svg.selectAll('.country')
+    // Update hover areas for country interaction
+    this.svg.selectAll('.country-hover')
       .attr('d', this.path);
 
     this.svg.selectAll('circle')
       .attr('r', this.currentRadius * this.currentZoom);
 
     if (this.oceans) {
-      this.svg.selectAll('.ocean')
-        .attr('d', this.path);
-
       this.svg.selectAll('.ocean-label')
         .attr('x', (d: any, i: number) => {
           const coords = (this.oceans.features[i].geometry as any).coordinates as [number, number];
@@ -750,10 +741,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   private updateStates() {
     if (!this.states) return;
 
-    this.svg.selectAll('.state')
-      .attr('d', this.path)
-      .style('opacity', this.shouldShowStates() ? 1 : 0);
-
+    // No state boundaries to update anymore, just labels
     this.updateStateLabels();
   }
 
@@ -881,4 +869,50 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       }
     }, 150);
   }
+}
+
+
+private drawCountries() {
+  this.svg.selectAll('.country').remove();
+
+  this.svg.selectAll('.country')
+    .data(this.countries.features)
+    .enter()
+    .append('path')
+    .attr('class', 'country')
+    .attr('d', this.path)
+    .attr('fill', 'transparent') // no fill, keep texture visible
+    .attr('stroke', 'transparent') // no border
+    .style('cursor', 'pointer')
+    .on('mouseover', (event: any, d: any) => {
+      this.isRotating = false;
+      this.showTooltip(event, d);  // tooltip still works
+    })
+    .on('mousemove', (event: any) => this.moveTooltip(event))
+    .on('mouseout', () => {
+      if (!this.isDragging) {
+        this.isRotating = true;
+      }
+      this.hideTooltip();
+    });
+
+  this.updateCountryLabels(); // keep labels working
+}
+
+
+private drawStates() {
+  if (!this.states) return;
+
+  this.svg.selectAll('.state').remove();
+  this.svg.selectAll('.state')
+    .data(this.states.features)
+    .enter()
+    .append('path')
+    .attr('class', 'state')
+    .attr('d', this.path)
+    .attr('fill', 'transparent')
+    .attr('stroke', 'transparent') // invisible
+    .style('pointer-events', 'none'); // don’t block mouse
+
+  this.updateStateLabels(); // still place state labels
 }
