@@ -343,9 +343,10 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     const rotationX = this.currentRotation[0];
     const rotationY = this.currentRotation[1];
     
-    // Update the pattern's patternTransform to rotate with the globe
+    // Match the exact rotation logic used by the D3 orthographic projection
+    // The texture should rotate in the opposite direction to simulate globe surface movement
     this.svg.select('#globe-texture')
-      .attr('patternTransform', `rotate(${rotationX} 0.5 0.5) rotate(${rotationY} 0.5 0.5)`);
+      .attr('patternTransform', `rotate(${-rotationX} 0.5 0.5)`);
   }
 
   private loadData() {
