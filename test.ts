@@ -340,12 +340,10 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   }
 
   private updateTextureRotation() {
-    // Simply rotate the texture pattern in the same direction as currentRotation[0]
-    // This should match how the labels and boundaries move
-    const rotationX = this.currentRotation[0];
-    
-    this.svg.select('#globe-texture')
-      .attr('patternTransform', `rotate(${rotationX} 0.5 0.5)`);
+    // Remove texture rotation - let the texture stay static
+    // Only the country boundaries and labels will rotate, giving the appearance
+    // that we're looking at different parts of a textured globe
+    // This is actually more realistic as the texture represents the globe surface
   }
 
   private loadData() {
