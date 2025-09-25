@@ -49,8 +49,8 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   private svg: any;
   private projection: any;
   private path: any;
-  private countries!: FeatureCollection<Geometry, any>;
-  private states!: FeatureCollection<Geometry, any>;
+  private countries: any;
+  private states: any;
   private currentRotation = [0, 0];
   private isRotating = true;
   private tooltip: any;
@@ -58,7 +58,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   private resizeObserver?: ResizeObserver;
   currentZoom: number = ZOOM.initial;
   private currentRadius = 300;
-  private oceans!: FeatureCollection<Geometry, any>;
+  private oceans: any;
   private countryColorScale = d3.scaleLinear<string>()
     .domain([0, 1])
     .range(['#d9ead3', '#38761d']);
@@ -278,7 +278,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       this.countries = topojson.feature(
         worldData,
         worldData.objects.countries
-      ) as FeatureCollection<Geometry, any>;
+      ) as any;
       
       this.initializeCountryLabels();
       this.drawCountries();
@@ -320,7 +320,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       this.states = topojson.feature(
         data,
         data.objects.ne_50m_admin_1_states_provinces
-      ) as FeatureCollection<Geometry, any>;
+      ) as any;
       this.initializeStateLabels();
       this.drawStates();
     });
