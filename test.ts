@@ -190,29 +190,25 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .attr('stroke', '#ccc')
       .attr('stroke-width', 1);
 
-    // Create pattern for the globe texture
-    const pattern = defs.append('pattern')
-      .attr('id', 'globe-texture')
-      .attr('patternUnits', 'objectBoundingBox')
-      .attr('width', 1)
-      .attr('height', 1);
-
-    pattern.append('image')
-      .attr('xlink:href', 'assets/images/globe-texture.png')
-      .attr('width', this.currentRadius * 2)
-      .attr('height', this.currentRadius * 2)
-      .attr('x', 0)
-      .attr('y', 0)
-      .attr('preserveAspectRatio', 'xMidYMid slice');
-
-    // Add the textured globe circle
-    this.svg.append('circle')
+    // Create a clipping path for the globe
+    defs.append('clipPath')
+      .attr('id', 'globe-clip')
+      .append('circle')
       .attr('cx', width / 2)
       .attr('cy', height / 2)
-      .attr('r', this.currentRadius)
-      .attr('fill', 'url(#globe-texture)')
-      .attr('stroke', '#ccc')
-      .attr('stroke-width', 1);
+      .attr('r', this.currentRadius);
+
+    // Add the globe texture as an image that will rotate
+    this.svg.append('image')
+      .attr('id', 'globe-texture-image')
+      .attr('xlink:href', 'assets/images/globe-texture.png')
+      .attr('width', this.currentRadius * 2.2)
+      .attr('height', this.currentRadius * 2.2)
+      .attr('x', width / 2 - this.currentRadius * 1.1)
+      .attr('y', height / 2 - this.currentRadius * 1.1)
+      .attr('clip-path', 'url(#globe-clip)')
+      .attr('preserveAspectRatio', 'xMidYMid slice')
+      .style('transform-origin', `${width / 2}px ${height / 2}px`);
 
     this.countries = topojson.feature(
       worldData as any,
@@ -245,16 +241,25 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
 
     this.svg.attr('viewBox', `0 0 ${width} ${height}`);
 
-    // Update both circles (base teal and textured)
+    // Update both circles (base teal) and clipping path
     this.svg.selectAll('circle')
       .attr('cx', width / 2)
       .attr('cy', height / 2)
       .attr('r', this.currentRadius * this.currentZoom);
 
-    // Update texture pattern size
-    this.svg.select('#globe-texture image')
-      .attr('width', this.currentRadius * 2)
-      .attr('height', this.currentRadius * 2);
+    this.svg.select('#globe-clip circle')
+      .attr('cx', width / 2)
+      .attr('cy', height / 2)
+      .attr('r', this.currentRadius * this.currentZoom);
+
+    // Update texture image size and position
+    const imageSize = this.currentRadius * this.currentZoom * 2.2;
+    this.svg.select('#globe-texture-image')
+      .attr('width', imageSize)
+      .attr('height', imageSize)
+      .attr('x', width / 2 - imageSize / 2)
+      .attr('y', height / 2 - imageSize / 2)
+      .style('transform-origin', `${width / 2}px ${height / 2}px`);
 
     this.updateCountries();
     this.updateStates();
@@ -293,12 +298,13 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   }
 
   private updateTextureRotation() {
-    // Update texture pattern to simulate rotation
+    // Rotate the globe texture image to match the projection rotation
     const rotationX = this.currentRotation[0];
     const rotationY = this.currentRotation[1];
     
-    this.svg.select('#globe-texture image')
-      .attr('transform', `translate(${rotationX * 0.1}, ${rotationY * 0.1})`);
+    // Apply CSS transform to rotate the texture
+    this.svg.select('#globe-texture-image')
+      .style('transform', `rotate(${rotationX}deg) rotateX(${-rotationY}deg)`);
   }
 
   private loadData() {
@@ -869,50 +875,4 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       }
     }, 150);
   }
-}
-
-
-private drawCountries() {
-  this.svg.selectAll('.country').remove();
-
-  this.svg.selectAll('.country')
-    .data(this.countries.features)
-    .enter()
-    .append('path')
-    .attr('class', 'country')
-    .attr('d', this.path)
-    .attr('fill', 'transparent') // no fill, keep texture visible
-    .attr('stroke', 'transparent') // no border
-    .style('cursor', 'pointer')
-    .on('mouseover', (event: any, d: any) => {
-      this.isRotating = false;
-      this.showTooltip(event, d);  // tooltip still works
-    })
-    .on('mousemove', (event: any) => this.moveTooltip(event))
-    .on('mouseout', () => {
-      if (!this.isDragging) {
-        this.isRotating = true;
-      }
-      this.hideTooltip();
-    });
-
-  this.updateCountryLabels(); // keep labels working
-}
-
-
-private drawStates() {
-  if (!this.states) return;
-
-  this.svg.selectAll('.state').remove();
-  this.svg.selectAll('.state')
-    .data(this.states.features)
-    .enter()
-    .append('path')
-    .attr('class', 'state')
-    .attr('d', this.path)
-    .attr('fill', 'transparent')
-    .attr('stroke', 'transparent') // invisible
-    .style('pointer-events', 'none'); // don’t block mouse
-
-  this.updateStateLabels(); // still place state labels
 }
