@@ -1,27 +1,23 @@
-<!-- Table OUTSIDE the box -->
-<div *ngIf="viewMode === 'table'" class="table-container mt-3">
-  <table class="table table-bordered table-striped w-100">
-    <thead>
-      <tr>
-        <th>Proficiency Level</th>
-        <th *ngFor="let name of ['Awareness','Skilled','Advanced','Expert']">{{name}}</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let category of allCategories; let i = index">
-        <td>{{category}}</td>
-        <td *ngFor="let series of allSeriesData">{{series[i]}}</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
-.table-container {
-  max-height: 400px;   // adjust height as needed
-  overflow-y: auto;
-  border: 1px solid #ddd;
+private normalizeName(name: string): string {
+  return (name || '').toLowerCase().replace(/[^a-z]/g, '');
 }
 
-.table-container table {
-  margin-bottom: 0;   // remove default margin so scrollbar looks neat
+private findCountryFeature(country: CountrySkill) {
+  // Try direct match
+  let feature = this.countries.features.find(
+    (f: any) => this.normalizeName(f.properties.name) === this.normalizeName(country.country)
+  );
+
+  // If not found, try ISO code match if available
+  if (!feature && country.code) {
+    feature = this.countries.features.find(
+      (f: any) =>
+        this.normalizeName(f.properties.name).includes(this.normalizeName(country.code))
+    );
+  }
+
+  return feature;
 }
+
+
+const countryFeature = this.findCountryFeature(country);
