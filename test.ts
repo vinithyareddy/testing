@@ -1,32 +1,46 @@
-{
-  "title": "Work Program",
-  "id": "budgetglancewid053b",
-  "widgetTitle": "Final plans vs Actuals by Fund Group - Dept Group Table",
-  "description": "Final plans vs Actuals by Fund Group - Dept Group Table",
-  "orderBy": "ORDER BY 'Fund & Fund Group'[Level 2 Fund (Group) Name] ASC,'Cost Object'[Cost Object: Resp Fund Center: Department Group Acronym] ASC",
-  "queryType": "EVALUATE SUMMARIZECOLUMNS",
-  "query": "EVALUATE SUMMARIZECOLUMNS('Fund & Fund Group'[Level 2 Fund (Group) Name],'Cost Object'[Cost Object: Resp Fund Center: Department Group Acronym],KEEPFILTERS( FILTER( ALL( 'Cost Object'[Cost Object: Resp Fund Center: Department Group Acronym] ), NOT( ISBLANK( 'Cost Object'[Cost Object: Resp Fund Center: Department Group Acronym] )))),KEEPFILTERS( TREATAS( {\"IBRD\"}, 'Cost Object'[Cost Object: Resp Fund Center: Company Name] )),KEEPFILTERS( TREATAS( {\"0CO\",\"0PO\",\"TCO\",\"TPO\"}, 'Cost Object'[Cost Object Type] )), KEEPFILTERS( TREATAS( {\"BB\",\"REIMB\",\"TF\"}, 'Fund & Fund Group'[Level 2 Fund (Group) Name] )),\"WPA Plans, Final\", [WPA Plans, Final],\"WPA Cost\", [WPA Cost]) ORDER BY 'Fund & Fund Group'[Level 2 Fund (Group) Name] ASC,'Cost Object'[Cost Object: Resp Fund Center: Department Group Acronym] ASC",
-  "basequery": "'Fund & Fund Group'[Level 2 Fund (Group) Name],'Cost Object'[Cost Object: Resp Fund Center: Department Group Acronym]",
-  "basefilter": "~(@fy)~(@fundgrp)~(@Catehierarchy)~(@postingperiod),KEEPFILTERS( FILTER( ALL( 'Cost Object'[Cost Object: Resp Fund Center: Department Group Acronym] ), NOT( ISBLANK( 'Cost Object'[Cost Object: Resp Fund Center: Department Group Acronym] )))),KEEPFILTERS( TREATAS( {\"IBRD\"}, 'Cost Object'[Cost Object: Resp Fund Center: Company Name] )), KEEPFILTERS( TREATAS( {\"0CO\",\"0PO\",\"TCO\",\"TPO\"}, 'Cost Object'[Cost Object Type] )), KEEPFILTERS( TREATAS( {\"BB\",\"REIMB\",\"TF\"}, 'Fund & Fund Group'[Level 2 Fund (Group) Name] ))",
-  "basecolumn": "\"WPA Plans, Final\", [WPA Plans, Final],\"WPA Cost\", [WPA Cost]",
-  "environmentName": "RM-App",
-  "dataSource": "Budget QA",
-  "InitialCatalog": "ssrds_Budget",
-  "dataSetId": "0d8417c6-d043-407d-8daf-490a56a16cbb"
-},
-{
-  "title": "Work Program",
-  "id": "budgetglancewid053c",
-  "widgetTitle": "Final plans vs Actuals by Fund Group - Division Table",
-  "description": "Final plans vs Actuals by Fund Group - Division Table",
-  "orderBy": "ORDER BY 'Fund & Fund Group'[Level 2 Fund (Group) Name] ASC,'Cost Object'[Cost Object: Resp Fund Center: Level 6 Unit Acronym] ASC",
-  "queryType": "EVALUATE SUMMARIZECOLUMNS",
-  "query": "EVALUATE SUMMARIZECOLUMNS('Fund & Fund Group'[Level 2 Fund (Group) Name],'Cost Object'[Cost Object: Resp Fund Center: Level 6 Unit Acronym],KEEPFILTERS( FILTER( ALL( 'Cost Object'[Cost Object: Resp Fund Center: Level 6 Unit Acronym] ), NOT( ISBLANK( 'Cost Object'[Cost Object: Resp Fund Center: Level 6 Unit Acronym] )))),KEEPFILTERS( TREATAS( {\"IBRD\"}, 'Cost Object'[Cost Object: Resp Fund Center: Company Name] )),KEEPFILTERS( TREATAS( {\"0CO\",\"0PO\",\"TCO\",\"TPO\"}, 'Cost Object'[Cost Object Type] )), KEEPFILTERS( TREATAS( {\"BB\",\"REIMB\",\"TF\"}, 'Fund & Fund Group'[Level 2 Fund (Group) Name] )),\"WPA Plans, Final\", [WPA Plans, Final],\"WPA Cost\", [WPA Cost]) ORDER BY 'Fund & Fund Group'[Level 2 Fund (Group) Name] ASC,'Cost Object'[Cost Object: Resp Fund Center: Level 6 Unit Acronym] ASC",
-  "basequery": "'Fund & Fund Group'[Level 2 Fund (Group) Name],'Cost Object'[Cost Object: Resp Fund Center: Level 6 Unit Acronym]",
-  "basefilter": "~(@fy)~(@fundgrp)~(@Catehierarchy)~(@postingperiod),KEEPFILTERS( FILTER( ALL( 'Cost Object'[Cost Object: Resp Fund Center: Level 6 Unit Acronym] ), NOT( ISBLANK( 'Cost Object'[Cost Object: Resp Fund Center: Level 6 Unit Acronym] )))),KEEPFILTERS( TREATAS( {\"IBRD\"}, 'Cost Object'[Cost Object: Resp Fund Center: Company Name] )), KEEPFILTERS( TREATAS( {\"0CO\",\"0PO\",\"TCO\",\"TPO\"}, 'Cost Object'[Cost Object Type] )), KEEPFILTERS( TREATAS( {\"BB\",\"REIMB\",\"TF\"}, 'Fund & Fund Group'[Level 2 Fund (Group) Name] ))",
-  "basecolumn": "\"WPA Plans, Final\", [WPA Plans, Final],\"WPA Cost\", [WPA Cost]",
-  "environmentName": "RM-App",
-  "dataSource": "Budget QA",
-  "InitialCatalog": "ssrds_Budget",
-  "dataSetId": "0d8417c6-d043-407d-8daf-490a56a16cbb"
+const IndexVPU = this.FilterData.findIndex(x => 
+  x.category === 'Cost Obj Responsible VPU' || 
+  x.category === 'Cost Obj Requesting VPU'
+);
+
+const IndexDeptGroup = this.FilterData.findIndex(x => 
+  x.category === 'Cost Obj Responsible Department Group' || 
+  x.category === 'Cost Obj Requesting Department Group'
+);
+
+const IndexDept = this.FilterData.findIndex(x => 
+  x.category === 'Cost Obj Responsible Department' || 
+  x.category === 'Cost Obj Requesting Department'
+);
+
+const IndexDivision = this.FilterData.findIndex(x => 
+  x.category === 'Cost Obj Responsible Division' || 
+  x.category === 'Cost Obj Requesting Division'
+);
+
+const IndexUnit = this.FilterData.findIndex(x => 
+  x.category === 'Cost Obj Responsible Unit' || 
+  x.category === 'Cost Obj Requesting Unit'
+);
+
+if (IndexVPU > -1) {
+  this.chartmeasure = 'Cost Object[Cost Object: Resp Fund Center: Department Group Acronym]';
+  this.queryID = 'budgetglancewid053b';
+  this.tablecolumn = 'Dept Grp';
+} else if (IndexDeptGroup > -1) {
+  this.chartmeasure = 'Cost Object[Cost Object: Resp Fund Center: Department Acronym]';
+  this.queryID = 'budgetglancewid053';
+  this.tablecolumn = 'Dept';
+} else if (IndexDept > -1) {
+  this.chartmeasure = 'Cost Object[Cost Object Responsible Funds Center Acronym]';
+  this.queryID = 'budgetglancewid053a';
+  this.tablecolumn = 'Unit';
+} else if (IndexDivision > -1) {
+  this.chartmeasure = 'Cost Object[Cost Object Responsible Funds Center Acronym]';
+  this.queryID = 'budgetglancewid053a';
+  this.tablecolumn = 'Unit';
+} else {
+  this.chartmeasure = 'Cost Object[Cost Object: Resp Fund Center: Department Acronym]';
+  this.queryID = 'budgetglancewid053';
+  this.tablecolumn = 'Dept';
 }
