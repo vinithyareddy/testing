@@ -1,30 +1,32 @@
-if (!countryFeature) {
-  // Fallback: draw a red dot marker if no polygon exists
-  const projected = this.projection([country.lng, country.lat]);
-  if (projected) {
-    this.svg.selectAll('.country-fallback-marker').remove();
-    this.svg.append('circle')
-      .attr('class', 'country-fallback-marker')
-      .attr('cx', projected[0])
-      .attr('cy', projected[1])
-      .attr('r', 6)
-      .attr('fill', '#ff4444')
-      .attr('stroke', '#fff')
-      .attr('stroke-width', 2);
-
-    // Show tooltip at this location
-    const fakeEvent = {
-      clientX: projected[0] + this.globeContainer.nativeElement.getBoundingClientRect().left,
-      clientY: projected[1] + this.globeContainer.nativeElement.getBoundingClientRect().top
-    };
-    this.showTooltip(fakeEvent, { properties: { name: country.country } });
-
-    // Clean up after 3s
-    setTimeout(() => {
-      this.svg.selectAll('.country-fallback-marker').remove();
-      this.hideTooltip();
-      this.isRotating = true;
-    }, 3000);
-  }
-  return; // stop here, don’t try polygon highlight
+{
+  "title": "Work Program",
+  "id": "budgetglancewid053b",
+  "widgetTitle": "Final plans vs Actuals by Fund Group - Dept Group Table",
+  "description": "Final plans vs Actuals by Fund Group - Dept Group Table",
+  "orderBy": "ORDER BY 'Fund & Fund Group'[Level 2 Fund (Group) Name] ASC,'Cost Object'[Cost Object: Resp Fund Center: Department Group Acronym] ASC",
+  "queryType": "EVALUATE SUMMARIZECOLUMNS",
+  "query": "EVALUATE SUMMARIZECOLUMNS('Fund & Fund Group'[Level 2 Fund (Group) Name],'Cost Object'[Cost Object: Resp Fund Center: Department Group Acronym],KEEPFILTERS( FILTER( ALL( 'Cost Object'[Cost Object: Resp Fund Center: Department Group Acronym] ), NOT( ISBLANK( 'Cost Object'[Cost Object: Resp Fund Center: Department Group Acronym] )))),KEEPFILTERS( TREATAS( {\"IBRD\"}, 'Cost Object'[Cost Object: Resp Fund Center: Company Name] )),KEEPFILTERS( TREATAS( {\"0CO\",\"0PO\",\"TCO\",\"TPO\"}, 'Cost Object'[Cost Object Type] )), KEEPFILTERS( TREATAS( {\"BB\",\"REIMB\",\"TF\"}, 'Fund & Fund Group'[Level 2 Fund (Group) Name] )),\"WPA Plans, Final\", [WPA Plans, Final],\"WPA Cost\", [WPA Cost]) ORDER BY 'Fund & Fund Group'[Level 2 Fund (Group) Name] ASC,'Cost Object'[Cost Object: Resp Fund Center: Department Group Acronym] ASC",
+  "basequery": "'Fund & Fund Group'[Level 2 Fund (Group) Name],'Cost Object'[Cost Object: Resp Fund Center: Department Group Acronym]",
+  "basefilter": "~(@fy)~(@fundgrp)~(@Catehierarchy)~(@postingperiod),KEEPFILTERS( FILTER( ALL( 'Cost Object'[Cost Object: Resp Fund Center: Department Group Acronym] ), NOT( ISBLANK( 'Cost Object'[Cost Object: Resp Fund Center: Department Group Acronym] )))),KEEPFILTERS( TREATAS( {\"IBRD\"}, 'Cost Object'[Cost Object: Resp Fund Center: Company Name] )), KEEPFILTERS( TREATAS( {\"0CO\",\"0PO\",\"TCO\",\"TPO\"}, 'Cost Object'[Cost Object Type] )), KEEPFILTERS( TREATAS( {\"BB\",\"REIMB\",\"TF\"}, 'Fund & Fund Group'[Level 2 Fund (Group) Name] ))",
+  "basecolumn": "\"WPA Plans, Final\", [WPA Plans, Final],\"WPA Cost\", [WPA Cost]",
+  "environmentName": "RM-App",
+  "dataSource": "Budget QA",
+  "InitialCatalog": "ssrds_Budget",
+  "dataSetId": "0d8417c6-d043-407d-8daf-490a56a16cbb"
+},
+{
+  "title": "Work Program",
+  "id": "budgetglancewid053c",
+  "widgetTitle": "Final plans vs Actuals by Fund Group - Division Table",
+  "description": "Final plans vs Actuals by Fund Group - Division Table",
+  "orderBy": "ORDER BY 'Fund & Fund Group'[Level 2 Fund (Group) Name] ASC,'Cost Object'[Cost Object: Resp Fund Center: Level 6 Unit Acronym] ASC",
+  "queryType": "EVALUATE SUMMARIZECOLUMNS",
+  "query": "EVALUATE SUMMARIZECOLUMNS('Fund & Fund Group'[Level 2 Fund (Group) Name],'Cost Object'[Cost Object: Resp Fund Center: Level 6 Unit Acronym],KEEPFILTERS( FILTER( ALL( 'Cost Object'[Cost Object: Resp Fund Center: Level 6 Unit Acronym] ), NOT( ISBLANK( 'Cost Object'[Cost Object: Resp Fund Center: Level 6 Unit Acronym] )))),KEEPFILTERS( TREATAS( {\"IBRD\"}, 'Cost Object'[Cost Object: Resp Fund Center: Company Name] )),KEEPFILTERS( TREATAS( {\"0CO\",\"0PO\",\"TCO\",\"TPO\"}, 'Cost Object'[Cost Object Type] )), KEEPFILTERS( TREATAS( {\"BB\",\"REIMB\",\"TF\"}, 'Fund & Fund Group'[Level 2 Fund (Group) Name] )),\"WPA Plans, Final\", [WPA Plans, Final],\"WPA Cost\", [WPA Cost]) ORDER BY 'Fund & Fund Group'[Level 2 Fund (Group) Name] ASC,'Cost Object'[Cost Object: Resp Fund Center: Level 6 Unit Acronym] ASC",
+  "basequery": "'Fund & Fund Group'[Level 2 Fund (Group) Name],'Cost Object'[Cost Object: Resp Fund Center: Level 6 Unit Acronym]",
+  "basefilter": "~(@fy)~(@fundgrp)~(@Catehierarchy)~(@postingperiod),KEEPFILTERS( FILTER( ALL( 'Cost Object'[Cost Object: Resp Fund Center: Level 6 Unit Acronym] ), NOT( ISBLANK( 'Cost Object'[Cost Object: Resp Fund Center: Level 6 Unit Acronym] )))),KEEPFILTERS( TREATAS( {\"IBRD\"}, 'Cost Object'[Cost Object: Resp Fund Center: Company Name] )), KEEPFILTERS( TREATAS( {\"0CO\",\"0PO\",\"TCO\",\"TPO\"}, 'Cost Object'[Cost Object Type] )), KEEPFILTERS( TREATAS( {\"BB\",\"REIMB\",\"TF\"}, 'Fund & Fund Group'[Level 2 Fund (Group) Name] ))",
+  "basecolumn": "\"WPA Plans, Final\", [WPA Plans, Final],\"WPA Cost\", [WPA Cost]",
+  "environmentName": "RM-App",
+  "dataSource": "Budget QA",
+  "InitialCatalog": "ssrds_Budget",
+  "dataSetId": "0d8417c6-d043-407d-8daf-490a56a16cbb"
 }
