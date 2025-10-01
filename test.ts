@@ -23,4 +23,10 @@
   "queryType": "EVALUATE SUMMARIZECOLUMNS",
   "query": "EVALUATE SUMMARIZECOLUMNS('Fund & Fund Group'[Level 2 Fund (Group) Name],'Cost Object'[Cost Object Budget Class],'Cost Object'[Cost Object: Resp Fund Center: Department Group Acronym],KEEPFILTERS( TREATAS( {\"BB\",\"REIMB\",\"TF\"}, 'Fund & Fund Group'[Level 2 Fund (Group) Name] )),KEEPFILTERS( TREATAS( {\"IBRD\"}, 'Cost Object'[Cost Object: Resp Fund Center: Company Name] )),KEEPFILTERS( TREATAS( {\"0CO\",\"0PO\",\"TCO\",\"TPO\"}, 'Cost Object'[Cost Object Type] )),KEEPFILTERS( TREATAS( {\"BB\",\"REIMB\",\"TF\"}, 'Fund & Fund Group'[Level 2 Fund (Group) Name] )),\"WPA Plans, Final\", [WPA Plans, Final],\"WPA Cost\", [WPA Cost]) ORDER BY 'Cost Object'[Cost Object Budget Class] ASC,'Cost Object'[Cost Object: Resp Fund Center: Department Group Acronym] ASC, 'Fund & Fund Group'[Level 2 Fund (Group) Name] ASC",
   "basequery": "'Fund & Fund Group'[Level 2 Fund (Group) Name],'Cost Object'[Cost Object Budget Class],'Cost Object'[Cost Object: Resp Fund Center: Department Group Acronym]",
-  "basefilter": "~(@fy)~(@fundgrp)~(@Catehierarchy)~(@postingperiod),KEEPFILTERS( TREATAS( {\"BB\",\"REIMB\",\"TF\"}, 'Fund & Fund Group'[Level 2 Fund (Group) Name] )),KEEPFILTERS( TREATAS( {\"IBRD\"}, 'Cost Object'[Cost Object: Resp Fund Center: Company Name] )),KEEP
+  "basefilter": "~(@fy)~(@fundgrp)~(@Catehierarchy)~(@postingperiod),KEEPFILTERS( TREATAS( {\"BB\",\"REIMB\",\"TF\"}, 'Fund & Fund Group'[Level 2 Fund (Group) Name] )),KEEPFILTERS( TREATAS( {\"IBRD\"}, 'Cost Object'[Cost Object: Resp Fund Center: Company Name] )),KEEPFILTERS( TREATAS( {\"0CO\",\"0PO\",\"TCO\",\"TPO\"}, 'Cost Object'[Cost Object Type] )),KEEPFILTERS( TREATAS( {\"BB\",\"REIMB\",\"TF\"}, 'Fund & Fund Group'[Level 2 Fund (Group) Name] ))",
+  "basecolumn": "\"WPA Plans, Final\", [WPA Plans, Final],\"WPA Cost\", [WPA Cost]",
+  "environmentName": "RM-App",
+  "dataSource": "Budget QA",
+  "InitialCatalog": "ssrds_Budget",
+  "dataSetId": "0d8417c6-d043-407d-8daf-490a56a16cbb"
+}
