@@ -1,31 +1,22 @@
 onLoadColumnChart() {
   this.responseFlag = true;
 
-  // ✅ Sample data (Planned + Actuals for each year)
-  // Format: [Planned 2022, Actual 2022, Planned 2023, Actual 2023, Planned 2024, Actual 2024, Planned 2025, Actual 2025]
-  const buy =    [3, 2.5, 2, 2, 2, 2, 2, 2];
-  const build =  [9, 5,   6, 5, 5, 5, 4, 4];
-  const borrow = [18,17.5,14,14,13,13,12,12];
-  const totals  = buy.map((v, i) => v + build[i] + borrow[i]);
+  // Sample data
+  const buy = [3, 2.5, 2, 2, 2, 2, 2, 2];
+  const build = [9, 5, 6, 5, 5, 5, 4, 4];
+  const borrow = [18, 17.5, 14, 14, 13, 13, 12, 12];
+  const totals = buy.map((v, i) => v + build[i] + borrow[i]);
 
   this.chartOptions = {
     chart: {
       type: 'column',
-      height: 350,
-      spacingBottom: 20
+      height: 370,
+      spacingTop: 30,   // adds top space so totals fit
+      spacingBottom: 40
     },
     title: { text: undefined },
 
-    // ✅ Grouped X-axis (Years + Planned/Actuals)
     xAxis: {
-      lineWidth: 0,
-      tickLength: 0,
-      gridLineWidth: 0,
-      groupLineWidth: 0,
-      gridLineColor: 'transparent',
-      lineColor: 'transparent',
-      tickColor: 'transparent',
-      minorGridLineColor: 'transparent',
       categories: [
         { name: '2022', categories: ['Planned', 'Actuals'] },
         { name: '2023', categories: ['Planned', 'Actuals'] },
@@ -33,11 +24,16 @@ onLoadColumnChart() {
         { name: '2025', categories: ['Planned', 'Actuals'] }
       ] as any,
       labels: {
-        style: { fontSize: '12px', color: '#333' }
-      }
+        style: { fontSize: '12px', color: '#333' },
+        y: 25 // moves years down
+      },
+      lineWidth: 0,
+      tickLength: 0,
+      gridLineWidth: 0,
+      lineColor: 'transparent',
+      tickColor: 'transparent'
     } as any,
 
-    // ✅ Dual Y-axis
     yAxis: [
       {
         title: { text: 'Total Count' },
@@ -53,7 +49,7 @@ onLoadColumnChart() {
         opposite: true,
         min: 0,
         max: 100,
-        tickInterval: 30,
+        tickInterval: 25,
         gridLineWidth: 0,
         lineWidth: 0,
         labels: { format: '{value}%', style: { color: '#333' } }
@@ -78,14 +74,13 @@ onLoadColumnChart() {
       }
     },
 
-    // ✅ Proper stacking and visuals
     plotOptions: {
       column: {
         stacking: 'percent',
         borderWidth: 0,
         pointPadding: 0.05,
         groupPadding: 0.15,
-        pointWidth: 20, // slightly wider like example
+        pointWidth: 18, // slightly thinner bars for full visibility
         dataLabels: {
           enabled: true,
           formatter: function () {
@@ -96,7 +91,6 @@ onLoadColumnChart() {
       }
     },
 
-    // ✅ 3 stacked colors + total labels
     series: [
       {
         name: 'Buy',
@@ -132,17 +126,11 @@ onLoadColumnChart() {
           formatter: function () {
             return `<b>${totals[this.point.index]}</b>`;
           },
-          y: -25,
+          y: -18, // adjust if needed
           style: { fontWeight: '700', color: '#000', fontSize: '11px' }
         }
       }
     ]
-  };
-
-  // ✅ Adjust year label position (optional)
-  (this.chartOptions.xAxis as any).groupedCategories = {
-    style: { fontSize: '13px', fontWeight: '600', color: '#333' },
-    y: 25
   };
 
   this.swfpColumnChart = [{
