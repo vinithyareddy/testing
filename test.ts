@@ -11,7 +11,7 @@ onLoadColumnChart() {
     chart: {
       type: 'column',
       height: 370,
-      spacingTop: 30,   // adds top space so totals fit
+      spacingTop: 30,
       spacingBottom: 40
     },
     title: { text: undefined },
@@ -25,7 +25,7 @@ onLoadColumnChart() {
       ] as any,
       labels: {
         style: { fontSize: '12px', color: '#333' },
-        y: 25 // moves years down
+        y: 25
       },
       lineWidth: 0,
       tickLength: 0,
@@ -69,22 +69,24 @@ onLoadColumnChart() {
         const title = String(this.x);
         return `<b>${title}</b><br/>` +
           this.points?.map((p: any) =>
-            `${p.series.name}: ${p.y} (${Math.round(p.percentage)}%)`
+            `${p.series.name}: ${p.y} (${Math.round(p.y / totals[p.point.index] * 100)}%)`
           ).join('<br/>');
       }
     },
 
     plotOptions: {
       column: {
-        stacking: 'percent',
+        stacking: 'normal', // ✅ use normal to preserve proportions
         borderWidth: 0,
         pointPadding: 0.05,
         groupPadding: 0.15,
-        pointWidth: 18, // slightly thinner bars for full visibility
+        pointWidth: 18,
         dataLabels: {
           enabled: true,
           formatter: function () {
-            return this.percentage ? `${Math.round(this.percentage)}%` : '';
+            const total = totals[this.point.index];
+            const pct = (this.y / total) * 100;
+            return `${Math.round(pct)}%`;
           },
           style: { fontSize: '10px', textOutline: 'none', color: '#000' }
         }
@@ -126,7 +128,7 @@ onLoadColumnChart() {
           formatter: function () {
             return `<b>${totals[this.point.index]}</b>`;
           },
-          y: -18, // adjust if needed
+          y: -18,
           style: { fontWeight: '700', color: '#000', fontSize: '11px' }
         }
       }
