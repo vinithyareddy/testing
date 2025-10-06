@@ -12,7 +12,7 @@ onLoadColumnChart() {
       type: 'column',
       height: 370,
       spacingTop: 30,
-      spacingBottom: 40,
+      spacingBottom: 80,  // Increased from 40 to give more space at bottom
       events: {
         load: function() {
           const chart = this;
@@ -23,17 +23,6 @@ onLoadColumnChart() {
           const positions = [0.5, 3.5, 6.5, 9.5]; // Center positions between Planned and Actuals
           
           years.forEach((year, i) => {
-            chart.renderer.text(year, 0, 0)
-              .attr({
-                align: 'center'
-              })
-              .css({
-                fontSize: '12px',
-                color: '#333',
-                fontWeight: '400'
-              })
-              .add();
-            
             const label = chart.renderer.text(year, 0, 0)
               .attr({
                 align: 'center'
@@ -46,7 +35,7 @@ onLoadColumnChart() {
               .add();
             
             const x = xAxis.toPixels(positions[i], false);
-            const y = chart.plotTop + chart.plotHeight + 25;
+            const y = chart.plotTop + chart.plotHeight + 45;  // Increased from 25 to push years down
             label.attr({ x: x, y: y });
           });
         }
@@ -63,7 +52,7 @@ onLoadColumnChart() {
       ],
       labels: {
         style: { fontSize: '11px', color: '#333' },
-        y: 5
+        y: 20  // Increased from 5 to push Planned/Actuals labels down
       },
       tickLength: 0,
       gridLineWidth: 0,
@@ -96,6 +85,7 @@ onLoadColumnChart() {
       layout: 'horizontal',
       align: 'center',
       verticalAlign: 'bottom',
+      y: 20,  // Added this to push legend down
       itemStyle: { fontWeight: '400', color: '#333' }
     },
 
