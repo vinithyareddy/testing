@@ -12,19 +12,58 @@ onLoadColumnChart() {
       type: 'column',
       height: 370,
       spacingTop: 30,
-      spacingBottom: 40
+      spacingBottom: 40,
+      events: {
+        load: function() {
+          const chart = this;
+          const xAxis = chart.xAxis[0];
+          
+          // Add year labels manually
+          const years = ['2022', '2023', '2024', '2025'];
+          const positions = [0.5, 3.5, 6.5, 9.5]; // Center positions between Planned and Actuals
+          
+          years.forEach((year, i) => {
+            chart.renderer.text(year, 0, 0)
+              .attr({
+                align: 'center'
+              })
+              .css({
+                fontSize: '12px',
+                color: '#333',
+                fontWeight: '400'
+              })
+              .add();
+            
+            const label = chart.renderer.text(year, 0, 0)
+              .attr({
+                align: 'center'
+              })
+              .css({
+                fontSize: '12px',
+                color: '#333',
+                fontWeight: '400'
+              })
+              .add();
+            
+            const x = xAxis.toPixels(positions[i], false);
+            const y = chart.plotTop + chart.plotHeight + 25;
+            label.attr({ x: x, y: y });
+          });
+        }
+      }
     },
     title: { text: undefined },
 
     xAxis: {
       categories: [
-        '2022<br/>Planned', '2022<br/>Actuals', '',
-        '2023<br/>Planned', '2023<br/>Actuals', '',
-        '2024<br/>Planned', '2024<br/>Actuals', '',
-        '2025<br/>Planned', '2025<br/>Actuals'
+        'Planned', 'Actuals', '',
+        'Planned', 'Actuals', '',
+        'Planned', 'Actuals', '',
+        'Planned', 'Actuals'
       ],
       labels: {
-        style: { fontSize: '11px', color: '#333' }
+        style: { fontSize: '11px', color: '#333' },
+        y: 5
       },
       tickLength: 0,
       gridLineWidth: 0,
@@ -63,9 +102,14 @@ onLoadColumnChart() {
     tooltip: {
       shared: true,
       formatter: function () {
-        const title = String(this.x).replace('<br/>', ' ');
+        const title = String(this.x);
         if (title === '') return false;
-        return `<b>${title}</b><br/>` +
+        
+        // Determine year based on point index
+        const index = this.points?.[0]?.point?.index || 0;
+        const year = index < 2 ? '2022' : index < 5 ? '2023' : index < 8 ? '2024' : '2025';
+        
+        return `<b>${year} ${title}</b><br/>` +
           this.points?.map((p: any) =>
             `${p.series.name}: ${p.y} (${Math.round(p.percentage)}%)`
           ).join('<br/>');
