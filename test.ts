@@ -1,6 +1,8 @@
-gridLineColor: 'transparent',
-lineColor: 'transparent',
-minorGridLineColor: 'transparent',
-tickColor: 'transparent',
-/** 👇 Custom option to hide plugin’s group separators */
-groupLineWidth: 0
+groupedCategories: {
+  style: {
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#333'
+  },
+  y: 25 // ✅ move year labels slightly down
+}
