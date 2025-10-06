@@ -1,53 +1,53 @@
 onLoadColumnChart() {
   this.responseFlag = true;
 
-  // Sample data
-  const buy = [3, 2.5, 2, 2, 2, 2, 2, 2];
-  const build = [9, 5, 6, 5, 5, 5, 4, 4];
-  const borrow = [18, 17.5, 14, 14, 13, 13, 12, 12];
+  // --- Sample data ---
+  const buy = [3, 2.5, 2, 3, 6, 2, 5, 2];
+  const build = [9, 5, 6, 5, 3, 5, 4, 5];
+  const borrow = [18, 17.5, 14, 10, 13, 9, 12, 10];
   const totals = buy.map((v, i) => v + build[i] + borrow[i]);
 
+  // --- Chart configuration ---
   this.chartOptions = {
     chart: {
       type: 'column',
-      height: 370,
+      height: 330,
       spacingTop: 20,
       spacingBottom: 10,
       marginTop: 20,
       marginBottom: 90,
       events: {
-        load: function() {
+        load: function () {
           const chart = this;
           const xAxis = chart.xAxis[0];
-          
-          // Add year labels manually
           const years = ['2022', '2023', '2024', '2025'];
-          const positions = [0.5, 2.5, 4.5, 6.5];  // Updated positions (no gaps)
-          
+          const positions = [0.5, 2.5, 4.5, 6.5];
+
           years.forEach((year, i) => {
             const label = chart.renderer.text(year, 0, 0)
-              .attr({
-                align: 'center'
-              })
+              .attr({ align: 'center' })
               .css({
                 fontSize: '12px',
                 color: '#333',
                 fontWeight: '400'
               })
               .add();
-            
+
             const x = xAxis.toPixels(positions[i], false);
             const y = chart.plotTop + chart.plotHeight + 35;
-            label.attr({ x: x, y: y });
+            label.attr({ x, y });
           });
         }
       }
     },
-    title: { text: undefined },
 
+    title: { text: undefined },
+    credits: { enabled: false },
+
+    // --- X-Axis ---
     xAxis: {
       categories: [
-        'Planned', 'Actuals',  // No gap
+        'Planned', 'Actuals',
         'Planned', 'Actuals',
         'Planned', 'Actuals',
         'Planned', 'Actuals'
@@ -61,6 +61,7 @@ onLoadColumnChart() {
       lineWidth: 0
     },
 
+    // --- Dual Y-Axis ---
     yAxis: [
       {
         title: { text: 'Total Count' },
@@ -83,25 +84,29 @@ onLoadColumnChart() {
       }
     ],
 
+    // --- Legend ---
     legend: {
       layout: 'horizontal',
       align: 'center',
       verticalAlign: 'bottom',
+      reversed: true,
       itemStyle: { fontWeight: '400', color: '#333' },
-      itemMarginTop: 5,
-      itemMarginBottom: 0
+      itemMarginTop: 5
     },
 
+    // --- Tooltip ---
     tooltip: {
       shared: true,
       formatter: function () {
         const title = String(this.x);
-        if (title === '') return false;
-        
-        // Determine year based on point index
-        const index = this.points?.[0]?.point?.index || 0;
-        const year = index < 2 ? '2022' : index < 4 ? '2023' : index < 6 ? '2024' : '2025';
-        
+        if (!title) return false;
+
+        const index = this.points?.[0]?.point?.index ?? 0;
+        const year = index < 2 ? '2022'
+                    : index < 4 ? '2023'
+                    : index < 6 ? '2024'
+                    : '2025';
+
         return `<b>${year} ${title}</b><br/>` +
           this.points?.map((p: any) =>
             `${p.series.name}: ${p.y} (${Math.round(p.percentage)}%)`
@@ -109,44 +114,48 @@ onLoadColumnChart() {
       }
     },
 
+    // --- Plot Options ---
     plotOptions: {
       column: {
         stacking: 'normal',
         borderWidth: 0,
-        pointPadding: 0.05,      // Small gap within year
-        groupPadding: 0.15,      // Gap between year groups
+        pointPadding: 0.05,
+        groupPadding: 0.15,
         pointWidth: 25,
         dataLabels: {
           enabled: true,
           formatter: function () {
             const color = this.series.name === 'Build' ? '#fff' : '#000';
-            return this.percentage ? `<span style="color:${color}">${Math.round(this.percentage)}%</span>` : '';
+            return this.percentage
+              ? `<span style="color:${color}">${Math.round(this.percentage)}%</span>`
+              : '';
           },
           style: { fontSize: '10px', textOutline: 'none' }
         }
       }
     },
 
+    // --- Series Data ---
     series: [
       {
         name: 'Borrow',
         type: 'column',
         color: '#95dad9',
-        data: borrow,  // No nulls
+        data: borrow,
         stack: 'BBB'
       },
       {
         name: 'Build',
         type: 'column',
         color: '#a392d3',
-        data: build,  // No nulls
+        data: build,
         stack: 'BBB'
       },
       {
         name: 'Buy',
         type: 'column',
         color: '#85caf7',
-        data: buy,  // No nulls
+        data: buy,
         stack: 'BBB'
       },
       {
@@ -156,13 +165,13 @@ onLoadColumnChart() {
         enableMouseTracking: false,
         color: 'transparent',
         yAxis: 0,
-        data: totals,  // No nulls
+        data: totals,
         dataLabels: {
           enabled: true,
           formatter: function () {
             return `<b>${this.y}</b>`;
           },
-          y: -1,
+          y: -1,  // aligns exactly on top of bars
           verticalAlign: 'bottom',
           crop: false,
           overflow: 'allow',
@@ -172,6 +181,7 @@ onLoadColumnChart() {
     ]
   };
 
+  // --- Render chart ---
   this.swfpColumnChart = [{
     Highcharts: this.Highcharts,
     chartConstructor: 'chart',
