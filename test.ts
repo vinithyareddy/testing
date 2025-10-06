@@ -10,9 +10,10 @@ onLoadColumnChart() {
   this.chartOptions = {
     chart: {
       type: 'column',
-      height: 370,
+      height: 420,  // Increased chart height
       spacingTop: 30,
-      spacingBottom: 100,  // Increased even more for legend space
+      spacingBottom: 20,
+      marginBottom: 100,  // This pushes legend down
       events: {
         load: function() {
           const chart = this;
@@ -20,7 +21,7 @@ onLoadColumnChart() {
           
           // Add year labels manually
           const years = ['2022', '2023', '2024', '2025'];
-          const positions = [0.5, 3.5, 6.5, 9.5]; // Center positions between Planned and Actuals
+          const positions = [0.5, 3.5, 6.5, 9.5];
           
           years.forEach((year, i) => {
             const label = chart.renderer.text(year, 0, 0)
@@ -85,7 +86,6 @@ onLoadColumnChart() {
       layout: 'horizontal',
       align: 'center',
       verticalAlign: 'bottom',
-      y: 40,  // Increased from 20 to 40 to push legend further down
       itemStyle: { fontWeight: '400', color: '#333' }
     },
 
