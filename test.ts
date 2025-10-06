@@ -10,10 +10,11 @@ onLoadColumnChart() {
   this.chartOptions = {
     chart: {
       type: 'column',
-      height: 420,  // Increased chart height
-      spacingTop: 30,
-      spacingBottom: 20,
-      marginBottom: 100,  // This pushes legend down
+      height: 370,  // Back to original height
+      spacingTop: 20,  // Reduced to make room at bottom
+      spacingBottom: 10,
+      marginTop: 20,
+      marginBottom: 90,  // Creates space for year labels and legend
       events: {
         load: function() {
           const chart = this;
@@ -36,7 +37,7 @@ onLoadColumnChart() {
               .add();
             
             const x = xAxis.toPixels(positions[i], false);
-            const y = chart.plotTop + chart.plotHeight + 45;
+            const y = chart.plotTop + chart.plotHeight + 35;  // Adjusted position
             label.attr({ x: x, y: y });
           });
         }
@@ -53,7 +54,7 @@ onLoadColumnChart() {
       ],
       labels: {
         style: { fontSize: '11px', color: '#333' },
-        y: 20
+        y: 15  // Adjusted to fit within space
       },
       tickLength: 0,
       gridLineWidth: 0,
@@ -86,7 +87,9 @@ onLoadColumnChart() {
       layout: 'horizontal',
       align: 'center',
       verticalAlign: 'bottom',
-      itemStyle: { fontWeight: '400', color: '#333' }
+      itemStyle: { fontWeight: '400', color: '#333' },
+      itemMarginTop: 5,
+      itemMarginBottom: 0
     },
 
     tooltip: {
