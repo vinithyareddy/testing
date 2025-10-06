@@ -10,11 +10,11 @@ onLoadColumnChart() {
   this.chartOptions = {
     chart: {
       type: 'column',
-      height: 370,  // Back to original height
-      spacingTop: 20,  // Reduced to make room at bottom
+      height: 370,
+      spacingTop: 20,
       spacingBottom: 10,
       marginTop: 20,
-      marginBottom: 90,  // Creates space for year labels and legend
+      marginBottom: 90,
       events: {
         load: function() {
           const chart = this;
@@ -22,7 +22,7 @@ onLoadColumnChart() {
           
           // Add year labels manually
           const years = ['2022', '2023', '2024', '2025'];
-          const positions = [0.5, 3.5, 6.5, 9.5];
+          const positions = [0.5, 2.5, 4.5, 6.5];  // Updated positions (no gaps)
           
           years.forEach((year, i) => {
             const label = chart.renderer.text(year, 0, 0)
@@ -37,7 +37,7 @@ onLoadColumnChart() {
               .add();
             
             const x = xAxis.toPixels(positions[i], false);
-            const y = chart.plotTop + chart.plotHeight + 35;  // Adjusted position
+            const y = chart.plotTop + chart.plotHeight + 35;
             label.attr({ x: x, y: y });
           });
         }
@@ -47,14 +47,14 @@ onLoadColumnChart() {
 
     xAxis: {
       categories: [
-        'Planned', 'Actuals', '',
-        'Planned', 'Actuals', '',
-        'Planned', 'Actuals', '',
+        'Planned', 'Actuals',  // No gap
+        'Planned', 'Actuals',
+        'Planned', 'Actuals',
         'Planned', 'Actuals'
       ],
       labels: {
         style: { fontSize: '11px', color: '#333' },
-        y: 15  // Adjusted to fit within space
+        y: 15
       },
       tickLength: 0,
       gridLineWidth: 0,
@@ -100,7 +100,7 @@ onLoadColumnChart() {
         
         // Determine year based on point index
         const index = this.points?.[0]?.point?.index || 0;
-        const year = index < 2 ? '2022' : index < 5 ? '2023' : index < 8 ? '2024' : '2025';
+        const year = index < 2 ? '2022' : index < 4 ? '2023' : index < 6 ? '2024' : '2025';
         
         return `<b>${year} ${title}</b><br/>` +
           this.points?.map((p: any) =>
@@ -113,8 +113,8 @@ onLoadColumnChart() {
       column: {
         stacking: 'normal',
         borderWidth: 0,
-        pointPadding: 0.1,
-        groupPadding: 0.05,
+        pointPadding: 0.05,      // Small gap within year
+        groupPadding: 0.15,      // Gap between year groups
         pointWidth: 25,
         dataLabels: {
           enabled: true,
@@ -132,36 +132,21 @@ onLoadColumnChart() {
         name: 'Borrow',
         type: 'column',
         color: '#95dad9',
-        data: [
-          borrow[0], borrow[1], null,
-          borrow[2], borrow[3], null,
-          borrow[4], borrow[5], null,
-          borrow[6], borrow[7]
-        ],
+        data: borrow,  // No nulls
         stack: 'BBB'
       },
       {
         name: 'Build',
         type: 'column',
         color: '#a392d3',
-        data: [
-          build[0], build[1], null,
-          build[2], build[3], null,
-          build[4], build[5], null,
-          build[6], build[7]
-        ],
+        data: build,  // No nulls
         stack: 'BBB'
       },
       {
         name: 'Buy',
         type: 'column',
         color: '#85caf7',
-        data: [
-          buy[0], buy[1], null,
-          buy[2], buy[3], null,
-          buy[4], buy[5], null,
-          buy[6], buy[7]
-        ],
+        data: buy,  // No nulls
         stack: 'BBB'
       },
       {
@@ -171,16 +156,10 @@ onLoadColumnChart() {
         enableMouseTracking: false,
         color: 'transparent',
         yAxis: 0,
-        data: [
-          totals[0], totals[1], null,
-          totals[2], totals[3], null,
-          totals[4], totals[5], null,
-          totals[6], totals[7]
-        ],
+        data: totals,  // No nulls
         dataLabels: {
           enabled: true,
           formatter: function () {
-            if (this.y === null) return '';
             return `<b>${this.y}</b>`;
           },
           y: -1,
