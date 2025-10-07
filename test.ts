@@ -19,7 +19,6 @@ onLoadLineChart() {
     title: { text: undefined },
     credits: { enabled: false },
 
-    // ✅ X-axis (same style as before, just years)
     xAxis: {
       categories: years,
       labels: {
@@ -31,7 +30,6 @@ onLoadLineChart() {
       lineWidth: 0
     },
 
-    // ✅ Single Y-axis
     yAxis: {
       title: { text: 'Total Count' },
       min: 0,
@@ -42,13 +40,13 @@ onLoadLineChart() {
       labels: { style: { color: '#333' } }
     },
 
-    // ✅ Legend with solid dots
+    // ✅ Legend styled for solid circle appearance
     legend: {
       layout: 'horizontal',
       align: 'center',
       verticalAlign: 'bottom',
       reversed: true,
-      symbolRadius: 6,
+      symbolRadius: 6, // circular
       symbolHeight: 10,
       symbolWidth: 10,
       symbolPadding: 5,
@@ -83,7 +81,7 @@ onLoadLineChart() {
       }
     },
 
-    // ✅ Lines with hollow markers but solid legend dots
+    // ✅ Lines with hollow markers (chart) and solid dots (legend)
     series: [
       {
         name: 'Borrow',
@@ -95,8 +93,7 @@ onLoadLineChart() {
           lineColor: '#95dad9',
           lineWidth: 2,
           radius: 5
-        },
-        legendSymbol: 'circle'
+        }
       },
       {
         name: 'Build',
@@ -108,8 +105,7 @@ onLoadLineChart() {
           lineColor: '#a392d3',
           lineWidth: 2,
           radius: 5
-        },
-        legendSymbol: 'circle'
+        }
       },
       {
         name: 'Buy',
@@ -121,8 +117,7 @@ onLoadLineChart() {
           lineColor: '#85caf7',
           lineWidth: 2,
           radius: 5
-        },
-        legendSymbol: 'circle'
+        }
       }
     ]
   };
