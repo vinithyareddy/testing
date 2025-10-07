@@ -1,7 +1,7 @@
 onLoadLineChart() {
   this.responseFlag = true;
 
-  // Same year and data pattern
+  // Simplified yearly totals
   const years = ['2022', '2023', '2024', '2025'];
   const buy = [3, 2.5, 2, 3];
   const build = [9, 5, 6, 5];
@@ -14,25 +14,24 @@ onLoadLineChart() {
       spacingTop: 20,
       spacingBottom: 10,
       marginTop: 20,
-      marginBottom: 90
+      marginBottom: 90,
+      animation: true
     },
 
     title: { text: undefined },
     credits: { enabled: false },
 
-    // ❗️Keep same layout as before but only show years
     xAxis: {
       categories: years,
-      labels: {
-        style: { fontSize: '11px', color: '#333' },
-        y: 15
-      },
       tickLength: 0,
+      lineWidth: 0,
       gridLineWidth: 0,
-      lineWidth: 0
+      labels: {
+        style: { fontSize: '12px', color: '#333' },
+        y: 15
+      }
     },
 
-    // ✅ Only one Y axis (left)
     yAxis: {
       title: { text: 'Total Count' },
       min: 0,
@@ -43,7 +42,6 @@ onLoadLineChart() {
       labels: { style: { color: '#333' } }
     },
 
-    // ✅ Same legend style as before
     legend: {
       layout: 'horizontal',
       align: 'center',
@@ -55,6 +53,7 @@ onLoadLineChart() {
 
     tooltip: {
       shared: true,
+      useHTML: true,
       formatter: function () {
         return `<b>${this.x}</b><br/>` +
           this.points?.map((p: any) =>
@@ -75,7 +74,9 @@ onLoadLineChart() {
         }
       },
       series: {
-        dataLabels: { enabled: false }
+        animation: true,
+        dataLabels: { enabled: false },
+        enableMouseTracking: true
       }
     },
 
