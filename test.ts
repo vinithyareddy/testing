@@ -1,9 +1,15 @@
-/* Disable page scroll when expanded */
-.no-scroll {
-  overflow: hidden !important;
+.full-view .inner-card-box.panel {
+  height: 60vh !important; /* Adjust for nice spacing between 3 widgets */
+  width: 100% !important;
 }
 
-/* Fullscreen mode styling */
+.full-view .ta_country_cls,
+.full-view .ta_job_cls,
+.full-view .ta_skills_cls {
+  width: 100%;
+  display: block;
+}
+
 .full-view .budget-card-box-lg {
   position: fixed !important;
   top: 0;
@@ -16,10 +22,18 @@
   margin: 0;
   width: 100vw;
   height: 100vh;
-  overflow: auto;
+  overflow-y: auto;
 }
 
-/* Make the chart fill fullscreen area */
-.full-view .inner-card-box.panel {
-  height: calc(100vh - 150px) !important;
+
+.full-view .ta_country_cls,
+.full-view .ta_job_cls,
+.full-view .ta_skills_cls {
+  margin-bottom: 20px;
+}
+
+.full-view .ta_country_cls .panel,
+.full-view .ta_job_cls .panel,
+.full-view .ta_skills_cls .panel {
+  height: 60vh !important; /* Adjust this if charts are too tall */
 }
