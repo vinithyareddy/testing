@@ -1,11 +1,11 @@
 onLoadLineChart() {
   this.responseFlag = true;
 
-  // Data for each metric by year
+  // Same year and data pattern
   const years = ['2022', '2023', '2024', '2025'];
-  const buy = [30, 40, 50, 60];
-  const build = [65, 67, 68, 66];
-  const borrow = [40, 45, 50, 55];
+  const buy = [3, 2.5, 2, 3];
+  const build = [9, 5, 6, 5];
+  const borrow = [18, 17.5, 14, 10];
 
   this.chartOptions = {
     chart: {
@@ -14,37 +14,43 @@ onLoadLineChart() {
       spacingTop: 20,
       spacingBottom: 10,
       marginTop: 20,
-      marginBottom: 60
+      marginBottom: 90
     },
 
     title: { text: undefined },
     credits: { enabled: false },
 
+    // ❗️Keep same layout as before but only show years
     xAxis: {
       categories: years,
-      lineWidth: 1,
-      tickLength: 0,
       labels: {
-        style: { fontSize: '12px', color: '#333', fontWeight: '400' },
-        y: 10
-      }
+        style: { fontSize: '11px', color: '#333' },
+        y: 15
+      },
+      tickLength: 0,
+      gridLineWidth: 0,
+      lineWidth: 0
     },
 
+    // ✅ Only one Y axis (left)
     yAxis: {
       title: { text: 'Total Count' },
-      gridLineWidth: 0.5,
       min: 0,
-      max: 80,
-      tickInterval: 20,
-      labels: { style: { fontSize: '12px', color: '#333' } }
+      max: 30,
+      tickInterval: 5,
+      gridLineWidth: 0.5,
+      lineWidth: 0,
+      labels: { style: { color: '#333' } }
     },
 
+    // ✅ Same legend style as before
     legend: {
       layout: 'horizontal',
       align: 'center',
       verticalAlign: 'bottom',
       itemStyle: { fontWeight: '400', color: '#333' },
-      symbolRadius: 6
+      itemMarginTop: 5,
+      itemMarginBottom: 0
     },
 
     tooltip: {
@@ -69,34 +75,31 @@ onLoadLineChart() {
         }
       },
       series: {
-        dataLabels: {
-          enabled: false
-        }
+        dataLabels: { enabled: false }
       }
     },
 
     series: [
       {
-        name: 'Buy',
+        name: 'Borrow',
         type: 'line',
-        data: buy,
-        color: '#59A9E6',
-        marker: { lineColor: '#59A9E6' }
+        color: '#95dad9',
+        data: borrow,
+        marker: { lineColor: '#95dad9' }
       },
       {
         name: 'Build',
         type: 'line',
+        color: '#a392d3',
         data: build,
-        color: '#7D66C4',
-        marker: { lineColor: '#7D66C4' }
+        marker: { lineColor: '#a392d3' }
       },
       {
-        name: 'Borrow',
+        name: 'Buy',
         type: 'line',
-        data: borrow,
-        color: '#64C3B5',
-        dashStyle: 'ShortDot',
-        marker: { lineColor: '#64C3B5' }
+        color: '#85caf7',
+        data: buy,
+        marker: { lineColor: '#85caf7' }
       }
     ]
   };
