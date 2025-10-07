@@ -19,7 +19,7 @@ onLoadLineChart() {
     title: { text: undefined },
     credits: { enabled: false },
 
-    // ✅ X-axis (same styling as before, only years)
+    // ✅ X-axis (same style as before, just years)
     xAxis: {
       categories: years,
       labels: {
@@ -42,13 +42,13 @@ onLoadLineChart() {
       labels: { style: { color: '#333' } }
     },
 
-    // ✅ Legend with solid circle dots
+    // ✅ Legend with solid dots
     legend: {
       layout: 'horizontal',
       align: 'center',
       verticalAlign: 'bottom',
       reversed: true,
-      symbolRadius: 6, // makes it round
+      symbolRadius: 6,
       symbolHeight: 10,
       symbolWidth: 10,
       symbolPadding: 5,
@@ -74,23 +74,16 @@ onLoadLineChart() {
           enabled: true,
           radius: 5,
           symbol: 'circle',
-          fillColor: '#fff',
-          lineWidth: 2
+          fillColor: '#fff',      // hollow inside
+          lineWidth: 2            // colored border
         }
       },
       series: {
-        dataLabels: {
-          enabled: false
-        },
-        marker: {
-          enabled: true,
-          radius: 5,
-          symbol: 'circle'
-        }
+        dataLabels: { enabled: false }
       }
     },
 
-    // ✅ Solid legend dots, circular markers
+    // ✅ Lines with hollow markers but solid legend dots
     series: [
       {
         name: 'Borrow',
@@ -98,11 +91,12 @@ onLoadLineChart() {
         data: borrow,
         color: '#95dad9',
         marker: {
-          lineWidth: 0,
-          radius: 5,
-          symbol: 'circle',
-          fillColor: '#95dad9'
-        }
+          fillColor: '#fff',
+          lineColor: '#95dad9',
+          lineWidth: 2,
+          radius: 5
+        },
+        legendSymbol: 'circle'
       },
       {
         name: 'Build',
@@ -110,11 +104,12 @@ onLoadLineChart() {
         data: build,
         color: '#a392d3',
         marker: {
-          lineWidth: 0,
-          radius: 5,
-          symbol: 'circle',
-          fillColor: '#a392d3'
-        }
+          fillColor: '#fff',
+          lineColor: '#a392d3',
+          lineWidth: 2,
+          radius: 5
+        },
+        legendSymbol: 'circle'
       },
       {
         name: 'Buy',
@@ -122,11 +117,12 @@ onLoadLineChart() {
         data: buy,
         color: '#85caf7',
         marker: {
-          lineWidth: 0,
-          radius: 5,
-          symbol: 'circle',
-          fillColor: '#85caf7'
-        }
+          fillColor: '#fff',
+          lineColor: '#85caf7',
+          lineWidth: 2,
+          radius: 5
+        },
+        legendSymbol: 'circle'
       }
     ]
   };
