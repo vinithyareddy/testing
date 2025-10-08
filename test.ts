@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
-import { Component, OnInit, Renderer2 } from '@angular/core';
+import { Component, OnInit, Renderer2, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LiftPopoverComponent } from '@lift/ui';
 import Highcharts from 'highcharts';
@@ -24,6 +24,7 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
   fullview = false;
   viewMode: 'chart' | 'table' = 'chart';
   Highcharts: typeof Highcharts = Highcharts;
+  updateFlag = false;
 
   pageSize = 9;
   currentPage = 0;
@@ -64,39 +65,41 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
     series: [],
   };
 
-  constructor(private render: Renderer2, private mockService: MockDataService) {}
+  constructor(
+    private render: Renderer2,
+    private mockService: MockDataService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit() {
-    console.log('🔍 Loading JSON...');
+    console.log('🔍 Fetching JSON...');
     this.mockService.getSkillSupplyProficiency().subscribe({
       next: (data: any[]) => {
-        console.log('✅ Loaded JSON Data:', data);
+        console.log('✅ JSON Data:', data);
 
-        if (!data || !Array.isArray(data)) {
-          console.error('❌ JSON is not an array or empty');
+        if (!Array.isArray(data) || !data.length) {
+          console.error('❌ Invalid JSON format or empty file.');
           return;
         }
 
-        // Ensure correct keys exist
-        if (!('Awareness' in data[0])) {
-          console.error('❌ JSON keys not matching expected structure (Awareness, Skilled, Advanced, Expert)');
-          console.log('Received keys:', Object.keys(data[0]));
-          return;
-        }
-
-        this.allCategories = data.map((d) => d.level);
-        const awareness = data.map((d) => Number(d.Awareness));
-        const skilled = data.map((d) => Number(d.Skilled));
-        const advanced = data.map((d) => Number(d.Advanced));
-        const expert = data.map((d) => Number(d.Expert));
+        // Expected keys: Level, Awareness, Skilled, Advanced, Expert
+        this.allCategories = data.map(d => d.level);
+        const awareness = data.map(d => Number(d.Awareness));
+        const skilled = data.map(d => Number(d.Skilled));
+        const advanced = data.map(d => Number(d.Advanced));
+        const expert = data.map(d => Number(d.Expert));
 
         this.allSeriesData = [awareness, skilled, advanced, expert];
-        console.log('📊 Categories:', this.allCategories);
-        console.log('📊 Series data:', this.allSeriesData);
+        console.log('📊 Series prepared:', this.allSeriesData);
 
-        this.updateChart();
+        // Force refresh AFTER Angular detects change
+        setTimeout(() => {
+          this.updateChart();
+          this.updateFlag = true;
+          this.cdr.detectChanges();
+        }, 0);
       },
-      error: (err) => console.error('❌ Error loading JSON:', err),
+      error: (err) => console.error('❌ JSON Load Error:', err),
     });
   }
 
@@ -105,7 +108,7 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
     const end = Math.min(start + this.pageSize, this.allCategories.length);
 
     const pageCategories = this.allCategories.slice(start, end);
-    const pageSeriesData = this.allSeriesData.map((s) => s.slice(start, end));
+    const pageSeriesData = this.allSeriesData.map(s => s.slice(start, end));
 
     const seriesNames = ['Awareness', 'Skilled', 'Advanced', 'Expert'];
     const colors = ['#85CAF7', '#95DAD9', '#A392D3', '#6B70AF'];
@@ -126,7 +129,7 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
       })),
     };
 
-    console.log('✅ Chart updated with:', this.chartOptions);
+    console.log('✅ Chart Options Updated:', this.chartOptions);
   }
 
   onLeftClick() {
@@ -150,17 +153,3 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
       : this.render.removeClass(document.body, 'no-scroll');
   }
 }
-
-
-[
-    { "level": "Level 1", "Awareness": 33, "Skilled": 56, "Advanced": 30, "Expert": 69 },
-    { "level": "Level 2", "Awareness": 6,  "Skilled": 45, "Advanced": 5,  "Expert": 76 },
-    { "level": "Level 3", "Awareness": 65, "Skilled": 87, "Advanced": 47, "Expert": 97 },
-    { "level": "Level 4", "Awareness": 62, "Skilled": 31, "Advanced": 5,  "Expert": 75 },
-    { "level": "Level 5", "Awareness": 73, "Skilled": 12, "Advanced": 84, "Expert": 0 },
-    { "level": "Level 6", "Awareness": 90, "Skilled": 61, "Advanced": 50, "Expert": 62 },
-    { "level": "Level 7", "Awareness": 20, "Skilled": 85, "Advanced": 24, "Expert": 98 },
-    { "level": "Level 8", "Awareness": 30, "Skilled": 64, "Advanced": 57, "Expert": 69 },
-    { "level": "Level 9", "Awareness": 26, "Skilled": 55, "Advanced": 13, "Expert": 3 }
-  ]
-  
