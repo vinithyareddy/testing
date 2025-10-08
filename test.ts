@@ -2,95 +2,6 @@ import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { Component, OnInit, Renderer2 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { LiftPopoverComponent } from '@lift/ui';
-import * as Highcharts from 'highcharts';
-import { HighchartsChartModule } from 'highcharts-angular';
-import { MockDataService } from 'app/services/mock-data.service';
-
-@Component({
-  selector: 'app-ss-by-volume-proficiency-level',
-  templateUrl: './ss-by-volume-proficiency-level.component.html',
-  standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule, LiftPopoverComponent, HighchartsChartModule],
-  styleUrls: ['./ss-by-volume-proficiency-level.component.scss']
-})
-export class SsByVolumeProficiencyLevelComponent implements OnInit {
-  fullview = false;
-  Highcharts: typeof Highcharts = Highcharts;
-  chartOptions: Highcharts.Options = {};
-  chartData: any[] = [];
-
-  constructor(private render: Renderer2, private mockService: MockDataService) {}
-
-  ngOnInit() {
-    // ✅ Load data from JSON instead of static
-    this.mockService.getSkillSupplyProficiency().subscribe((data: any[]) => {
-      console.log('Skill Supply JSON:', data);
-      this.chartData = data.map((d: any) => ({
-        proficiency: d.proficiency,
-        fte: Number(d.fte)
-      }));
-      this.loadChart();
-    });
-  }
-
-  loadChart() {
-    if (!this.chartData || this.chartData.length === 0) return;
-
-    this.chartOptions = {
-      chart: {
-        type: 'bar', // keep your original look if it was bar
-        backgroundColor: 'transparent'
-      },
-      title: { text: 'Skill Supply by Volume (FTE) and Proficiency Level' },
-      credits: { enabled: false },
-      xAxis: {
-        categories: this.chartData.map(d => d.proficiency),
-        title: { text: 'Proficiency Level' },
-        labels: { style: { color: '#444' } }
-      },
-      yAxis: {
-        min: 0,
-        title: { text: 'FTE Count' },
-        labels: { style: { color: '#444' } }
-      },
-      plotOptions: {
-        bar: {
-          borderWidth: 0,
-          dataLabels: {
-            enabled: true,
-            format: '{y}',
-            color: '#222'
-          }
-        }
-      },
-      series: [
-        {
-          type: 'bar',
-          name: 'FTE',
-          data: this.chartData.map(d => d.fte),
-          colorByPoint: true,
-          colors: ['#85CAF7', '#95DAD9', '#A392D3', '#6B70AF']
-        }
-      ]
-    };
-  }
-
-  fullPageView() {
-    this.fullview = !this.fullview;
-    this.fullview
-      ? this.render.addClass(document.body, 'no-scroll')
-      : this.render.removeClass(document.body, 'no-scroll');
-  }
-}
-
-
-
-
-import { CommonModule } from '@angular/common';
-import { HttpClientModule } from '@angular/common/http';
-import { Component, OnInit, Renderer2 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import * as Highcharts from 'highcharts';
 import { HighchartsChartModule } from 'highcharts-angular';
 import { LiftPopoverComponent } from '@lift/ui';
@@ -115,6 +26,7 @@ export class SwfpByGenderComponent implements OnInit {
   ngOnInit(): void {
     this.mockService.getWorkforceByGender().subscribe((data: any[]) => {
       console.log('Gender JSON:', data);
+      // Normalize JSON for Highcharts
       this.genderData = data.map((item) => ({
         name: item.name,
         y: Number(item.value)
@@ -150,7 +62,7 @@ export class SwfpByGenderComponent implements OnInit {
       credits: { enabled: false },
       plotOptions: {
         pie: {
-          innerSize: '85%',
+          innerSize: '85%',           // donut style (same as original)
           borderWidth: 0,
           showInLegend: true,
           dataLabels: {
@@ -159,9 +71,11 @@ export class SwfpByGenderComponent implements OnInit {
             format: '{point.name}: {point.y}',
             style: { fontSize: '12px' }
           },
-          ...(this.widgetType === 'ch'
-            ? { startAngle: -90, endAngle: 90, center: ['50%', '75%'], size: '140%' }
-            : { startAngle: 0, endAngle: 360, center: ['50%', '50%'], size: '120%' })
+          // ✅ restored to full circle
+          startAngle: 0,
+          endAngle: 360,
+          center: ['50%', '50%'],
+          size: '120%'
         }
       },
       series: [
