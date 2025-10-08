@@ -7,61 +7,56 @@ import { HighchartsChartModule } from 'highcharts-angular';
 import { LiftPopoverComponent } from '@lift/ui';
 
 @Component({
-  selector: 'app-swfp-by-gender',
-  templateUrl: './swfp-by-gender.component.html',
+  selector: 'app-ss-by-volume-proficiency-level',
+  templateUrl: './ss-by-volume-proficiency-level.component.html',
   standalone: true,
   imports: [CommonModule, FormsModule, HttpClientModule, HighchartsChartModule, LiftPopoverComponent],
-  styleUrls: ['./swfp-by-gender.component.scss'],
+  styleUrls: ['./ss-by-volume-proficiency-level.component.scss'],
 })
-export class SwfpbyGenderComponent implements OnInit {
+export class SsByVolumeProficiencyLevelComponent implements OnInit {
   fullview = false;
-  widgetType = 'ch';
   Highcharts: typeof Highcharts = Highcharts;
-  chartOptions!: Highcharts.Options;
-  genderData: any[] = [];
+  chartOptions: Highcharts.Options = {};
+  chartData: any[] = [];
 
   constructor(private http: HttpClient, private render: Renderer2) {}
 
-  ngOnInit(): void {
-    // ✅ Load mock JSON for gender widget (replace with API later)
-    this.http.get<any[]>('assets/json/workforce-gender.json').subscribe((data) => {
-      // Ensure structure matches Highcharts expected format
-      this.genderData = data.map((item) => ({
-        name: item.name || item.gender || item.category,
-        y: item.value || item.fte,
-      }));
+  ngOnInit() {
+    // ✅ Load mock JSON now (replace this path later with API endpoint after KT)
+    this.http.get<any[]>('assets/json/skill-supply-proficiency.json').subscribe((data) => {
+      this.chartData = data;
       this.loadChart();
     });
   }
 
-  loadWidget(type: any) {
-    this.widgetType = type;
-  }
-
-  loadChart(): void {
-    if (!this.genderData || this.genderData.length === 0) return;
-    const totalCount = this.genderData.reduce((sum, item) => sum + item.y, 0);
+  loadChart() {
+    if (!this.chartData || this.chartData.length === 0) return;
 
     this.chartOptions = {
-      chart: { type: 'pie' },
-      title: {
-        text: `<span style="font-size:22px;font-weight:bold">${totalCount}</span><br/><span style="font-size:12px">Workforce Supply (FTE) by Gender</span>`,
-        useHTML: true,
-      },
-      tooltip: { pointFormat: '{point.y} ({point.percentage:.0f}%)' },
+      chart: { type: 'column' },
+      title: { text: 'Skill Supply by Volume (FTE) and Proficiency Level' },
       credits: { enabled: false },
+      xAxis: {
+        categories: this.chartData.map((d) => d.proficiency),
+        title: { text: 'Proficiency Level' },
+      },
+      yAxis: {
+        min: 0,
+        title: { text: 'FTE Count' },
+      },
       plotOptions: {
-        pie: {
-          innerSize: '85%',
-          showInLegend: true,
-          dataLabels: { enabled: true, format: '{point.name}: {point.y}' },
+        column: {
+          borderWidth: 0,
+          dataLabels: { enabled: true },
         },
       },
       series: [
         {
-          type: 'pie',
-          name: 'Gender',
-          data: this.genderData,
+          type: 'column',
+          name: 'Skill Supply (FTE)',
+          data: this.chartData.map((d) => d.fte),
+          colorByPoint: true,
+          colors: ['#85CAF7', '#95DAD9', '#A392D3', '#6B70AF'],
         },
       ],
     };
