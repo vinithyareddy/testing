@@ -32,26 +32,18 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
   allSeriesData: number[][] = [[], [], [], []];
 
   chartOptions: Highcharts.Options = {
-    chart: { type: 'column' },
+    chart: { type: 'column', backgroundColor: 'transparent' },
     title: { text: '' },
     credits: { enabled: false },
     xAxis: {
       categories: [],
-      title: {
-        text: '',
-        style: { color: '#111827', fontWeight: '500', fontSize: '13px' },
-      },
-      labels: {
-        style: { color: '#111827', fontWeight: '600', fontSize: '12px' },
-      },
+      title: { text: '', style: { color: '#111827', fontWeight: '500', fontSize: '13px' } },
+      labels: { style: { color: '#111827', fontWeight: '600', fontSize: '12px' } },
       lineWidth: 0,
     },
     yAxis: {
       min: 0,
-      title: {
-        text: 'Staff Count',
-        style: { color: '#111827', fontWeight: '500', fontSize: '13px' },
-      },
+      title: { text: 'Staff Count', style: { color: '#111827', fontWeight: '500', fontSize: '13px' } },
       gridLineWidth: 1,
       gridLineDashStyle: 'Dash',
       gridLineColor: '#D1D5DB',
@@ -64,31 +56,44 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
         dataLabels: { enabled: true },
       },
     },
+    tooltip: {
+      shared: true,
+      headerFormat: '<b>{point.key}</b><br/>',
+      pointFormat: '{series.name}: {point.y} FTE<br/>'
+    },
     series: [],
   };
 
   constructor(private render: Renderer2, private mockService: MockDataService) {}
 
   ngOnInit() {
-    // ✅ Load JSON file
+    console.log('🔍 Loading JSON...');
     this.mockService.getSkillSupplyProficiency().subscribe({
       next: (data: any[]) => {
-        console.log('✅ Loaded JSON:', data);
+        console.log('✅ Loaded JSON Data:', data);
 
-        // Expecting JSON structure like:
-        // [
-        //   {"level": "Level 1", "Awareness": 33, "Skilled": 56, "Advanced": 30, "Expert": 69},
-        //   {"level": "Level 2", "Awareness": 6,  "Skilled": 45, "Advanced": 5,  "Expert": 76},
-        //   ...
-        // ]
+        if (!data || !Array.isArray(data)) {
+          console.error('❌ JSON is not an array or empty');
+          return;
+        }
+
+        // Ensure correct keys exist
+        if (!('Awareness' in data[0])) {
+          console.error('❌ JSON keys not matching expected structure (Awareness, Skilled, Advanced, Expert)');
+          console.log('Received keys:', Object.keys(data[0]));
+          return;
+        }
 
         this.allCategories = data.map((d) => d.level);
-        const awareness = data.map((d) => d.Awareness);
-        const skilled = data.map((d) => d.Skilled);
-        const advanced = data.map((d) => d.Advanced);
-        const expert = data.map((d) => d.Expert);
+        const awareness = data.map((d) => Number(d.Awareness));
+        const skilled = data.map((d) => Number(d.Skilled));
+        const advanced = data.map((d) => Number(d.Advanced));
+        const expert = data.map((d) => Number(d.Expert));
 
         this.allSeriesData = [awareness, skilled, advanced, expert];
+        console.log('📊 Categories:', this.allCategories);
+        console.log('📊 Series data:', this.allSeriesData);
+
         this.updateChart();
       },
       error: (err) => console.error('❌ Error loading JSON:', err),
@@ -120,6 +125,8 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
         data,
       })),
     };
+
+    console.log('✅ Chart updated with:', this.chartOptions);
   }
 
   onLeftClick() {
@@ -138,11 +145,9 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
 
   fullPageView() {
     this.fullview = !this.fullview;
-    if (this.fullview) {
-      this.render.addClass(document.body, 'no-scroll');
-    } else {
-      this.render.removeClass(document.body, 'no-scroll');
-    }
+    this.fullview
+      ? this.render.addClass(document.body, 'no-scroll')
+      : this.render.removeClass(document.body, 'no-scroll');
   }
 }
 
