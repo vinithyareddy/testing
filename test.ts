@@ -23,12 +23,12 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
   constructor(private render: Renderer2, private mockService: MockDataService) {}
 
   ngOnInit() {
-    this.mockService.getSkillSupplyProficiency().subscribe((data) => {
-      console.log('Skill Supply Data:', data);
-      // Normalize JSON to expected structure
-      this.chartData = data.map((item: any) => ({
-        proficiency: item.proficiency,
-        fte: Number(item.fte)
+    // ✅ Load data from JSON instead of static
+    this.mockService.getSkillSupplyProficiency().subscribe((data: any[]) => {
+      console.log('Skill Supply JSON:', data);
+      this.chartData = data.map((d: any) => ({
+        proficiency: d.proficiency,
+        fte: Number(d.fte)
       }));
       this.loadChart();
     });
@@ -38,28 +38,36 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
     if (!this.chartData || this.chartData.length === 0) return;
 
     this.chartOptions = {
-      chart: { type: 'column', backgroundColor: 'transparent' },
-      title: { text: 'Skill Supply by Proficiency Level' },
+      chart: {
+        type: 'bar', // keep your original look if it was bar
+        backgroundColor: 'transparent'
+      },
+      title: { text: 'Skill Supply by Volume (FTE) and Proficiency Level' },
       credits: { enabled: false },
       xAxis: {
         categories: this.chartData.map(d => d.proficiency),
         title: { text: 'Proficiency Level' },
-        labels: { style: { color: '#333', fontSize: '12px' } }
+        labels: { style: { color: '#444' } }
       },
       yAxis: {
+        min: 0,
         title: { text: 'FTE Count' },
-        gridLineColor: '#e6e6e6'
+        labels: { style: { color: '#444' } }
       },
       plotOptions: {
-        column: {
+        bar: {
           borderWidth: 0,
-          dataLabels: { enabled: true, format: '{y}', color: '#333' }
+          dataLabels: {
+            enabled: true,
+            format: '{y}',
+            color: '#222'
+          }
         }
       },
       series: [
         {
-          type: 'column',
-          name: 'Skill Supply (FTE)',
+          type: 'bar',
+          name: 'FTE',
           data: this.chartData.map(d => d.fte),
           colorByPoint: true,
           colors: ['#85CAF7', '#95DAD9', '#A392D3', '#6B70AF']
@@ -75,6 +83,8 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
       : this.render.removeClass(document.body, 'no-scroll');
   }
 }
+
+
 
 
 import { CommonModule } from '@angular/common';
@@ -103,10 +113,9 @@ export class SwfpByGenderComponent implements OnInit {
   constructor(private render: Renderer2, private mockService: MockDataService) {}
 
   ngOnInit(): void {
-    this.mockService.getWorkforceByGender().subscribe((data) => {
-      console.log('Gender Data:', data);
-      // Normalize JSON to expected structure for Highcharts
-      this.genderData = data.map((item: any) => ({
+    this.mockService.getWorkforceByGender().subscribe((data: any[]) => {
+      console.log('Gender JSON:', data);
+      this.genderData = data.map((item) => ({
         name: item.name,
         y: Number(item.value)
       }));
@@ -122,13 +131,20 @@ export class SwfpByGenderComponent implements OnInit {
   loadChart(): void {
     if (!this.genderData || this.genderData.length === 0) return;
 
-    const totalCount = this.genderData.reduce((sum, item) => sum + item.y, 0);
+    const total = this.genderData.reduce((sum, d) => sum + d.y, 0);
 
     this.chartOptions = {
-      chart: { type: 'pie', backgroundColor: 'transparent' },
+      chart: {
+        type: 'pie',
+        backgroundColor: 'transparent',
+        spacingTop: 10,
+        spacingBottom: 10
+      },
       title: {
-        text: `<span style="font-size:22px;font-weight:bold">${totalCount}</span><br/><span style="font-size:12px">Workforce Supply (FTE) by Gender</span>`,
-        useHTML: true
+        verticalAlign: 'middle',
+        floating: true,
+        useHTML: true,
+        text: `<span style="font-size:30px;font-weight:bold">${total}</span><br/><span style="font-size:12px">By Gender</span>`
       },
       tooltip: { pointFormat: '<b>{point.y}</b> ({point.percentage:.0f}%)' },
       credits: { enabled: false },
@@ -139,8 +155,13 @@ export class SwfpByGenderComponent implements OnInit {
           showInLegend: true,
           dataLabels: {
             enabled: true,
-            format: '{point.name}: {point.y}'
-          }
+            distance: 5,
+            format: '{point.name}: {point.y}',
+            style: { fontSize: '12px' }
+          },
+          ...(this.widgetType === 'ch'
+            ? { startAngle: -90, endAngle: 90, center: ['50%', '75%'], size: '140%' }
+            : { startAngle: 0, endAngle: 360, center: ['50%', '50%'], size: '120%' })
         }
       },
       series: [
