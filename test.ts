@@ -16,7 +16,7 @@ import { MockDataService } from 'app/services/mock-data.service';
     FormsModule,
     HttpClientModule,
     LiftPopoverComponent,
-    HighchartsChartModule,
+    HighchartsChartModule
   ],
   styleUrls: ['./ss-by-volume-proficiency-level.component.scss']
 })
@@ -24,7 +24,7 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
   fullview = false;
   viewMode: 'chart' | 'table' = 'chart';
   Highcharts: typeof Highcharts = Highcharts;
-  updateFlag = false;
+  updateFlag = false;   // 👈 tells Angular to refresh chart
 
   pageSize = 9;
   currentPage = 0;
@@ -38,31 +38,39 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
     credits: { enabled: false },
     xAxis: {
       categories: [],
-      title: { text: '', style: { color: '#111827', fontWeight: '500', fontSize: '13px' } },
-      labels: { style: { color: '#111827', fontWeight: '600', fontSize: '12px' } },
-      lineWidth: 0,
+      title: {
+        text: '',
+        style: { color: '#111827', fontWeight: '500', fontSize: '13px' },
+      },
+      labels: {
+        style: { color: '#111827', fontWeight: '600', fontSize: '12px' }
+      },
+      lineWidth: 0
     },
     yAxis: {
       min: 0,
-      title: { text: 'Staff Count', style: { color: '#111827', fontWeight: '500', fontSize: '13px' } },
+      title: {
+        text: 'Staff Count',
+        style: { color: '#111827', fontWeight: '500', fontSize: '13px' },
+      },
       gridLineWidth: 1,
       gridLineDashStyle: 'Dash',
-      gridLineColor: '#D1D5DB',
+      gridLineColor: '#D1D5DB'
     },
     plotOptions: {
       column: {
         groupPadding: 0.2,
         pointPadding: 0.05,
         borderWidth: 0,
-        dataLabels: { enabled: true },
-      },
+        dataLabels: { enabled: true }
+      }
     },
     tooltip: {
       shared: true,
       headerFormat: '<b>{point.key}</b><br/>',
       pointFormat: '{series.name}: {point.y} FTE<br/>'
     },
-    series: [],
+    series: []
   };
 
   constructor(
@@ -71,65 +79,57 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
     private cdr: ChangeDetectorRef
   ) {}
 
-  ngOnInit() {
-    console.log('🔍 Fetching JSON...');
+  ngOnInit(): void {
+    // ✅ Load data from JSON
     this.mockService.getSkillSupplyProficiency().subscribe({
       next: (data: any[]) => {
-        console.log('✅ JSON Data:', data);
-
         if (!Array.isArray(data) || !data.length) {
-          console.error('❌ Invalid JSON format or empty file.');
+          console.error('Invalid or empty JSON');
           return;
         }
 
-        // Expected keys: Level, Awareness, Skilled, Advanced, Expert
         this.allCategories = data.map(d => d.level);
         const awareness = data.map(d => Number(d.Awareness));
         const skilled = data.map(d => Number(d.Skilled));
         const advanced = data.map(d => Number(d.Advanced));
         const expert = data.map(d => Number(d.Expert));
-
         this.allSeriesData = [awareness, skilled, advanced, expert];
-        console.log('📊 Series prepared:', this.allSeriesData);
 
-        // Force refresh AFTER Angular detects change
+        // Delay rendering slightly to let Angular load chart component
         setTimeout(() => {
           this.updateChart();
-          this.updateFlag = true;
-          this.cdr.detectChanges();
-        }, 0);
+        }, 100);
       },
-      error: (err) => console.error('❌ JSON Load Error:', err),
+      error: (err) => console.error('JSON Load Error:', err)
     });
   }
 
-  updateChart() {
+  updateChart(): void {
     const start = this.currentPage * this.pageSize;
     const end = Math.min(start + this.pageSize, this.allCategories.length);
-
     const pageCategories = this.allCategories.slice(start, end);
     const pageSeriesData = this.allSeriesData.map(s => s.slice(start, end));
 
     const seriesNames = ['Awareness', 'Skilled', 'Advanced', 'Expert'];
     const colors = ['#85CAF7', '#95DAD9', '#A392D3', '#6B70AF'];
 
+    // ✅ Assign chart options
     this.chartOptions = {
       ...this.chartOptions,
-      xAxis: {
-        ...(this.chartOptions.xAxis as Highcharts.XAxisOptions),
-        categories: pageCategories,
-      },
+      xAxis: { ...(this.chartOptions.xAxis as Highcharts.XAxisOptions), categories: pageCategories },
       series: pageSeriesData.map((data, idx) => ({
         type: 'column',
         pointWidth: 22,
         name: seriesNames[idx],
         color: colors[idx],
         showInLegend: true,
-        data,
-      })),
+        data
+      }))
     };
 
-    console.log('✅ Chart Options Updated:', this.chartOptions);
+    // ✅ Trigger redraw
+    this.updateFlag = true;
+    this.cdr.detectChanges();
   }
 
   onLeftClick() {
