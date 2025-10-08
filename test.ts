@@ -1,19 +1,15 @@
 [
     {
-      "proficiency": "Expert",
-      "fte": 320
+      "name": "Male",
+      "value": 210
     },
     {
-      "proficiency": "Advanced",
-      "fte": 260
+      "name": "Female",
+      "value": 180
     },
     {
-      "proficiency": "Intermediate",
-      "fte": 190
-    },
-    {
-      "proficiency": "Beginner",
-      "fte": 95
+      "name": "Other / Unspecified",
+      "value": 25
     }
   ]
   
