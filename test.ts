@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
-import { Component, OnInit, Renderer2, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, Renderer2, ChangeDetectorRef, AfterViewInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LiftPopoverComponent } from '@lift/ui';
 import Highcharts from 'highcharts';
@@ -20,14 +20,13 @@ import { MockDataService } from 'app/services/mock-data.service';
   ],
   styleUrls: ['./ss-by-volume-proficiency-level.component.scss']
 })
-export class SsByVolumeProficiencyLevelComponent implements OnInit {
+export class SsByVolumeProficiencyLevelComponent implements OnInit, AfterViewInit {
   fullview = false;
-  viewMode: 'chart' | 'table' = 'chart';
   Highcharts: typeof Highcharts = Highcharts;
-
+  chartOptions!: Highcharts.Options;
   categories: string[] = [];
   dataSeries: number[] = [];
-  chartOptions: Highcharts.Options = {};
+  isChartReady = false;
 
   constructor(
     private render: Renderer2,
@@ -36,20 +35,36 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    // ✅ Load data from JSON file (mock until API is connected)
-    this.mockService.getSkillSupplyProficiency().subscribe((data: any[]) => {
-      console.log('Proficiency JSON Data:', data);
+    this.loadData();
+  }
 
-      if (data && data.length) {
-        this.categories = data.map(d => d.proficiency || d.name);
-        this.dataSeries = data.map(d => Number(d.fte || d.value));
-        this.loadChart();
-        this.cdr.detectChanges(); // ✅ Ensures Angular detects the change
-      }
+  ngAfterViewInit(): void {
+    // 🟢 If chart initialized after view load, redraw once
+    setTimeout(() => {
+      if (this.isChartReady) this.cdr.detectChanges();
+    }, 200);
+  }
+
+  loadData() {
+    this.mockService.getSkillSupplyProficiency().subscribe({
+      next: (data: any[]) => {
+        console.log('✅ JSON Loaded:', data);
+
+        if (data && data.length) {
+          this.categories = data.map((d) => d.proficiency || d.name);
+          this.dataSeries = data.map((d) => Number(d.fte || d.value));
+          this.loadChart();
+          this.isChartReady = true;
+          this.cdr.detectChanges(); // force angular refresh
+        } else {
+          console.warn('⚠️ No data in JSON file');
+        }
+      },
+      error: (err) => console.error('❌ Error loading JSON:', err)
     });
   }
 
-  private loadChart() {
+  loadChart() {
     const colors = ['#85CAF7', '#95DAD9', '#A392D3', '#6B70AF'];
 
     this.chartOptions = {
@@ -58,6 +73,7 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
         backgroundColor: 'transparent',
         spacingTop: 10,
         spacingBottom: 20,
+        animation: true
       },
       title: { text: '' },
       credits: { enabled: false },
@@ -82,7 +98,6 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
         gridLineDashStyle: 'Dash',
         gridLineColor: '#D1D5DB'
       },
-      legend: { enabled: false },
       plotOptions: {
         column: {
           groupPadding: 0.2,
@@ -94,6 +109,7 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
           }
         }
       },
+      legend: { enabled: false },
       series: [
         {
           type: 'column',
@@ -108,14 +124,8 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
 
   fullPageView() {
     this.fullview = !this.fullview;
-    if (this.fullview) {
-      this.render.addClass(document.body, 'no-scroll');
-    } else {
-      this.render.removeClass(document.body, 'no-scroll');
-    }
+    this.fullview
+      ? this.render.addClass(document.body, 'no-scroll')
+      : this.render.removeClass(document.body, 'no-scroll');
   }
-
-  // Optional pagination handlers (if you plan to enable arrows later)
-  onLeftClick() {}
-  onRightClick() {}
 }
