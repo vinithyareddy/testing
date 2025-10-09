@@ -6,114 +6,112 @@ ngAfterViewInit() {
   ).subscribe((x: string) => {
     console.log("filters", x);
     
-    // Call API and handle response
-    this.apiService.getWidgetData(this.widgetId).subscribe((response) => {
-      console.log("API Response => ", response);
+    // Call API
+    this.apiService.getWidgetData(this.widgetId).subscribe((response: any) => {
+      console.log("=== API Response ===", response);
       
-      // Check if response has data
-      if (response && response.data && response.data.length > 0) {
-        this.processLocationData(response.data);
+      // Get the array from response
+      let apiData: any[] = [];
+      if (Array.isArray(response)) {
+        apiData = response;
+      } else if (response && response.data) {
+        apiData = response.data;
+      }
+      
+      console.log("=== API Data Array ===", apiData);
+      
+      if (apiData && apiData.length > 0) {
+        this.loadCountryCodesAndProcess(apiData);
       } else {
-        console.warn("No data received from API");
-        // Fallback to static data if API fails
+        console.warn("No API data, loading static data");
         this.loadData();
       }
-    }, (error) => {
+    }, (error: any) => {
       console.error("API Error:", error);
-      // Fallback to static data if API fails
       this.loadData();
     });
   });
 
   this.setupResizeObserver();
   this.initializeGlobe();
-  // Note: loadData() is now called only if API fails
 }
 
-private processLocationData(apiData: any[]): void {
-  console.log("Processing location data from API:", apiData);
+private loadCountryCodesAndProcess(apiData: any[]): void {
+  console.log("=== Step 1: Loading JSON for country codes ===");
   
-  // Load your existing world-globe-data.json which has coordinates and codes
-  this.http.get<any>('assets/json/world-globe-data.json').subscribe(staticData => {
-    console.log("Static country data loaded:", staticData);
+  // Load your JSON to get country codes
+  this.http.get<any>('assets/json/world-globe-data.json').subscribe(jsonData => {
+    console.log("=== Step 2: JSON loaded ===", jsonData);
     
-    // Create a map for quick lookup - key is country name (lowercase for matching)
-    const apiDataMap = new Map();
-    apiData.forEach(item => {
-      const countryName = (item.duty_country_descr || item.country || '').trim();
-      if (countryName) {
-        apiDataMap.set(countryName.toLowerCase(), {
-          uniqueSkills: item.unique_skill_cnt || 0,
-          skillSupply: item.skill_supply_fte || 0
+    // Create a simple map: Country Name -> Country Code
+    const nameToCodeMap = new Map<string, any>();
+    jsonData.countries.forEach((country: any) => {
+      const lowerName = country.name.toLowerCase().trim();
+      nameToCodeMap.set(lowerName, {
+        code: country.code,
+        lat: country.lat,
+        lng: country.lng,
+        region: country.region
+      });
+    });
+    
+    console.log("=== Step 3: Name to Code map created, size:", nameToCodeMap.size);
+    
+    // Now process API data
+    this.countriesList = [];
+    
+    apiData.forEach((item: any) => {
+      const countryName = item.duty_country_descr || '';
+      const uniqueSkills = item.unique_skill_cnt || 0;
+      const skillSupply = item.skill_supply_fte || 0;
+      
+      console.log(`Processing: ${countryName} - Skills: ${uniqueSkills}, Supply: ${skillSupply}`);
+      
+      // Find matching country in JSON
+      const countryInfo = nameToCodeMap.get(countryName.toLowerCase().trim());
+      
+      if (countryInfo) {
+        console.log(`✓ Matched: ${countryName} -> Code: ${countryInfo.code}`);
+        
+        this.countriesList.push({
+          country: countryName,
+          code: countryInfo.code,
+          region: countryInfo.region,
+          uniqueSkills: uniqueSkills,
+          skillSupply: skillSupply,
+          lat: countryInfo.lat,
+          lng: countryInfo.lng
         });
+      } else {
+        console.warn(`✗ NOT MATCHED: ${countryName} - not found in JSON`);
       }
     });
     
-    console.log("API data map created, size:", apiDataMap.size);
+    console.log("=== Step 4: Final countries list ===", this.countriesList);
+    console.log("=== Total matched countries:", this.countriesList.length);
     
-    // Merge API data with static data
-    this.countriesList = staticData.countries.map((c: any) => {
-      const countryNameLower = c.name.toLowerCase();
-      const apiInfo = apiDataMap.get(countryNameLower);
-      
-      return {
-        country: c.name,
-        code: c.code,
-        region: c.region,
-        uniqueSkills: apiInfo ? apiInfo.uniqueSkills : 0,
-        skillSupply: apiInfo ? apiInfo.skillSupply : 0,
-        lat: c.lat,
-        lng: c.lng
-      };
-    }).filter((c: any) => c.uniqueSkills > 0 || c.skillSupply > 0); // Only show countries with data
-    
-    console.log("Final countries list with API data, count:", this.countriesList.length);
-    
-    // If no countries have data, show warning
     if (this.countriesList.length === 0) {
-      console.warn("No matching countries found between API and static data");
-      // Fallback to static data
+      console.error("NO COUNTRIES MATCHED! Loading static data as fallback");
       this.loadData();
       return;
     }
     
-    // Update color scale based on actual data
-    const minSkills = d3.min(this.countriesList, (d: any) => d.uniqueSkills) || 0;
-    const maxSkills = d3.max(this.countriesList, (d: any) => d.uniqueSkills) || 1;
-    this.countryColorScale = d3.scaleLinear<string>()
-      .domain([
-        minSkills, 
-        (minSkills + maxSkills) * 0.25, 
-        (minSkills + maxSkills) * 0.5, 
-        (minSkills + maxSkills) * 0.75, 
-        maxSkills
-      ])
-      .range([
-        '#f5f0e4',
-        '#dbd5c8ff',
-        '#bed8ceff',
-        '#99c5b4ff',
-        '#87c3ab'
-      ]);
-    
+    // Update the display
     this.filteredList = [...this.countriesList];
+    
+    // Draw everything
     this.initializeCountryLabels();
     this.drawCountries();
     this.drawOceans();
     this.drawEquator();
     this.startRotation();
-    
-    // Load states and oceans data
     this.loadStatesAndOceans();
-  }, (error) => {
-    console.error("Error loading static data:", error);
-    // Fallback to old method
-    this.loadData();
+    
+    console.log("=== DONE! Countries displayed ===");
   });
 }
 
 private loadStatesAndOceans(): void {
-  // Load states data
   this.http.get<any>('assets/json/globe-states.json').subscribe(data => {
     this.states = topojson.feature(
       data,
@@ -123,7 +121,6 @@ private loadStatesAndOceans(): void {
     this.drawStates();
   });
   
-  // Load oceans data
   this.http.get<any>('assets/json/oceans.json').subscribe(data => {
     this.oceans = data;
     this.drawOceans();
