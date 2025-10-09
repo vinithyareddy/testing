@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
-import { Component, Renderer2, OnInit, NgZone, AfterViewInit } from '@angular/core';
+import { Component, Renderer2, OnInit, AfterViewInit, NgZone, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LiftPopoverComponent } from '@lift/ui';
 import Highcharts from 'highcharts';
@@ -18,64 +18,77 @@ import { MockDataService } from 'app/services/mock-data.service';
     LiftPopoverComponent,
     HighchartsChartModule,
   ],
-  styleUrls: ['./ss-by-volume-proficiency-level.component.scss']
+  styleUrls: ['./ss-by-volume-proficiency-level.component.scss'],
 })
 export class SsByVolumeProficiencyLevelComponent implements OnInit, AfterViewInit {
-
-  fullview = false;
-  viewMode: 'chart' | 'table' = 'chart';
   Highcharts: typeof Highcharts = Highcharts;
   chartOptions: Highcharts.Options = {};
-  private chartRef: Highcharts.Chart | undefined;
+  chartRef: Highcharts.Chart | undefined;
 
   constructor(
-    private render: Renderer2,
     private mockService: MockDataService,
-    private zone: NgZone
+    private zone: NgZone,
+    private cdr: ChangeDetectorRef,
+    private renderer: Renderer2
   ) {}
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.loadChartData();
   }
 
   ngAfterViewInit(): void {
-    // Wait until dashboard fully stabilizes, then force redraw
+    // Double trigger redraw once layout is ready
     setTimeout(() => {
-      if (this.chartRef) {
-        this.chartRef.reflow();
-        this.chartRef.redraw();
-        console.log('✅ Chart reflowed after view init');
-      }
-    }, 1200);
+      this.triggerReflow();
+    }, 1000);
+
+    // Also trigger again after 3 seconds for safety (dashboard fully loaded)
+    setTimeout(() => {
+      this.triggerReflow();
+    }, 3000);
   }
 
-  private loadChartData() {
+  private triggerReflow(): void {
+    if (this.chartRef) {
+      this.chartRef.reflow();
+      this.chartRef.redraw();
+      console.log('✅ Chart force reflow triggered');
+    }
+  }
+
+  private loadChartData(): void {
     this.mockService.getSkillSupplyProficiency().subscribe({
       next: (data: any[]) => {
         console.log('✅ JSON Loaded:', data);
-        if (!data || !data.length) return;
+        if (!data?.length) return;
 
         const categories = data.map((d) => d.level);
-        const awareness = data.map((d) => d.Awareness);
-        const skilled = data.map((d) => d.Skilled);
-        const advanced = data.map((d) => d.Advanced);
-        const expert = data.map((d) => d.Expert);
-
         const colors = ['#85CAF7', '#95DAD9', '#A392D3', '#6B70AF'];
+        const seriesNames = ['Awareness', 'Skilled', 'Advanced', 'Expert'];
+        const series = seriesNames.map((key, i) => ({
+          type: 'column' as const,
+          name: key,
+          color: colors[i],
+          pointWidth: 22,
+          data: data.map((d) => d[key]),
+        }));
 
-        this.zone.runOutsideAngular(() => {
+        this.zone.run(() => {
           this.chartOptions = {
             chart: {
               type: 'column',
+              backgroundColor: 'transparent',
+              animation: true,
+              style: { fontFamily: 'Inter, sans-serif' },
               events: {
                 load: function () {
                   const chart = this as Highcharts.Chart;
                   setTimeout(() => {
                     chart.reflow();
                     chart.redraw();
-                  }, 500);
-                }
-              }
+                  }, 300);
+                },
+              },
             },
             title: { text: '' },
             credits: { enabled: false },
@@ -83,30 +96,29 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit, AfterViewIni
               categories,
               title: { text: '' },
               labels: {
-                style: { color: '#111827', fontWeight: '600', fontSize: '12px' }
+                style: { color: '#111827', fontWeight: '600', fontSize: '12px' },
               },
-              lineWidth: 0
+              lineWidth: 0,
             },
             yAxis: {
               min: 0,
               title: {
                 text: 'Staff Count',
-                style: { color: '#111827', fontWeight: '500', fontSize: '13px' }
+                style: { color: '#111827', fontWeight: '500', fontSize: '13px' },
               },
-              gridLineWidth: 1,
               gridLineDashStyle: 'Dash',
-              gridLineColor: '#D1D5DB'
+              gridLineColor: '#D1D5DB',
             },
             legend: {
               align: 'center',
               verticalAlign: 'bottom',
               layout: 'horizontal',
-              itemStyle: { fontSize: '13px', fontWeight: '500' }
+              itemStyle: { fontSize: '13px', fontWeight: '500' },
             },
             tooltip: {
               shared: true,
               headerFormat: '<b>{point.key}</b><br/>',
-              pointFormat: '{series.name}: {point.y} FTE<br/>'
+              pointFormat: '{series.name}: {point.y} FTE<br/>',
             },
             plotOptions: {
               column: {
@@ -115,37 +127,33 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit, AfterViewIni
                 borderWidth: 0,
                 dataLabels: {
                   enabled: true,
-                  style: { fontSize: '11px', color: '#111827' }
-                }
-              }
+                  style: { fontSize: '11px', color: '#111827' },
+                },
+              },
             },
-            series: [
-              { type: 'column', name: 'Awareness', color: colors[0], pointWidth: 22, data: awareness },
-              { type: 'column', name: 'Skilled', color: colors[1], pointWidth: 22, data: skilled },
-              { type: 'column', name: 'Advanced', color: colors[2], pointWidth: 22, data: advanced },
-              { type: 'column', name: 'Expert', color: colors[3], pointWidth: 22, data: expert }
-            ]
+            series: series,
           };
+          this.cdr.detectChanges();
         });
       },
-      error: (err) => console.error('❌ Error loading JSON:', err)
+      error: (err) => console.error('❌ Error loading JSON:', err),
     });
-  }
-
-  fullPageView() {
-    this.fullview = !this.fullview;
-    this.fullview
-      ? this.render.addClass(document.body, 'no-scroll')
-      : this.render.removeClass(document.body, 'no-scroll');
   }
 }
 
 
-<div style="width: 100%; height: 400px;">
-  <highcharts-chart
-    [Highcharts]="Highcharts"
-    [options]="chartOptions"
-    (chartInstance)="chartRef = $event"
-    style="width: 100%; height: 100%; display: block;"
-  ></highcharts-chart>
-</div>
+#skill-supply-chart {
+    width: 100%;
+    height: 400px;
+    min-height: 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  :host ::ng-deep highcharts-chart {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+  }
+  
