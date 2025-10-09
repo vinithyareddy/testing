@@ -1,22 +1,20 @@
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
-import { Component, Renderer2, DestroyRef, inject, OnInit } from '@angular/core';
+import { Component, Renderer2, DestroyRef, inject, OnInit, AfterViewInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LiftPopoverComponent } from '@lift/ui';
 import Highcharts from 'highcharts';
 import { HighchartsChartModule } from 'highcharts-angular';
-
-// 🔹 New imports for dynamic data integration
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Store } from '@ngrx/store';
 import { SwfpFilterState } from 'app/core/swfp-filter-state/swfp-filter-state';
 import { selectEncodedFilter } from 'app/core/swfp-filter-state/swfp-filters.selectors';
+import * as _ from 'lodash';
+import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { SwfpApiService } from 'app/modules/shared/swfp-shared/services/swfp-api.service';
 import { SwfpQueryBuilderService } from 'app/modules/shared/swfp-shared/services/swfp-query-builder.service';
 import { SwfpFilterService } from 'app/modules/shared/swfp-shared/services/swfp-filter.service';
 import { SwfpModuleEnum } from 'app/enums/swfp-module.enum';
-import * as _ from 'lodash';
-import { debounceTime, distinctUntilChanged } from 'rxjs';
 
 @Component({
   selector: 'app-ss-by-volume-proficiency-level',
@@ -31,7 +29,12 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
   ],
   styleUrl: './ss-by-volume-proficiency-level.component.scss'
 })
-export class SsByVolumeProficiencyLevelComponent implements OnInit {
+export class SsByVolumeProficiencyLevelComponent implements OnInit, AfterViewInit {
+
+  widgetId: string = 'SSSI_1';
+  module: string = SwfpModuleEnum.HC_WF;
+  public fiterDataFromUrl$ = this.store.select(selectEncodedFilter);
+  private destroyRef = inject(DestroyRef);
 
   fullview = false;
   viewMode: 'chart' | 'table' = 'chart';
@@ -44,12 +47,6 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
     public apiService: SwfpApiService
   ) {}
 
-  // 🔹 Widget and integration config
-  widgetId: string = 'SSSI_1'; // Unique ID for this widget
-  module: string = SwfpModuleEnum.HC_WF;
-  public fiterDataFromUrl$ = this.store.select(selectEncodedFilter);
-  private destroyRef = inject(DestroyRef);
-
   Highcharts: typeof Highcharts = Highcharts;
 
   pageSize = 9;
@@ -57,7 +54,6 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
 
   allCategories: string[] = [];
   allSeriesData: number[][] = [[], [], [], []];
-
   legendText = '';
 
   chartOptions: Highcharts.Options = {
@@ -96,7 +92,6 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
     series: []
   };
 
-  // 🔹 Dynamic data fetching and chart update
   ngOnInit() {
     this.fiterDataFromUrl$
       .pipe(
@@ -104,43 +99,35 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
         debounceTime(100),
         takeUntilDestroyed(this.destroyRef)
       )
-      .subscribe((filters: string) => {
-        console.log('Filters:', filters);
-        this.fetchWidgetData();
+      .subscribe((x: string) => {
+        console.log('filters', x);
+
+        this.apiService.getWidgetData(this.widgetId).subscribe((x) => {
+          console.log('API Response => ', x);
+        });
       });
+
+    // Static dummy data for now
+    const n = 9;
+    this.allCategories = Array.from({ length: n }, (_, i) => `Level ${i + 1}`);
+    this.allSeriesData = [
+      Array.from({ length: n }, () => Math.floor(Math.random() * 100)),
+      Array.from({ length: n }, () => Math.floor(Math.random() * 100)),
+      Array.from({ length: n }, () => Math.floor(Math.random() * 100)),
+      Array.from({ length: n }, () => Math.floor(Math.random() * 100)),
+    ];
   }
 
-  // 🔹 API call for widget data
-  fetchWidgetData() {
-    this.apiService.getWidgetData(this.widgetId).subscribe({
-      next: (response: any) => {
-        console.log('API Response =>', response);
-        this.handleApiResponse(response);
-      },
-      error: (err) => {
-        console.error('Error fetching widget data:', err);
-      }
-    });
+  ngAfterViewInit(): void {
+    setTimeout(() => {
+      this.onInitLoad(this.allSeriesData);
+    }, 100);
   }
 
-  // 🔹 Handle backend response and update chart
-  handleApiResponse(response: any) {
-    const data = response?.data || [];
-
-    // Example mapping — adjust based on actual backend structure
-    this.allCategories = data.map((d: any) => d.proficiencyLevel || 'N/A');
-
-    const awareness = data.map((d: any) => d.awarenessCount ?? 0);
-    const skilled = data.map((d: any) => d.skilledCount ?? 0);
-    const advanced = data.map((d: any) => d.advancedCount ?? 0);
-    const expert = data.map((d: any) => d.expertCount ?? 0);
-
-    this.allSeriesData = [awareness, skilled, advanced, expert];
-
+  onInitLoad(data: any[]): void {
     this.updateChart();
   }
 
-  // 🔹 Existing chart rendering logic
   updateChart() {
     const start = this.currentPage * this.pageSize;
     const end = Math.min(start + this.pageSize, this.allCategories.length);
@@ -167,10 +154,6 @@ export class SsByVolumeProficiencyLevelComponent implements OnInit {
       }))
     };
   }
-
-  // 🔹 View and UI methods
-  onLeftClick() {}
-  onRightClick() {}
 
   fullPageView() {
     this.fullview = !this.fullview;
