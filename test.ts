@@ -1,37 +1,3 @@
-private loadMockData(): void {
-  console.log("Loading mock data for demonstration");
-  
-  // Create mock data with skill names and proficiency levels
-  const mockSkills = [
-    'Java', 'Python', 'JavaScript', 'Angular', 'React', 
-    'SQL', 'MongoDB', 'AWS', 'Docker', 'Kubernetes',
-    'TypeScript', 'Node.js'
-  ];
-  
-  const proficiencyLevels = ['Awareness', 'Skilled', 'Advanced', 'Expert'];
-  
-  // Generate mock API response format
-  const mockApiData: any[] = [];
-  
-  mockSkills.forEach(skill => {
-    proficiencyLevels.forEach(proficiency => {
-      // Random FTE count between 10 and 100
-      const fte = Math.floor(Math.random() * 90) + 10;
-      mockApiData.push({
-        fiscal_year: '2025',
-        skill_name: skill,
-        proficiency: proficiency,
-        fte: fte
-      });
-    });
-  });
-  
-  console.log("Mock API data created:", mockApiData);
-  
-  // Process the mock data using the same method
-  this.processSkillProficiencyData(mockApiData);
-}
-
 ngOnInit() {
   this.fiterDataFromUrl$.pipe(
     distinctUntilChanged((prev, curr) => _.isEqual(prev, curr)),
@@ -72,4 +38,39 @@ ngOnInit() {
       this.loadMockData();
     });
   });
+}
+
+
+private loadMockData(): void {
+  console.log("Loading mock data for demonstration");
+  
+  // Create mock data with skill names and proficiency levels
+  const mockSkills = [
+    'Java', 'Python', 'JavaScript', 'Angular', 'React', 
+    'SQL', 'MongoDB', 'AWS', 'Docker', 'Kubernetes',
+    'TypeScript', 'Node.js'
+  ];
+  
+  const proficiencyLevels = ['Awareness', 'Skilled', 'Advanced', 'Expert'];
+  
+  // Generate mock API response format
+  const mockApiData: any[] = [];
+  
+  mockSkills.forEach(skill => {
+    proficiencyLevels.forEach(proficiency => {
+      // Random FTE count between 10 and 100
+      const fte = Math.floor(Math.random() * 90) + 10;
+      mockApiData.push({
+        fiscal_year: '2025',
+        skill_name: skill,
+        proficiency: proficiency,
+        fte: fte
+      });
+    });
+  });
+  
+  console.log("Mock API data created:", mockApiData);
+  
+  // Process the mock data using the same method
+  this.processSkillProficiencyData(mockApiData);
 }
