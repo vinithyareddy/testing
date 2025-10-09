@@ -1,90 +1,81 @@
-updateChart() {
-  const start = this.currentPage * this.pageSize;
-  const end = Math.min(start + this.pageSize, this.allCategories.length);
-
-  const pageCategories = this.allCategories.slice(start, end);
-  const pageSeriesData = this.allSeriesData.map(s => s.slice(start, end));
-
-  const seriesNames = ['Awareness', 'Skilled', 'Advanced', 'Expert'];
-  const colors = ['#85CAF7', '#95DAD9', '#A392D3', '#6B70AF'];
-
-  // Make sure we have data before updating
-  if (pageCategories.length === 0) {
-    console.log("No categories to display");
-    return;
-  }
-
-  console.log("Updating chart with categories:", pageCategories);
-  console.log("Updating chart with series data:", pageSeriesData);
-
-  this.chartOptions = {
-    chart: { 
-      type: 'column',
-      height: 330
-    },
-    title: { text: '' },
-    credits: { enabled: false },
-    xAxis: {
-      categories: pageCategories,
-      title: {
-        text: '',
-        style: { color: '#111827', fontWeight: '500', fontSize: '13px' }
-      },
-      labels: {
-        style: { color: '#111827', fontWeight: '600', fontSize: '12px' }
-      },
-      lineWidth: 0
-    },
-    yAxis: {
-      min: 0,
-      title: {
-        text: 'Staff Count',
-        style: { color: '#111827', fontWeight: '500', fontSize: '13px' }
-      },
-      gridLineWidth: 1,
-      gridLineDashStyle: 'Dash',
-      gridLineColor: '#D1D5DB'
-    },
-    plotOptions: {
-      column: {
-        groupPadding: 0.2,
-        pointPadding: 0.05,
-        pointWidth: 22,
-        borderWidth: 0,
-        dataLabels: { 
-          enabled: true,
-          style: {
-            fontSize: '11px',
-            fontWeight: '500'
-          }
-        }
-      }
-    },
-    legend: {
-      layout: 'horizontal',
-      align: 'center',
-      verticalAlign: 'bottom',
-      itemStyle: {
-        fontSize: '13px',
-        fontWeight: '500'
-      }
-    },
-    series: pageSeriesData.map((data, idx) => ({
-      type: 'column',
-      name: seriesNames[idx],
-      color: colors[idx],
-      showInLegend: true,
-      data: data
-    }))
-  };
-
-  // Force Highcharts to update
-  this.Highcharts.chart = this.chartOptions as any;
-
-  // Update pagination buttons
-  this.isLeftDisabled = this.currentPage === 0;
-  const maxPage = Math.ceil(this.allCategories.length / this.pageSize) - 1;
-  this.isRightDisabled = this.currentPage >= maxPage;
+private processSkillProficiencyData(apiData: any[]): void {
+  console.log("Processing skill proficiency data:", apiData);
   
-  console.log("Chart options updated:", this.chartOptions);
+  // Reset data
+  this.allCategories = [];
+  this.allSeriesData = [[], [], [], []];
+  
+  // Define proficiency levels order
+  const proficiencyLevels = ['Awareness', 'Skilled', 'Advanced', 'Expert'];
+  
+  // Group data by skill_name
+  const groupedBySkill = _.groupBy(apiData, 'skill_name');
+  
+  // Get all unique skill names (categories)
+  this.allCategories = Object.keys(groupedBySkill);
+  
+  console.log("Categories (Skills):", this.allCategories);
+  
+  // For each proficiency level, create a series
+  proficiencyLevels.forEach((profLevel, seriesIndex) => {
+    this.allSeriesData[seriesIndex] = [];
+    
+    // For each skill (category), find the FTE for this proficiency level
+    this.allCategories.forEach(skillName => {
+      const skillData = groupedBySkill[skillName];
+      
+      // Find the item with matching proficiency level
+      const matchingItem = skillData.find(item => 
+        item.proficiency === profLevel || 
+        item.prof_skill_overall_name === profLevel
+      );
+      
+      // Add the FTE value, or 0 if not found
+      const fteValue = matchingItem ? Number(matchingItem.fte) : 0;
+      this.allSeriesData[seriesIndex].push(fteValue);
+    });
+  });
+  
+  console.log("Processed series data:", this.allSeriesData);
+  
+  // Reset to first page and update chart
+  this.currentPage = 0;
+  this.updateChart();
+}
+
+ngOnInit() {
+  this.fiterDataFromUrl$.pipe(
+    distinctUntilChanged((prev, curr) => _.isEqual(prev, curr)),
+    debounceTime(100),
+    takeUntilDestroyed(this.destroyRef)
+  ).subscribe((x: string) => {
+    console.log("filters", x);
+    
+    // Call API and handle response
+    this.apiService.getWidgetData(this.widgetId).subscribe((response) => {
+      console.log("API Response => ", response);
+      
+      // Check if response is an array with data
+      if (response && Array.isArray(response) && response.length > 0) {
+        this.processSkillProficiencyData(response);
+      } else if (response && response.data && Array.isArray(response.data) && response.data.length > 0) {
+        this.processSkillProficiencyData(response.data);
+      } else {
+        // No data found - show empty state
+        console.log("No data received from API");
+        this.allCategories = [];
+        this.allSeriesData = [[], [], [], []];
+        this.updateChart();
+      }
+    }, (error) => {
+      console.error("API Error:", error);
+      // Handle error
+      this.allCategories = [];
+      this.allSeriesData = [[], [], [], []];
+      this.updateChart();
+    });
+  });
+  
+  // Note: Removed the mock data generation
+  // The chart will be populated by API data
 }
