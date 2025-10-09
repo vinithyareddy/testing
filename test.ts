@@ -1,159 +1,101 @@
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
-import { Component, Renderer2, OnInit, AfterViewInit, NgZone, ChangeDetectorRef } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { LiftPopoverComponent } from '@lift/ui';
-import Highcharts from 'highcharts';
+import * as Highcharts from 'highcharts';
 import { HighchartsChartModule } from 'highcharts-angular';
-import { MockDataService } from 'app/services/mock-data.service';
+import { Store } from '@ngrx/store';
+import { SwfpFilterState } from 'app/core/swfp-filter-state/swfp-filter-state';
+import { selectEncodedFilter } from 'app/core/swfp-filter-state/swfp-filters.selectors';
+import { SwfpQueryBuilderService } from 'app/modules/shared/swfp-shared/services/swfp-query-builder.service';
+import { SwfpApiService } from 'app/modules/shared/swfp-shared/services/swfp-api.service';
+import { SwfpModuleEnum } from 'app/enums/swfp-module.enum';
+import { debounceTime, distinctUntilChanged } from 'rxjs';
+import * as _ from 'lodash';
 
 @Component({
   selector: 'app-ss-by-volume-proficiency-level',
   templateUrl: './ss-by-volume-proficiency-level.component.html',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    HttpClientModule,
-    LiftPopoverComponent,
-    HighchartsChartModule,
-  ],
-  styleUrls: ['./ss-by-volume-proficiency-level.component.scss'],
+  imports: [CommonModule, FormsModule, HttpClientModule, LiftPopoverComponent, HighchartsChartModule],
+  styleUrls: ['./ss-by-volume-proficiency-level.component.scss']
 })
 export class SsByVolumeProficiencyLevelComponent implements OnInit, AfterViewInit {
+  widgetId: string = 'SWFI_1';
+  module: string = SwfpModuleEnum.HC_WF;
+
+  fullview = false;
+  viewMode: 'chart' | 'table' = 'chart';
   Highcharts: typeof Highcharts = Highcharts;
   chartOptions: Highcharts.Options = {};
-  chartRef: Highcharts.Chart | undefined;
+  allCategories: string[] = [];
+  allSeriesData: number[][] = [[], [], [], []];
+  private destroyRef = inject(DestroyRef);
 
   constructor(
-    private mockService: MockDataService,
-    private zone: NgZone,
-    private cdr: ChangeDetectorRef,
-    private renderer: Renderer2
+    private store: Store<SwfpFilterState>,
+    private queryBuilder: SwfpQueryBuilderService,
+    private apiService: SwfpApiService
   ) {}
 
+  fiterDataFromUrl$ = this.store.select(selectEncodedFilter);
+
   ngOnInit(): void {
-    this.loadChartData();
+    this.fiterDataFromUrl$
+      .pipe(distinctUntilChanged((a, b) => _.isEqual(a, b)), debounceTime(200), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.loadData());
   }
 
   ngAfterViewInit(): void {
-    // Double trigger redraw once layout is ready
-    setTimeout(() => {
-      this.triggerReflow();
-    }, 1000);
-
-    // Also trigger again after 3 seconds for safety (dashboard fully loaded)
-    setTimeout(() => {
-      this.triggerReflow();
-    }, 3000);
+    setTimeout(() => this.loadData(), 200);
   }
 
-  private triggerReflow(): void {
-    if (this.chartRef) {
-      this.chartRef.reflow();
-      this.chartRef.redraw();
-      console.log('✅ Chart force reflow triggered');
-    }
-  }
+  loadData(): void {
+    this.apiService.getWidgetData(this.widgetId).subscribe({
+      next: (res: any) => {
+        console.log('📊 Proficiency JSON =>', res);
+        const data = res?.data || [];
+        this.allCategories = data.map((d: any) => d.level);
+        const awareness = data.map((d: any) => d.Awareness);
+        const skilled = data.map((d: any) => d.Skilled);
+        const advanced = data.map((d: any) => d.Advanced);
+        const expert = data.map((d: any) => d.Expert);
 
-  private loadChartData(): void {
-    this.mockService.getSkillSupplyProficiency().subscribe({
-      next: (data: any[]) => {
-        console.log('✅ JSON Loaded:', data);
-        if (!data?.length) return;
-
-        const categories = data.map((d) => d.level);
         const colors = ['#85CAF7', '#95DAD9', '#A392D3', '#6B70AF'];
-        const seriesNames = ['Awareness', 'Skilled', 'Advanced', 'Expert'];
-        const series = seriesNames.map((key, i) => ({
-          type: 'column' as const,
-          name: key,
-          color: colors[i],
-          pointWidth: 22,
-          data: data.map((d) => d[key]),
-        }));
 
-        this.zone.run(() => {
-          this.chartOptions = {
-            chart: {
-              type: 'column',
-              backgroundColor: 'transparent',
-              animation: true,
-              style: { fontFamily: 'Inter, sans-serif' },
-              events: {
-                load: function () {
-                  const chart = this as Highcharts.Chart;
-                  setTimeout(() => {
-                    chart.reflow();
-                    chart.redraw();
-                  }, 300);
-                },
-              },
-            },
-            title: { text: '' },
-            credits: { enabled: false },
-            xAxis: {
-              categories,
-              title: { text: '' },
-              labels: {
-                style: { color: '#111827', fontWeight: '600', fontSize: '12px' },
-              },
-              lineWidth: 0,
-            },
-            yAxis: {
-              min: 0,
-              title: {
-                text: 'Staff Count',
-                style: { color: '#111827', fontWeight: '500', fontSize: '13px' },
-              },
-              gridLineDashStyle: 'Dash',
-              gridLineColor: '#D1D5DB',
-            },
-            legend: {
-              align: 'center',
-              verticalAlign: 'bottom',
-              layout: 'horizontal',
-              itemStyle: { fontSize: '13px', fontWeight: '500' },
-            },
-            tooltip: {
-              shared: true,
-              headerFormat: '<b>{point.key}</b><br/>',
-              pointFormat: '{series.name}: {point.y} FTE<br/>',
-            },
-            plotOptions: {
-              column: {
-                groupPadding: 0.2,
-                pointPadding: 0.05,
-                borderWidth: 0,
-                dataLabels: {
-                  enabled: true,
-                  style: { fontSize: '11px', color: '#111827' },
-                },
-              },
-            },
-            series: series,
-          };
-          this.cdr.detectChanges();
-        });
+        this.chartOptions = {
+          chart: { type: 'column' },
+          title: { text: '' },
+          credits: { enabled: false },
+          xAxis: { categories: this.allCategories },
+          yAxis: {
+            title: { text: 'Staff Count' },
+            gridLineDashStyle: 'Dash'
+          },
+          legend: {
+            align: 'center',
+            verticalAlign: 'bottom',
+            layout: 'horizontal'
+          },
+          tooltip: {
+            shared: true,
+            headerFormat: '<b>{point.key}</b><br/>',
+            pointFormat: '{series.name}: {point.y} FTE<br/>'
+          },
+          plotOptions: {
+            column: { groupPadding: 0.2, pointPadding: 0.05, borderWidth: 0, dataLabels: { enabled: true } }
+          },
+          series: [
+            { type: 'column', name: 'Awareness', data: awareness, color: colors[0] },
+            { type: 'column', name: 'Skilled', data: skilled, color: colors[1] },
+            { type: 'column', name: 'Advanced', data: advanced, color: colors[2] },
+            { type: 'column', name: 'Expert', data: expert, color: colors[3] }
+          ]
+        };
       },
-      error: (err) => console.error('❌ Error loading JSON:', err),
+      error: (err) => console.error('❌ Error loading widget data', err)
     });
   }
 }
-
-
-#skill-supply-chart {
-    width: 100%;
-    height: 400px;
-    min-height: 400px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  :host ::ng-deep highcharts-chart {
-    width: 100% !important;
-    height: 100% !important;
-    display: block;
-  }
-  
