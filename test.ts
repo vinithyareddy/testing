@@ -1,121 +1,59 @@
-isLeftDisabled = true;
-isRightDisabled = false;
-
-
-updateChart() {
-  const start = this.currentPage * this.pageSize;
-  const end = start + this.pageSize;
-
-  const updatedOptions: Highcharts.Options = {
-    chart: { type: 'column' },
-    title: { text: '' },
-    credits: { enabled: false },
-    xAxis: {
-      categories: this.allCategories.slice(start, end),
-      title: {
-        text: 'Nationality',
-        style: { color: '#111827', fontWeight: '500', fontSize: '13px' },
-      },
-      labels: {
-        style: { color: '#111827', fontWeight: '600', fontSize: '12px' },
-      },
-      lineWidth: 0,
-    },
-    yAxis: {
-      min: 0,
-      title: {
-        text: 'Workforce Supply (FTE)',
-        style: { color: '#111827', fontWeight: '500', fontSize: '13px' },
-      },
-      gridLineWidth: 1,
-      gridLineDashStyle: 'Dash',
-      gridLineColor: '#D1D5DB',
-    },
-    plotOptions: {
-      column: {
-        pointWidth: 20,
-        dataLabels: { enabled: true },
-      },
-    },
-    series: [
-      {
-        type: 'column',
-        showInLegend: false,
-        color: '#59529bff',
-        data: this.allData.slice(start, end),
-      },
-    ],
-  };
-
-  this.chartOptions = updatedOptions;
-
-  // ✅ Update legend text
-  this.legendText = `${start + 1}–${Math.min(
-    end,
-    this.allCategories.length
-  )} out of ${this.allCategories.length} countries`;
-
-  // ✅ Update button disable states
-  this.isLeftDisabled = this.currentPage === 0;
-  const maxPage = Math.ceil(this.allCategories.length / this.pageSize) - 1;
-  this.isRightDisabled = this.currentPage >= maxPage;
+ngOnInit(): void {
+  this.fiterDataFromUrl$.pipe(
+    distinctUntilChanged((prev, curr) => _.isEqual(prev, curr)),
+    debounceTime(100),
+    takeUntilDestroyed(this.destroyRef)
+  ).subscribe((x: string) => {
+    console.log("filters", x);
+    
+    // Call API and handle response
+    this.apiService.getWidgetData(this.widgetId).subscribe((response) => {
+      console.log("API Response => ", response);
+      
+      // Check if response has data
+      if (response && response.data && response.data.length > 0) {
+        this.processGenderData(response.data);
+      } else {
+        // No data found - show empty state
+        this.genderData = [];
+        this.loadChart();
+      }
+    }, (error) => {
+      console.error("API Error:", error);
+      // Handle error - maybe show error message
+      this.genderData = [];
+      this.loadChart();
+    });
+  });
+  
+  // Initial chart load with static data (will be replaced by API data)
+  this.loadChart();
 }
 
-prevPage() {
-  if (!this.isLeftDisabled) {
-    this.currentPage--;
-    this.updateChart();
-  }
+private processGenderData(apiData: any[]): void {
+  console.log("Processing gender data:", apiData);
+  
+  // Clear existing data
+  this.genderData = [];
+  
+  // Process the API response
+  // Based on the call transcripts, the API returns data with category (gender) and value (FTE count)
+  apiData.forEach(item => {
+    // Map the API response to your chart data structure
+    // Adjust property names based on actual API response
+    const gender = item.category || item.gender || item.name; // adjust based on actual field
+    const count = item.value || item.fte || item.count || item.y; // adjust based on actual field
+    
+    if (gender && count !== undefined && count !== null) {
+      this.genderData.push({
+        name: gender,
+        y: Number(count)
+      });
+    }
+  });
+  
+  console.log("Processed gender data:", this.genderData);
+  
+  // Reload chart with new data
+  this.loadChart();
 }
-
-nextPage() {
-  if (!this.isRightDisabled) {
-    this.currentPage++;
-    this.updateChart();
-  }
-}
-
-
-<span class="prevButton"
-      [class.disabled]="isLeftDisabled"
-      (click)="prevPage()">
-  <i class="fa-solid fa-angle-left"></i>
-</span>
-
-<div style="flex-grow: 1;">
-  <ng-container class="chart-section">
-    <highcharts-chart
-      [Highcharts]="Highcharts"
-      [options]="chartOptions"
-      style="width: 99%; height: 330px; display: block;">
-    </highcharts-chart>
-  </ng-container>
-</div>
-
-<span class="nextButton"
-      [class.disabled]="isRightDisabled"
-      (click)="nextPage()">
-  <i class="fa-solid fa-angle-right"></i>
-</span>
-
-
-.prevButton,
-.nextButton {
-  background-color: #eef1fa;
-  padding: 3px 6px;
-  border: 1px solid rgb(117, 117, 235);
-  cursor: pointer;
-  transition: 0.3s;
-
-  &:hover {
-    background-color: #dbeafe;
-  }
-
-  &.disabled {
-    opacity: 0.5;
-    pointer-events: none;
-    cursor: not-allowed;
-  }
-}
-
-const totalLength = this.filteredCategories.length || this.allCategories.length;
