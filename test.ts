@@ -13,9 +13,10 @@ import { SwfpApiService } from 'app/modules/shared/swfp-shared/services/swfp-api
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { LiftPopoverComponent } from '@lift/ui';
 
-// Define API Response Interface
+// ✅ Define API Response Interface
 interface ApiResponseItem {
-  gender: string;
+  fiscal_year: string;
+  Category: string;
   fte: number;
 }
 
@@ -38,7 +39,9 @@ export class SwfpbyGenderComponent implements OnInit {
   widgetType: any = 'ch';
 
   Highcharts: typeof Highcharts = Highcharts;
-  chartOptions!: Highcharts.Options;
+
+  // ✅ Initialize chartOptions to an empty object (prevents undefined binding)
+  chartOptions: Highcharts.Options = {};
 
   apiData: ApiResponseItem[] = [];
   genderData: { name: string; y: number }[] = [];
@@ -53,6 +56,9 @@ export class SwfpbyGenderComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    // ✅ Set global option (fixes 'time' undefined globally)
+    Highcharts.setOptions({ time: { useUTC: false } });
+
     // Watch filters and reload data
     this.fiterDataFromUrl$
       .pipe(
@@ -60,52 +66,47 @@ export class SwfpbyGenderComponent implements OnInit {
         debounceTime(100),
         takeUntilDestroyed(this.destroyRef)
       )
-      .subscribe(() => {
-        this.loadApiData();
-      });
+      .subscribe(() => this.loadApiData());
 
-    // Load once initially
+    // Initial load
     this.loadApiData();
   }
 
-  /**
-   * Fetch widget data from API and process for chart
-   */
+  /** ✅ Fetch widget data from API and process for chart */
   private loadApiData(): void {
     this.apiService.getWidgetData(this.widgetId).subscribe({
       next: (response) => {
         console.log('API Response of SWFI_6 => ', response);
-        this.apiData = response as any[];
-  
-        // ✅ Map API fields correctly (Category → name, fte → y)
+        this.apiData = response as ApiResponseItem[];
+
         this.genderData = this.apiData.map((item) => ({
           name: item.Category,
           y: item.fte
         }));
-  
-        // Then build chart
-        this.loadChart();
+
+        // ✅ Avoid empty chart render and delay creation
+        if (!this.genderData.length) return;
+
+        setTimeout(() => this.loadChart(), 10);
       },
       error: (err) => {
         console.error('Error loading API data:', err);
         this.genderData = [];
-        this.loadChart();
       }
     });
   }
-  
 
   loadWidget(chartType: any) {
     this.widgetType = chartType;
   }
 
-  /**
-   * Build Highcharts Pie chart dynamically
-   */
+  /** ✅ Build Highcharts Pie chart dynamically */
   private loadChart(): void {
     const totalCount = this.genderData.reduce((sum, item) => sum + item.y, 0);
 
     this.chartOptions = {
+      time: { useUTC: false }, // ensure internal time object exists
+
       chart: {
         type: 'pie',
         events: {
@@ -141,9 +142,7 @@ export class SwfpbyGenderComponent implements OnInit {
 
       colors: ['#34a7f2', '#aedcfa'],
       title: { text: '' },
-      tooltip: {
-        pointFormat: '<b>{point.y}</b> ({point.percentage:.1f}%)'
-      },
+      tooltip: { pointFormat: '<b>{point.y}</b> ({point.percentage:.1f}%)' },
       credits: { enabled: false },
 
       plotOptions: {
@@ -153,13 +152,9 @@ export class SwfpbyGenderComponent implements OnInit {
           dataLabels: {
             distance: 7,
             softConnector: true,
-            crop: true,
             enabled: true,
             formatter: function () {
-              const pct = Highcharts.numberFormat(
-                (this.percentage as number) || 0,
-                0
-              );
+              const pct = Highcharts.numberFormat((this.percentage as number) || 0, 0);
               return `${this.y} (${pct}%)`;
             },
             style: { textOutline: 'none', fontWeight: '500' }
@@ -170,28 +165,22 @@ export class SwfpbyGenderComponent implements OnInit {
       legend: {
         align: 'right',
         verticalAlign: 'middle',
+        layout: 'vertical',
         itemMarginTop: 5,
         itemMarginBottom: 5,
-        layout: 'vertical',
-        itemStyle: {
-          textOutline: 'none',
-          fontWeight: '500',
-          fontSize: '13px'
-        },
         useHTML: true,
+        itemStyle: { textOutline: 'none', fontWeight: '500', fontSize: '13px' },
         labelFormatter: function () {
           const point = this as unknown as Highcharts.Point;
-          const pct = Highcharts.numberFormat(
-            (point.percentage as number) || 0,
-            0
-          );
-          return `<span class="hc-legend-row">
-            <span class="hc-legend-left">
-              <span class="hc-legend-marker" style="background:${point.color}"></span>
-              <span class="hc-legend-name">${point.name}</span>
-            </span>
-            <span class="hc-legend-right">${point.y} (${pct}%)</span>
-          </span>`;
+          const pct = Highcharts.numberFormat((point.percentage as number) || 0, 0);
+          return `
+            <span class="hc-legend-row">
+              <span class="hc-legend-left">
+                <span class="hc-legend-marker" style="background:${point.color}"></span>
+                <span class="hc-legend-name">${point.name}</span>
+              </span>
+              <span class="hc-legend-right">${point.y} (${pct}%)</span>
+            </span>`;
         }
       },
 
@@ -207,18 +196,13 @@ export class SwfpbyGenderComponent implements OnInit {
   }
 
   get totalCount(): number {
-    return this.genderData.reduce(
-      (sum, slice) => sum + (slice.y || 0),
-      0
-    );
+    return this.genderData.reduce((sum, slice) => sum + (slice.y || 0), 0);
   }
 
   fullPageView() {
     this.fullview = !this.fullview;
-    if (this.fullview === true) {
-      this.render.addClass(document.body, 'no-scroll');
-    } else {
-      this.render.removeClass(document.body, 'no-scroll');
-    }
+    this.fullview
+      ? this.render.addClass(document.body, 'no-scroll')
+      : this.render.removeClass(document.body, 'no-scroll');
   }
 }
