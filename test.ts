@@ -1,204 +1,131 @@
-import { CommonModule } from '@angular/common';
-import { HttpClientModule } from '@angular/common/http';
-import { Component, OnInit, Renderer2 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { LiftPopoverComponent } from '@lift/ui';
-import * as Highcharts from 'highcharts';
-import { HighchartsChartModule } from 'highcharts-angular';
-import { DestroyRef, inject } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Store } from '@ngrx/store';
-import { SwfpFilterState } from 'app/core/swfp-filter-state/swfp-filter-state';
-import { selectEncodedFilter } from 'app/core/swfp-filter-state/swfp-filters.selectors';
-import { debounceTime, distinctUntilChanged } from 'rxjs';
-import * as _ from 'lodash';
-import { SwfpApiService } from 'app/modules/shared/swfp-shared/services/swfp-api.service';
+ngAfterViewInit() {
+  this.fiterDataFromUrl$.pipe(
+    distinctUntilChanged((prev, curr) => _.isEqual(prev, curr)),
+    debounceTime(100),
+    takeUntilDestroyed(this.destroyRef)
+  ).subscribe((x: string) => {
+    console.log("filters", x);
+    
+    // Call API and handle response
+    this.apiService.getWidgetData(this.widgetId).subscribe((response) => {
+      console.log("API Response => ", response);
+      
+      // Check if response has data
+      if (response && response.data && response.data.length > 0) {
+        this.processLocationData(response.data);
+      } else {
+        console.warn("No data received from API");
+        // Fallback to static data if API fails
+        this.loadData();
+      }
+    }, (error) => {
+      console.error("API Error:", error);
+      // Fallback to static data if API fails
+      this.loadData();
+    });
+  });
 
-// Data model interface - following Raja's pattern
-export interface GenderFTE {
-  category: string;
-  fte: number;
-  color?: string;
+  this.setupResizeObserver();
+  this.initializeGlobe();
+  // Note: loadData() is now called only if API fails
 }
 
-@Component({
-  selector: 'app-swfp-by-gender',
-  templateUrl: './swfp-by-gender.component.html',
-  standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    HttpClientModule,
-    HighchartsChartModule,
-    LiftPopoverComponent
-  ],
-  styleUrls: ['./swfp-by-gender.component.scss']
-})
-export class SwfpbyGenderComponent implements OnInit {
-  widgetId: string = "SWFI_6";
+private processLocationData(apiData: any[]): void {
+  console.log("Processing location data from API:", apiData);
   
-  ResponseFlag = false; // For loader - following Raja's pattern
-  fullview = false;
-  Highcharts: typeof Highcharts = Highcharts;
-  chartOptions!: Highcharts.Options;
-  widgetType: any = 'ch';
-  
-  genderData: GenderFTE[] = []; // Using interface
-  
-  public fiterDataFromUrl$ = this.store.select(selectEncodedFilter);
-  private destroyRef = inject(DestroyRef);
-  
-  constructor(
-    private render: Renderer2, 
-    public store: Store<SwfpFilterState>, 
-    public apiService: SwfpApiService
-  ) { }
-
-  ngOnInit(): void {
-    // Following Raja's exact pattern
-    this.fiterDataFromUrl$.pipe(
-      distinctUntilChanged((prev, curr) => _.isEqual(prev, curr)),
-      debounceTime(100),
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe((x: string) => {
-      
-      this.apiService.getWidgetData(this.widgetId).subscribe((response: any) => {
-        console.log("API Response => ", response);
-        
-        if (response && response.length > 0) {
-          // Process and transform data - following Raja's pattern
-          this.genderData = response.map((item: any) => ({
-            category: item.Category,    // 'Male' or 'Female'
-            fte: item.fte,              // FTE count
-            color: item.Category === 'Male' ? '#34a7f2' : '#aedcfa'
-          }));
-          
-          // Load chart with processed data
-          this.onInitLoad(this.genderData);
-        } else {
-          // No data - show empty state
-          this.ResponseFlag = true;
-          this.genderData = [];
-        }
-      }, (error) => {
-        console.error("API Error:", error);
-        this.ResponseFlag = true;
-        this.genderData = [];
-      });
-    });
-  }
-
-  loadWidget(chartType: any) {
-    this.widgetType = chartType;
-    // Reload chart when switching views
-    if (this.genderData.length > 0) {
-      this.onInitLoad(this.genderData);
-    }
-  }
-
-  // Renamed from loadChart() to onInitLoad() - following Raja's pattern
-  onInitLoad(data: GenderFTE[]): void {
-    this.ResponseFlag = true; // Hide loader, show chart
+  // Load your existing world-globe-data.json which has coordinates and codes
+  this.http.get<any>('assets/json/world-globe-data.json').subscribe(staticData => {
+    console.log("Static country data loaded:", staticData);
     
-    const totalCount = data.reduce((sum, item) => sum + item.fte, 0);
-
-    this.chartOptions = {
-      chart: {
-        type: 'pie',
-        events: {
-          render: function () {
-            const chart = this as any;
-            const genderSeries = chart.series[0] as Highcharts.Series;
-            const totalCount = (genderSeries.points || []).reduce(
-              (acc, point) => acc + ((point as any).y ?? 0), 0
-            );
-            const cx = chart.plotLeft + chart.plotWidth / 2;
-            const cy = chart.plotTop + chart.plotHeight / 2;
-
-            if (!(chart.centerValueText)) {
-              chart.centerValueText = chart.renderer
-                .text(String(totalCount), cx, cy - 6)
-                .css({ fontSize: '26px', fontWeight: '700' })
-                .attr({ align: 'center' })
-                .add();
-              chart.centerSubtitleText = chart.renderer
-                .text('By Gender', cx, cy + 14)
-                .css({ fontSize: '14px', fontWeight: '500' })
-                .attr({ align: 'center' })
-                .add();
-            } else {
-              chart.centerValueText.attr({ text: String(totalCount), x: cx, y: cy - 6 });
-              chart.centerSubtitleText.attr({ text: 'By Gender', x: cx, y: cy + 14 });
-            }
-          }
-        }
-      } as any,
-      colors: ['#34a7f2', '#aedcfa'],
-      title: { text: '' },
-      tooltip: {
-        pointFormat: '<b>{point.y}</b> ({point.percentage:.1f}%)'
-      },
-      credits: { enabled: false },
-      plotOptions: {
-        pie: {
-          innerSize: '85%',
-          showInLegend: true,
-          dataLabels: {
-            distance: 7,
-            softConnector: true,
-            crop: true,
-            enabled: true,
-            formatter: function () {
-              const pct = Highcharts.numberFormat((this.percentage as number) || 0, 0);
-              return `${this.y} (${pct}%)`;
-            },
-            style: { textoutline: 'none', fontWeight: '500' }
-          }
-        }
-      },
-      legend: {
-        align: 'right',
-        verticalAlign: 'middle',
-        itemMarginTop: 5,
-        itemMarginBottom: 5,
-        layout: 'vertical',
-        itemStyle: { textoutline: 'none', fontWeight: '500', fontSize: '13px' },
-        useHTML: true,
-        labelFormatter: function () {
-          const point = this as unknown as Highcharts.Point;
-          const pct = Highcharts.numberFormat((point.percentage as number) || 0, 0);
-          return `<span class="hc-legend-row">
-            <span class="hc-legend-left">
-              <span class="hc-legend-marker" style="background:${point.color}"></span>
-              <span class="hc-legend-name">${point.name}</span>
-            </span>
-            <span class="hc-legend-right">${point.y} (${pct}%)</span>
-          </span>`;
-        }
-      },
-      series: [{
-        type: 'pie',
-        name: 'Gender',
-        size: '90%',
-        data: data.map(d => ({ 
-          name: d.category, 
-          y: d.fte,
-          color: d.color 
-        }))
-      }]
-    };
-  }
-
-  get totalCount(): number {
-    return this.genderData.reduce((sum, item) => sum + (item.fte || 0), 0);
-  }
-
-  fullPageView() {
-    this.fullview = !this.fullview;
-    if (this.fullview === true) {
-      this.render.addClass(document.body, 'no-scroll');
-    } else {
-      this.render.removeClass(document.body, 'no-scroll');
+    // Create a map for quick lookup - key is country name (lowercase for matching)
+    const apiDataMap = new Map();
+    apiData.forEach(item => {
+      const countryName = (item.duty_country_descr || item.country || '').trim();
+      if (countryName) {
+        apiDataMap.set(countryName.toLowerCase(), {
+          uniqueSkills: item.unique_skill_cnt || 0,
+          skillSupply: item.skill_supply_fte || 0
+        });
+      }
+    });
+    
+    console.log("API data map created, size:", apiDataMap.size);
+    
+    // Merge API data with static data
+    this.countriesList = staticData.countries.map((c: any) => {
+      const countryNameLower = c.name.toLowerCase();
+      const apiInfo = apiDataMap.get(countryNameLower);
+      
+      return {
+        country: c.name,
+        code: c.code,
+        region: c.region,
+        uniqueSkills: apiInfo ? apiInfo.uniqueSkills : 0,
+        skillSupply: apiInfo ? apiInfo.skillSupply : 0,
+        lat: c.lat,
+        lng: c.lng
+      };
+    }).filter((c: any) => c.uniqueSkills > 0 || c.skillSupply > 0); // Only show countries with data
+    
+    console.log("Final countries list with API data, count:", this.countriesList.length);
+    
+    // If no countries have data, show warning
+    if (this.countriesList.length === 0) {
+      console.warn("No matching countries found between API and static data");
+      // Fallback to static data
+      this.loadData();
+      return;
     }
-  }
+    
+    // Update color scale based on actual data
+    const minSkills = d3.min(this.countriesList, (d: any) => d.uniqueSkills) || 0;
+    const maxSkills = d3.max(this.countriesList, (d: any) => d.uniqueSkills) || 1;
+    this.countryColorScale = d3.scaleLinear<string>()
+      .domain([
+        minSkills, 
+        (minSkills + maxSkills) * 0.25, 
+        (minSkills + maxSkills) * 0.5, 
+        (minSkills + maxSkills) * 0.75, 
+        maxSkills
+      ])
+      .range([
+        '#f5f0e4',
+        '#dbd5c8ff',
+        '#bed8ceff',
+        '#99c5b4ff',
+        '#87c3ab'
+      ]);
+    
+    this.filteredList = [...this.countriesList];
+    this.initializeCountryLabels();
+    this.drawCountries();
+    this.drawOceans();
+    this.drawEquator();
+    this.startRotation();
+    
+    // Load states and oceans data
+    this.loadStatesAndOceans();
+  }, (error) => {
+    console.error("Error loading static data:", error);
+    // Fallback to old method
+    this.loadData();
+  });
+}
+
+private loadStatesAndOceans(): void {
+  // Load states data
+  this.http.get<any>('assets/json/globe-states.json').subscribe(data => {
+    this.states = topojson.feature(
+      data,
+      data.objects.ne_50m_admin_1_states_provinces
+    ) as unknown as FeatureCollection<Geometry, any>;
+    this.initializeStateLabels();
+    this.drawStates();
+  });
+  
+  // Load oceans data
+  this.http.get<any>('assets/json/oceans.json').subscribe(data => {
+    this.oceans = data;
+    this.drawOceans();
+  });
 }
