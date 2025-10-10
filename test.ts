@@ -1,120 +1,83 @@
-export const SKILL_PROFICIENCY_MOCK_DATA = [
-  // Level 1
-  { fiscal_year: "2025", skill_name: "Awareness", prof_skill_overall_name: "Level 1", fte: 450 },
-  { fiscal_year: "2025", skill_name: "Skilled", prof_skill_overall_name: "Level 1", fte: 520 },
-  { fiscal_year: "2025", skill_name: "Advanced", prof_skill_overall_name: "Level 1", fte: 380 },
-  { fiscal_year: "2025", skill_name: "Expert", prof_skill_overall_name: "Level 1", fte: 290 },
-  
-  // Level 2
-  { fiscal_year: "2025", skill_name: "Awareness", prof_skill_overall_name: "Level 2", fte: 520 },
-  { fiscal_year: "2025", skill_name: "Skilled", prof_skill_overall_name: "Level 2", fte: 610 },
-  { fiscal_year: "2025", skill_name: "Advanced", prof_skill_overall_name: "Level 2", fte: 480 },
-  { fiscal_year: "2025", skill_name: "Expert", prof_skill_overall_name: "Level 2", fte: 350 },
-  
-  // Level 3
-  { fiscal_year: "2025", skill_name: "Awareness", prof_skill_overall_name: "Level 3", fte: 410 },
-  { fiscal_year: "2025", skill_name: "Skilled", prof_skill_overall_name: "Level 3", fte: 550 },
-  { fiscal_year: "2025", skill_name: "Advanced", prof_skill_overall_name: "Level 3", fte: 520 },
-  { fiscal_year: "2025", skill_name: "Expert", prof_skill_overall_name: "Level 3", fte: 420 },
-  
-  // Level 4
-  { fiscal_year: "2025", skill_name: "Awareness", prof_skill_overall_name: "Level 4", fte: 380 },
-  { fiscal_year: "2025", skill_name: "Skilled", prof_skill_overall_name: "Level 4", fte: 490 },
-  { fiscal_year: "2025", skill_name: "Advanced", prof_skill_overall_name: "Level 4", fte: 560 },
-  { fiscal_year: "2025", skill_name: "Expert", prof_skill_overall_name: "Level 4", fte: 470 },
-  
-  // Level 5
-  { fiscal_year: "2025", skill_name: "Awareness", prof_skill_overall_name: "Level 5", fte: 320 },
-  { fiscal_year: "2025", skill_name: "Skilled", prof_skill_overall_name: "Level 5", fte: 440 },
-  { fiscal_year: "2025", skill_name: "Advanced", prof_skill_overall_name: "Level 5", fte: 590 },
-  { fiscal_year: "2025", skill_name: "Expert", prof_skill_overall_name: "Level 5", fte: 510 },
-  
-  // Level 6
-  { fiscal_year: "2025", skill_name: "Awareness", prof_skill_overall_name: "Level 6", fte: 290 },
-  { fiscal_year: "2025", skill_name: "Skilled", prof_skill_overall_name: "Level 6", fte: 410 },
-  { fiscal_year: "2025", skill_name: "Advanced", prof_skill_overall_name: "Level 6", fte: 530 },
-  { fiscal_year: "2025", skill_name: "Expert", prof_skill_overall_name: "Level 6", fte: 580 },
-  
-  // Level 7
-  { fiscal_year: "2025", skill_name: "Awareness", prof_skill_overall_name: "Level 7", fte: 260 },
-  { fiscal_year: "2025", skill_name: "Skilled", prof_skill_overall_name: "Level 7", fte: 380 },
-  { fiscal_year: "2025", skill_name: "Advanced", prof_skill_overall_name: "Level 7", fte: 490 },
-  { fiscal_year: "2025", skill_name: "Expert", prof_skill_overall_name: "Level 7", fte: 620 },
-  
-  // Level 8
-  { fiscal_year: "2025", skill_name: "Awareness", prof_skill_overall_name: "Level 8", fte: 240 },
-  { fiscal_year: "2025", skill_name: "Skilled", prof_skill_overall_name: "Level 8", fte: 350 },
-  { fiscal_year: "2025", skill_name: "Advanced", prof_skill_overall_name: "Level 8", fte: 460 },
-  { fiscal_year: "2025", skill_name: "Expert", prof_skill_overall_name: "Level 8", fte: 550 },
-  
-  // Level 9
-  { fiscal_year: "2025", skill_name: "Awareness", prof_skill_overall_name: "Level 9", fte: 210 },
-  { fiscal_year: "2025", skill_name: "Skilled", prof_skill_overall_name: "Level 9", fte: 320 },
-  { fiscal_year: "2025", skill_name: "Advanced", prof_skill_overall_name: "Level 9", fte: 430 },
-  { fiscal_year: "2025", skill_name: "Expert", prof_skill_overall_name: "Level 9", fte: 510 }
-];
+<highcharts-chart 
+    [Highcharts]="Highcharts" 
+    [options]="chartOptions"
+    [update]="updateFlag"
+    style="width: 99%; height: 330px; display: block;">
+</highcharts-chart>
 
+updateChart() {
+  const start = this.currentPage * this.pageSize;
+  const end = Math.min(start + this.pageSize, this.allCategories.length);
 
-import { SKILL_PROFICIENCY_MOCK_DATA } from './skill-proficiency-mock-data';
+  const pageCategories = this.allCategories.slice(start, end);
+  const pageSeriesData = this.allSeriesData.map(s => s.slice(start, end));
 
+  const seriesNames = ['Awareness', 'Skilled', 'Advanced', 'Expert'];
+  const colors = ['#85CAF7', '#95DAD9', '#A392D3', '#6B70AF'];
 
-
-ngOnInit() {
-  this.fiterDataFromUrl$.pipe(
-    distinctUntilChanged((prev, curr) => _.isEqual(prev, curr)),
-    debounceTime(100),
-    takeUntilDestroyed(this.destroyRef)
-  ).subscribe((x: string) => {
-    console.log("filters", x);
-
-    this.apiService.getWidgetData(this.widgetId).subscribe((response) => {
-      console.log("API Response => ", response);
-      
-      // TODO: Once API is fixed, change to: const dataToProcess = response;
-      const dataToProcess = SKILL_PROFICIENCY_MOCK_DATA;
-      
-      if (dataToProcess && Array.isArray(dataToProcess) && dataToProcess.length > 0) {
-        this.processSkillProficiencyData(dataToProcess);
-      } else {
-        console.log("No data received");
-        this.allCategories = [];
-        this.allSeriesData = [[], [], [], []];
-        this.updateChart();
+  this.chartOptions = {
+    chart: { 
+      type: 'column',
+      height: 330
+    },
+    title: { text: '' },
+    credits: { enabled: false },
+    xAxis: {
+      categories: pageCategories,
+      title: {
+        text: '',
+        style: { color: '#111827', fontWeight: '500', fontSize: '13px' }
+      },
+      labels: {
+        style: { color: '#111827', fontWeight: '600', fontSize: '12px' }
+      },
+      lineWidth: 0
+    },
+    yAxis: {
+      min: 0,
+      title: {
+        text: 'Staff Count',
+        style: { color: '#111827', fontWeight: '500', fontSize: '13px' }
+      },
+      gridLineWidth: 1,
+      gridLineDashStyle: 'Dash',
+      gridLineColor: '#D1D5DB'
+    },
+    plotOptions: {
+      column: {
+        groupPadding: 0.2,
+        pointPadding: 0.05,
+        borderWidth: 0,
+        dataLabels: { 
+          enabled: true,
+          style: { 
+            textOutline: 'none',
+            fontWeight: '500' 
+          }
+        }
       }
-    }, (error) => {
-      console.error("API Error:", error);
-      this.processSkillProficiencyData(SKILL_PROFICIENCY_MOCK_DATA);
-    });
-  });
-}
+    },
+    legend: {
+      layout: 'horizontal',
+      align: 'center',
+      verticalAlign: 'bottom'
+    },
+    series: pageSeriesData.map((data, idx) => ({
+      type: 'column',
+      name: seriesNames[idx],
+      color: colors[idx],
+      data: data
+    }))
+  };
 
-private processSkillProficiencyData(apiData: any[]): void {
-  console.log("Processing skill proficiency data:", apiData);
+  // Force Highcharts to update
+  this.updateFlag = true;
 
-  const groupedByLevel = _.groupBy(apiData, 'prof_skill_overall_name');
-  
-  this.allCategories = Object.keys(groupedByLevel).sort((a, b) => {
-    const numA = parseInt(a.replace('Level ', ''));
-    const numB = parseInt(b.replace('Level ', ''));
-    return numA - numB;
-  });
+  // Update pagination buttons
+  this.isLeftDisabled = this.currentPage === 0;
+  const maxPage = Math.ceil(this.allCategories.length / this.pageSize) - 1;
+  this.isRightDisabled = this.currentPage >= maxPage;
 
-  const skillNames = ['Awareness', 'Skilled', 'Advanced', 'Expert'];
-  this.allSeriesData = [[], [], [], []];
-
-  this.allCategories.forEach(level => {
-    const levelData = groupedByLevel[level];
-    
-    skillNames.forEach((skillName, skillIndex) => {
-      const skillData = levelData.find(item => item.skill_name === skillName);
-      const fteValue = skillData ? Number(skillData.fte) : 0;
-      this.allSeriesData[skillIndex].push(fteValue);
-    });
-  });
-
-  console.log("Processed data - Categories:", this.allCategories);
-  console.log("Processed data - Series:", this.allSeriesData);
-
-  this.currentPage = 0;
-  this.updateChart();
+  console.log("Chart updated - Categories:", pageCategories);
+  console.log("Chart updated - Series data:", pageSeriesData);
 }
