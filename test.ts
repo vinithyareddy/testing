@@ -1,20 +1,25 @@
 ngOnInit() {
+  console.log("🚀 ngOnInit called");
+  
   this.fiterDataFromUrl$.pipe(
     distinctUntilChanged((prev, curr) => _.isEqual(prev, curr)),
     debounceTime(100),
     takeUntilDestroyed(this.destroyRef)
   ).subscribe((x: string) => {
+    console.log("🔥 Filter subscription fired", x);
     console.log("filters", x);
 
     this.apiService.getWidgetData(this.widgetId).subscribe((proficiencyData: any) => {
-      console.log("API Response => ", proficiencyData);
+      console.log("✅ API Response => ", proficiencyData);
       
       // TODO: Remove mock data when API is fixed
-      // Use mock data for now
       const dataToProcess = MOCK_PROFICIENCY_DATA;
+      console.log("📊 Data to process:", dataToProcess);
       // When API fixed: const dataToProcess = proficiencyData;
       
       if (dataToProcess && dataToProcess.length > 0) {
+        console.log("✨ Processing data...");
+        
         // Get unique skill levels - inline processing
         const uniqueLevels = [...new Set(dataToProcess.map((item: ProficiencyData) => item.skill_name))].sort();
         this.allCategories = uniqueLevels;
@@ -32,14 +37,15 @@ ngOnInit() {
           });
         });
 
-        console.log("Processed categories:", this.allCategories);
-        console.log("Processed series data:", this.allSeriesData);
+        console.log("✅ Processed categories:", this.allCategories);
+        console.log("✅ Processed series data:", this.allSeriesData);
 
         // Build and show chart
         this.buildInitialChart();
         this.ResponseFlag = true;
         this.cdr.detectChanges();
       } else {
+        console.warn("⚠️ No data to process");
         // No data
         this.allCategories = [];
         this.allSeriesData = [[], [], [], []];
@@ -47,7 +53,7 @@ ngOnInit() {
         this.cdr.detectChanges();
       }
     }, (error) => {
-      console.error("API Error:", error);
+      console.error("❌ API Error:", error);
       this.allCategories = [];
       this.allSeriesData = [[], [], [], []];
       this.ResponseFlag = true;
