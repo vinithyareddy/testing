@@ -44,3 +44,6 @@ export class SsByVolumeProficiencyLevelComponent implements AfterViewInit {
   
   // Rest of your methods...
 }
+
+
+import { AfterViewInit, ViewChild, ElementRef } from '@angular/core';
