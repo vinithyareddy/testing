@@ -1,44 +1,84 @@
-private loadData() {
-  this.apiService.getWidgetData(this.widgetId).subscribe({
-    next: (response: any[]) => {
-      console.log("API Response (SKI_2) => ", response);
+import { Component, AfterViewInit, DestroyRef } from '@angular/core';
+import { SwfpApiService } from 'src/app/shared/services/swfp-api.service';
+import { HttpClient } from '@angular/common/http';
+import { debounceTime, distinctUntilChanged, takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import _ from 'lodash';
 
-      // Use your existing country JSON
-      this.http.get<any[]>('assets/json/country-codes.json').subscribe((countryMap) => {
-        this.countriesList = response.map((r) => {
-          const match = countryMap.find(
-            (c) => c.country.toLowerCase() === r.duty_country_descr.toLowerCase()
-          );
+@Component({
+  selector: 'app-ss-by-location',
+  templateUrl: './ss-by-location.component.html',
+  styleUrls: ['./ss-by-location.component.scss']
+})
+export class SsByLocationComponent implements AfterViewInit {
+  widgetId = 'SKI_2';
+  countriesList: any[] = [];
+  filteredList: any[] = [];
 
-          return {
-            country: r.duty_country_descr,
-            code: match ? match.code : 'xx',
-            region: match ? match.region : 'Unknown',
-            uniqueSkills: r.unique_skill_cnt || 0,
-            skillSupply: r.skill_supply_fte || 0,
-            lat: match ? match.lat : 0,
-            lng: match ? match.lng : 0
-          };
+  constructor(
+    private apiService: SwfpApiService,
+    private http: HttpClient,
+    private destroyRef: DestroyRef
+  ) {}
+
+  private async loadCountryAndStateMaps() {
+    const [countryJson, stateJson] = await Promise.all([
+      this.http.get<any>('assets/json/world-globe-data.json').toPromise(),
+      this.http.get<any>('assets/json/state-codes.json').toPromise()
+    ]);
+
+    const countryMap: Record<string, any> = {};
+    countryJson.countries.forEach((c: any) => {
+      countryMap[c.name.toLowerCase()] = c;
+    });
+
+    const stateMap: Record<string, any> = {};
+    stateJson.states.forEach((s: any) => {
+      stateMap[s.name.toLowerCase()] = s;
+    });
+
+    return { countryMap, stateMap };
+  }
+
+  ngAfterViewInit() {
+    this.fiterDataFromUrl$
+      .pipe(
+        distinctUntilChanged((a, b) => _.isEqual(a, b)),
+        debounceTime(100),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(() => {
+        this.apiService.getWidgetData(this.widgetId).subscribe(async (response: any) => {
+          console.log('API Response for SKI_2:', response);
+
+          const { countryMap, stateMap } = await this.loadCountryAndStateMaps();
+
+          this.countriesList = response.map((r: any) => {
+            const meta = countryMap[r.duty_country_descr?.toLowerCase()] || {};
+            const stateMeta = stateMap[r.state_name?.toLowerCase()] || {};
+
+            return {
+              country: r.duty_country_descr,
+              code: meta.code || 'UN',
+              region: meta.region || 'Unknown',
+              uniqueSkills: r.unique_skill_cnt || 0,
+              skillSupply: r.skill_supply_fte || 0,
+              lat: meta.lat || 0,
+              lng: meta.lng || 0,
+              stateCode: stateMeta.state_code || null
+            };
+          });
+
+          this.filteredList = [...this.countriesList];
+
+          this.initializeCountryLabels();
+          this.drawCountries();
+          this.drawOceans();
+          this.drawEquator();
+          this.startRotation();
         });
-
-        // Define color scale
-        const minSkills = d3.min(this.countriesList, (d) => d.uniqueSkills) || 0;
-        const maxSkills = d3.max(this.countriesList, (d) => d.uniqueSkills) || 1;
-        this.countryColorScale = d3
-          .scaleLinear<string>()
-          .domain([minSkills, maxSkills])
-          .range(['#d9ead3', '#38761d']);
-
-        this.filteredList = [...this.countriesList];
-
-        // Render as before
-        this.initializeCountryLabels();
-        this.drawCountries();
-        this.drawOceans();
-        this.drawEquator();
-        this.startRotation();
       });
-    },
-    error: (err) => console.error("Error loading SKI_2 data:", err)
-  });
+
+    this.setupResizeObserver();
+    this.initializeGlobe();
+  }
 }
