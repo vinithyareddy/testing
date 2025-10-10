@@ -1,13 +1,19 @@
-// 🔹 Recalculate color scale based on new API data
-const minSkills = d3.min(this.countriesList, (d: any) => d.uniqueSkills) || 0;
-const maxSkills = d3.max(this.countriesList, (d: any) => d.uniqueSkills) || 1;
+let minSkills = d3.min(this.countriesList, (d: any) => d.uniqueSkills) || 0;
+let maxSkills = d3.max(this.countriesList, (d: any) => d.uniqueSkills) || 1;
 
+// 🛡️ Safety: if range is too narrow or invalid, expand it
+if (maxSkills - minSkills < 5) {
+  minSkills = 0;
+  maxSkills = Math.max(10, maxSkills * 2);
+}
+
+// ✅ Rebuild the color scale with consistent range
 this.countryColorScale = d3.scaleLinear<string>()
   .domain([
     minSkills,
-    (minSkills + maxSkills) * 0.25,
-    (minSkills + maxSkills) * 0.5,
-    (minSkills + maxSkills) * 0.75,
+    minSkills + (maxSkills - minSkills) * 0.25,
+    minSkills + (maxSkills - minSkills) * 0.5,
+    minSkills + (maxSkills - minSkills) * 0.75,
     maxSkills
   ])
   .range([
