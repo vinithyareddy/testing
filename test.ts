@@ -1,8 +1,9 @@
 ngAfterViewInit() {
   this.setupResizeObserver();
   this.initializeGlobe();
-  this.loadData();
-
+  
+  // Don't call loadData() yet - wait for API data first
+  
   this.fiterDataFromUrl$.pipe(
     distinctUntilChanged((prev, curr) => _.isEqual(prev, curr)),
     debounceTime(100),
@@ -35,7 +36,7 @@ ngAfterViewInit() {
       });
 
       // Update countries list
-      this.countriesList = apiCountries.length ? apiCountries : this.countriesList;
+      this.countriesList = apiCountries;
       this.filteredList = [...this.countriesList];
 
       // Rebuild color scale
@@ -50,8 +51,25 @@ ngAfterViewInit() {
         .domain([minSkills, (minSkills + maxSkills) * 0.25, (minSkills + maxSkills) * 0.5, (minSkills + maxSkills) * 0.75, maxSkills])
         .range(['#f5f0e4', '#dbd5c8ff', '#bed8ceff', '#99c5b4ff', '#87c3ab']);
 
-      // Just update colors, don't redraw
-      this.updateCountries();
+      console.log('Min/Max skills:', minSkills, maxSkills);
+
+      // NOW draw everything with the API data
+      this.initializeCountryLabels();
+      this.drawEquator();
+      this.drawCountries();
+      this.startRotation();
     });
+  });
+
+  // Load states and oceans separately
+  this.http.get<any>('assets/json/globe-states.json').subscribe(data => {
+    this.states = topojson.feature(data, data.objects.ne_50m_admin_1_states_provinces) as unknown as FeatureCollection<Geometry, any>;
+    this.initializeStateLabels();
+    this.drawStates();
+  });
+
+  this.http.get<any>('assets/json/oceans.json').subscribe(data => {
+    this.oceans = data;
+    this.drawOceans();
   });
 }
