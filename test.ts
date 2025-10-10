@@ -8,9 +8,20 @@ ngOnInit() {
   ).subscribe((x: string) => {
     console.log("🔥 Filter subscription fired", x);
     
-    // FORCE MOCK DATA - Skip API for now
+    // ==================== TEMPORARY: USING MOCK DATA ====================
+    // TODO: Remove this section when API is fixed
     console.log("📊 Using MOCK DATA directly");
     const dataToProcess = MOCK_PROFICIENCY_DATA;
+    // ====================================================================
+    
+    // ==================== WHEN API IS FIXED: UNCOMMENT BELOW ====================
+    // this.apiService.getWidgetData(this.widgetId).subscribe((proficiencyData: any) => {
+    //   console.log("✅ API Response => ", proficiencyData);
+    //   
+    //   const dataToProcess = proficiencyData;
+    //   
+    //   if (dataToProcess && dataToProcess.length > 0) {
+    // ============================================================================
     
     if (dataToProcess && dataToProcess.length > 0) {
       console.log("✨ Processing data... Length:", dataToProcess.length);
@@ -41,5 +52,22 @@ ngOnInit() {
       this.cdr.detectChanges();
       console.log("✅ Chart built and displayed!");
     }
+    
+    // ==================== WHEN API IS FIXED: UNCOMMENT BELOW ====================
+    //   } else {
+    //     console.warn("⚠️ No data from API");
+    //     this.allCategories = [];
+    //     this.allSeriesData = [[], [], [], []];
+    //     this.ResponseFlag = true;
+    //     this.cdr.detectChanges();
+    //   }
+    // }, (error) => {
+    //   console.error("❌ API Error:", error);
+    //   this.allCategories = [];
+    //   this.allSeriesData = [[], [], [], []];
+    //   this.ResponseFlag = true;
+    //   this.cdr.detectChanges();
+    // });
+    // ============================================================================
   });
 }
