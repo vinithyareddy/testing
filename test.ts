@@ -1,37 +1,5 @@
 ngAfterViewInit() {
-  // ✅ Step 1: Initialize base globe first (blue sphere + glow)
-  this.initializeGlobe();
-
-  // ✅ Step 2: Setup resize listener
-  this.setupResizeObserver();
-
-  // ✅ Step 3: Initialize default color gradient so globe isn't dull initially
-  this.countryColorScale = d3.scaleLinear<string>()
-    .domain([0, 25, 50, 75, 100])
-    .range([
-      '#f5f0e4',
-      '#dbd5c8ff',
-      '#bed8ceff',
-      '#99c5b4ff',
-      '#87c3ab'
-    ]);
-
-  // ✅ Step 4: Load only static layers (states + oceans)
-  this.http.get<any>('assets/json/globe-states.json').subscribe(data => {
-    this.states = topojson.feature(
-      data,
-      data.objects.ne_50m_admin_1_states_provinces
-    ) as unknown as FeatureCollection<Geometry, any>;
-    this.initializeStateLabels();
-    this.drawStates();
-  });
-
-  this.http.get<any>('assets/json/oceans.json').subscribe(data => {
-    this.oceans = data;
-    this.drawOceans();
-  });
-
-  // ✅ Step 5: Subscribe to filters and fetch API data
+  // ✅ Step 1: Subscribe to filters and fetch API data FIRST
   this.fiterDataFromUrl$
     .pipe(
       distinctUntilChanged((a, b) => _.isEqual(a, b)),
@@ -40,19 +8,16 @@ ngAfterViewInit() {
     )
     .subscribe(() => {
       this.apiService.getWidgetData(this.widgetId).subscribe(async (response: any) => {
-        console.log("🌐 API Response for SKI_2 =>", response);
+        console.log("🌍 API Response for SKI_2 =>", response);
 
-        // Load country metadata (for flags, coords, etc.)
-        const [countryJson] = await Promise.all([
-          this.http.get<any>('assets/json/world-globe-data.json').toPromise(),
-        ]);
-
+        // ✅ Step 2: Load country metadata (for flags, coords, etc.)
+        const countryJson = await this.http.get<any>('assets/json/world-globe-data.json').toPromise();
         const countryMap: Record<string, any> = {};
         countryJson.countries.forEach((c: any) => {
           countryMap[c.name.toLowerCase()] = c;
         });
 
-        // ✅ Step 6: Map API data with country metadata
+        // ✅ Step 3: Map API data with metadata
         this.countriesList = response.map((r: any) => {
           const meta = countryMap[r.duty_country_descr?.toLowerCase()] || {};
           return {
@@ -68,7 +33,7 @@ ngAfterViewInit() {
 
         this.filteredList = [...this.countriesList];
 
-        // ✅ Step 7: Dynamically rebuild color scale from API data
+        // ✅ Step 4: Build color gradient BEFORE drawing globe
         let minSkills = d3.min(this.countriesList, (d: any) => d.uniqueSkills) || 0;
         let maxSkills = d3.max(this.countriesList, (d: any) => d.uniqueSkills) || 1;
         if (maxSkills - minSkills < 20) {
@@ -76,17 +41,43 @@ ngAfterViewInit() {
           maxSkills = maxSkills * 2;
         }
 
-        this.countryColorScale.domain([
-          minSkills,
-          minSkills + (maxSkills - minSkills) * 0.25,
-          minSkills + (maxSkills - minSkills) * 0.5,
-          minSkills + (maxSkills - minSkills) * 0.75,
-          maxSkills
-        ]);
+        this.countryColorScale = d3.scaleLinear<string>()
+          .domain([
+            minSkills,
+            minSkills + (maxSkills - minSkills) * 0.25,
+            minSkills + (maxSkills - minSkills) * 0.5,
+            minSkills + (maxSkills - minSkills) * 0.75,
+            maxSkills
+          ])
+          .range([
+            '#f5f0e4',
+            '#dbd5c8ff',
+            '#bed8ceff',
+            '#99c5b4ff',
+            '#87c3ab'
+          ]);
 
-        // ✅ Step 8: Draw all globe layers (with new data)
+        // ✅ Step 5: Now that API data is ready, initialize the globe
+        this.initializeGlobe();
+        this.setupResizeObserver();
+
+        // ✅ Step 6: Load states & oceans (draw after globe is ready)
+        this.http.get<any>('assets/json/globe-states.json').subscribe(data => {
+          this.states = topojson.feature(
+            data,
+            data.objects.ne_50m_admin_1_states_provinces
+          ) as unknown as FeatureCollection<Geometry, any>;
+          this.initializeStateLabels();
+          this.drawStates();
+        });
+
+        this.http.get<any>('assets/json/oceans.json').subscribe(data => {
+          this.oceans = data;
+          this.drawOceans();
+        });
+
+        // ✅ Step 7: Draw everything else
         this.initializeCountryLabels();
-        this.drawOceans();
         this.drawEquator();
         this.drawCountries();
         this.startRotation();
