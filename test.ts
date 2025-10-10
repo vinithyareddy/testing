@@ -1,75 +1,10 @@
-ngAfterViewInit() {
-  this.setupResizeObserver();
-  this.initializeGlobe();
-  
-  // Don't call loadData() yet - wait for API data first
-  
-  this.fiterDataFromUrl$.pipe(
-    distinctUntilChanged((prev, curr) => _.isEqual(prev, curr)),
-    debounceTime(100),
-    takeUntilDestroyed(this.destroyRef)
-  ).subscribe((x: string) => {
-    console.log("filters", x);
-
-    this.apiService.getWidgetData(this.widgetId).subscribe(async (response: any) => {
-      console.log("API Response => ", response);
-
-      // Load country metadata
-      const countryJson = await this.http.get<any>('assets/json/world-globe-data.json').toPromise();
-      const countryMap: Record<string, any> = {};
-      countryJson.countries.forEach((c: any) => {
-        countryMap[c.name.toLowerCase()] = c;
-      });
-
-      // Map API data
-      const apiCountries = response.map((r: any) => {
-        const meta = countryMap[r.duty_country_descr?.toLowerCase()] || {};
-        return {
-          country: r.duty_country_descr,
-          code: meta.code || 'UN',
-          region: meta.region || 'Unknown',
-          uniqueSkills: r.unique_skill_cnt || 0,
-          skillSupply: r.skill_supply_fte || 0,
-          lat: meta.lat || 0,
-          lng: meta.lng || 0
-        };
-      });
-
-      // Update countries list
-      this.countriesList = apiCountries;
-      this.filteredList = [...this.countriesList];
-
-      // Rebuild color scale
-      let minSkills = d3.min(this.countriesList, (d: any) => d.uniqueSkills) || 0;
-      let maxSkills = d3.max(this.countriesList, (d: any) => d.uniqueSkills) || 1;
-      if (maxSkills - minSkills < 20) {
-        minSkills = 0;
-        maxSkills = maxSkills * 2;
-      }
-
-      this.countryColorScale = d3.scaleLinear<string>()
-        .domain([minSkills, (minSkills + maxSkills) * 0.25, (minSkills + maxSkills) * 0.5, (minSkills + maxSkills) * 0.75, maxSkills])
-        .range(['#f5f0e4', '#dbd5c8ff', '#bed8ceff', '#99c5b4ff', '#87c3ab']);
-
-      console.log('Min/Max skills:', minSkills, maxSkills);
-
-      // NOW draw everything with the API data
-      this.initializeCountryLabels();
-      this.drawEquator();
-      this.drawCountries();
-      this.startRotation();
-    });
-  });
-
-  // Load states and oceans separately
-  this.http.get<any>('assets/json/globe-states.json').subscribe(data => {
-    this.states = topojson.feature(data, data.objects.ne_50m_admin_1_states_provinces) as unknown as FeatureCollection<Geometry, any>;
-    this.initializeStateLabels();
-    this.drawStates();
-  });
-
-  this.http.get<any>('assets/json/oceans.json').subscribe(data => {
-    this.oceans = data;
-    this.drawOceans();
-  });
-}
+// 👇 draw base circle *behind* all countries, lighter opacity
+this.svg.insert('circle', ':first-child')
+  .attr('cx', width / 2)
+  .attr('cy', height / 2)
+  .attr('r', this.currentRadius)
+  .attr('fill', CUSTOM_GLOBE_COLOR)
+  .attr('stroke', '#ccc')
+  .attr('stroke-width', 1)
+  .style('opacity', 0.9)
+  .style('filter', 'url(#glow)');
