@@ -1,11 +1,11 @@
 ngAfterViewInit() {
-  // ✅ Step 1: Initialize globe first (draw base + glow behind everything)
+  // ✅ Step 1: Initialize base globe
   this.initializeGlobe();
 
   // ✅ Step 2: Setup resize listener
   this.setupResizeObserver();
 
-  // ✅ Step 3: Subscribe to filter and fetch API data
+  // ✅ Step 3: Subscribe to filters and get API data
   this.fiterDataFromUrl$
     .pipe(
       distinctUntilChanged((a, b) => _.isEqual(a, b)),
@@ -16,14 +16,13 @@ ngAfterViewInit() {
       this.apiService.getWidgetData(this.widgetId).subscribe(async (response: any) => {
         console.log("API Response for SKI_2 =>", response);
 
-        // Load base country metadata
         const countryJson = await this.http.get<any>('assets/json/world-globe-data.json').toPromise();
         const countryMap: Record<string, any> = {};
         countryJson.countries.forEach((c: any) => {
           countryMap[c.name.toLowerCase()] = c;
         });
 
-        // Map API response
+        // Map API → structure
         const apiCountries = response.map((r: any) => {
           const meta = countryMap[r.duty_country_descr?.toLowerCase()] || {};
           return {
@@ -37,10 +36,11 @@ ngAfterViewInit() {
           };
         });
 
-        this.countriesList = apiCountries.length ? apiCountries : this.countriesList;
+        // ✅ Step 4: Use API data only
+        this.countriesList = apiCountries;
         this.filteredList = [...this.countriesList];
 
-        // Rebuild original color scale
+        // ✅ Step 5: Build color scale (original gradient)
         let minSkills = d3.min(this.countriesList, (d: any) => d.uniqueSkills) || 0;
         let maxSkills = d3.max(this.countriesList, (d: any) => d.uniqueSkills) || 1;
         if (maxSkills - minSkills < 20) {
@@ -64,7 +64,7 @@ ngAfterViewInit() {
             '#87c3ab'
           ]);
 
-        // ✅ Step 4: Draw everything only AFTER globe is initialized
+        // ✅ Step 6: Draw globe layers (once)
         this.initializeCountryLabels();
         this.drawOceans();
         this.drawEquator();
@@ -73,6 +73,18 @@ ngAfterViewInit() {
       });
     });
 
-  // ✅ Step 5: Load other static elements (states, labels, oceans)
-  this.loadData();
+  // ✅ Step 7: Load only static JSON layers (states + oceans) — skip country redraw
+  this.http.get<any>('assets/json/globe-states.json').subscribe(data => {
+    this.states = topojson.feature(
+      data,
+      data.objects.ne_50m_admin_1_states_provinces
+    ) as unknown as FeatureCollection<Geometry, any>;
+    this.initializeStateLabels();
+    this.drawStates();
+  });
+
+  this.http.get<any>('assets/json/oceans.json').subscribe(data => {
+    this.oceans = data;
+    this.drawOceans();
+  });
 }
