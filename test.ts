@@ -1,49 +1,34 @@
-export class SsByVolumeProficiencyLevelComponent implements AfterViewInit {
-  widgetId: string = 'SKI_1';
+private processProficiencyData(apiData: ProficiencyData[]): void {
+  console.log("Processing proficiency data:", apiData);
   
-  ResponseFlag = false;
-  isLeftDisabled = true;
-  isRightDisabled = false;
-  fullview = false;
-  viewMode: 'chart' | 'table' = 'chart';
+  this.ResponseFlag = true;
+  this.proficiencyData = apiData;
   
-  @ViewChild('chartContainer') chartContainer!: ElementRef; // Add this
+  // Get unique skill levels
+  const uniqueLevels = [...new Set(apiData.map(item => item.skill_name))].sort();
+  this.allCategories = uniqueLevels;
   
-  public fiterDataFromUrl$ = this.store.select(selectEncodedFilter);
-  private destroyRef = inject(DestroyRef);
+  // Get unique proficiency types
+  const proficiencyTypes = ['Awareness', 'Skilled', 'Advanced', 'Expert'];
   
-  Highcharts: typeof Highcharts = Highcharts;
-  chartUpdateFlag = false; // Add this
+  // Build series data
+  this.allSeriesData = proficiencyTypes.map(profType => {
+    return uniqueLevels.map(level => {
+      const found = apiData.find(
+        item => item.skill_name === level && item.prof_skill_overall_name === profType
+      );
+      return found ? found.fte : 0;
+    });
+  });
   
-  pageSize = 9;
-  currentPage = 0;
+  console.log("Processed categories:", this.allCategories);
+  console.log("Processed series data:", this.allSeriesData);
   
-  allCategories: string[] = [];
-  allSeriesData: number[][] = [[], [], [], []];
-  proficiencyData: ProficiencyData[] = [];
+  // Update chart with processed data
+  this.updateChart();
   
-  chartOptions: Highcharts.Options = { /* ... */ };
-  
-  constructor(
-    private render: Renderer2,
-    public store: Store<SwfpFilterState>,
-    public apiService: SwfpApiService
-  ) {}
-  
-  ngOnInit() {
-    // Your existing ngOnInit code
-  }
-  
-  // ADD THIS METHOD
-  ngAfterViewInit() {
-    // Slight delay to ensure DOM is ready
-    setTimeout(() => {
-      this.chartUpdateFlag = true;
-    }, 100);
-  }
-  
-  // Rest of your methods...
+  // ADD THIS: Force chart update after data is processed
+  setTimeout(() => {
+    this.chartUpdateFlag = true;
+  }, 0);
 }
-
-
-import { AfterViewInit, ViewChild, ElementRef } from '@angular/core';
