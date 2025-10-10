@@ -1,10 +1,17 @@
-// 👇 draw base circle *behind* all countries, lighter opacity
-this.svg.insert('circle', ':first-child')
-  .attr('cx', width / 2)
-  .attr('cy', height / 2)
-  .attr('r', this.currentRadius)
-  .attr('fill', CUSTOM_GLOBE_COLOR)
-  .attr('stroke', '#ccc')
-  .attr('stroke-width', 1)
-  .style('opacity', 0.9)
-  .style('filter', 'url(#glow)');
+this.setupResizeObserver();
+this.initializeGlobe();
+
+// ✅ Load only boundaries and oceans, no dummy country data
+this.http.get<any>('assets/json/globe-states.json').subscribe(data => {
+  this.states = topojson.feature(
+    data,
+    data.objects.ne_50m_admin_1_states_provinces
+  ) as unknown as FeatureCollection<Geometry, any>;
+  this.initializeStateLabels();
+  this.drawStates();
+});
+
+this.http.get<any>('assets/json/oceans.json').subscribe(data => {
+  this.oceans = data;
+  this.drawOceans();
+});
