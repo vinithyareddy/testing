@@ -1,95 +1,15 @@
-ngAfterViewInit() {
-    this.fiterDataFromUrl$
-      .pipe(
-        distinctUntilChanged((a, b) => _.isEqual(a, b)),
-        debounceTime(100),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe(() => {
-        const dynamicFilters: string = this.queryBuilder.buildDynamicFilter(this.widgetId);
-        this.apiService.getWidgetData(this.widgetId, dynamicFilters).subscribe(async (response: any) => {
-          const countryJson = await this.http.get<any>('assets/json/world-globe-data.json').toPromise();
-          const countryMap: Record<string, any> = {};
-          countryJson.countries.forEach((c: any) => {
-            countryMap[c.name.toLowerCase()] = c;
-          });
-  
-          this.countriesList = response.map((r: any) => {
-            const meta = countryMap[r.duty_country_descr?.toLowerCase()] || {};
-            return {
-              country: r.duty_country_descr,
-              code: meta.code || 'UN',
-              region: meta.region || 'Unknown',
-              uniqueSkills: r.unique_skill_cnt || 0,
-              skillSupply: r.skill_supply_fte || 0,
-              lat: meta.lat || 0,
-              lng: meta.lng || 0
-            };
-          });
-  
-          this.filteredList = [...this.countriesList];
-          let minSkills = d3.min(this.countriesList, (d: any) => d.uniqueSkills) || 0;
-          let maxSkills = d3.max(this.countriesList, (d: any) => d.uniqueSkills) || 1;
-          if (maxSkills - minSkills < 20) {
-            minSkills = 0;
-            maxSkills = maxSkills * 2;
-          }
-  
-          this.countryColorScale = d3.scaleLinear<string>()
-            .domain([
-              minSkills,
-              minSkills + (maxSkills - minSkills) * 0.25,
-              minSkills + (maxSkills - minSkills) * 0.5,
-              minSkills + (maxSkills - minSkills) * 0.75,
-              maxSkills
-            ])
-            .range([
-              '#f5f0e4',
-              '#dbd5c8ff',
-              '#bed8ceff',
-              '#99c5b4ff',
-              '#87c3ab'
-            ]);
-  
-          // Initialize globe first
-          this.initializeGlobe();
-          this.setupResizeObserver();
-          
-          // Track completion of async loads
-          let loadedCount = 0;
-          const totalLoads = 2; // states + oceans
-          
-          const checkComplete = () => {
-            loadedCount++;
-            if (loadedCount === totalLoads) {
-              // All async operations complete
-              this.initializeCountryLabels();
-              this.drawEquator();
-              this.drawCountries();
-              this.startRotation();
-              
-              // Hide loader after everything is drawn
-              this.ResponseFlag = true;
-            }
-          };
-          
-          // Load states
-          this.http.get<any>('assets/json/globe-states.json').subscribe(data => {
-            this.states = topojson.feature(
-              data,
-              data.objects.ne_50m_admin_1_states_provinces
-            ) as unknown as FeatureCollection<Geometry, any>;
-            this.initializeStateLabels();
-            this.drawStates();
-            checkComplete();
-          });
-          
-          // Load oceans
-          this.http.get<any>('assets/json/oceans.json').subscribe(data => {
-            this.oceans = data;
-            this.drawOceans();
-            checkComplete();
-          });
-        });
-      });
-  }
+// Render offscreen first
+const offscreenSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+offscreenSvg.setAttribute('width', '100%');
+offscreenSvg.setAttribute('height', '100%');
+offscreenSvg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+offscreenSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+// Use D3 on the offscreen SVG
+this.svg = d3.select(offscreenSvg);
+
+// ... rest of your defs, circle, and path drawing logic stays unchanged ...
+
+// At the very end of initializeGlobe()
+globeDiv.innerHTML = ''; // clear old
+globeDiv.appendChild(offscreenSvg); // paint all at once
