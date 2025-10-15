@@ -13,10 +13,11 @@ export class SsByLocationComponent implements AfterViewInit {
 
   @ViewChild('globeContainer', { static: false }) globeContainer!: ElementRef;
 
-  private svg!: d3.Selection<SVGSVGElement, unknown, null, undefined>;
-  private projection!: d3.GeoProjection;
-  private path!: d3.GeoPath<any, d3.GeoPermissibleObjects>;
+  private svg?: d3.Selection<SVGSVGElement, unknown, null, undefined>;
+  private projection?: d3.GeoProjection;
+  private path?: d3.GeoPath<any, d3.GeoPermissibleObjects>;
   private radius = 300;
+  private countries?: FeatureCollection<Geometry, any>;
 
   ngAfterViewInit() {
     this.drawBasicGlobe();
@@ -43,14 +44,14 @@ export class SsByLocationComponent implements AfterViewInit {
 
     this.path = d3.geoPath().projection(this.projection);
 
-    // 🖼️ Base SVG
+    // 🖼️ SVG base
     this.svg = d3.select(container)
       .append('svg')
       .attr('width', width)
       .attr('height', height)
       .attr('preserveAspectRatio', 'xMidYMid meet');
 
-    // 🌊 Ocean sphere
+    // 🌊 Ocean
     this.svg.append('circle')
       .attr('cx', width / 2)
       .attr('cy', height / 2)
@@ -59,36 +60,39 @@ export class SsByLocationComponent implements AfterViewInit {
       .attr('stroke', '#aaa')
       .attr('stroke-width', 0.4);
 
-    // 🗺️ Countries (convert topojson → geojson)
-    const countries = topojson.feature(
+    // 🗺️ Countries
+    this.countries = topojson.feature(
       worldData as any,
       (worldData as any).objects.countries
     ) as FeatureCollection<Geometry, any>;
 
-    // ✅ Draw countries safely
     this.svg.append('g')
       .selectAll('path')
-      .data(countries.features)
+      .data(this.countries.features)
       .enter()
       .append('path')
-      .attr('d', this.path)
+      .attr('d', this.path!)
       .attr('fill', '#cfe8e3')
       .attr('stroke', '#555')
       .attr('stroke-width', 0.3);
   }
 
   private redrawGlobe() {
-    if (!this.svg) return;
+    if (!this.svg || !this.projection || !this.countries) return;
 
     const container = this.globeContainer.nativeElement;
     const width = container.offsetWidth;
     const height = container.offsetHeight;
     this.radius = Math.min(width, height) / 2.1;
 
+    // Update projection + path safely
     this.projection
       .scale(this.radius)
       .translate([width / 2, height / 2]);
 
+    this.path = d3.geoPath().projection(this.projection);
+
+    // Update SVG size + shapes
     this.svg
       .attr('width', width)
       .attr('height', height);
@@ -98,6 +102,8 @@ export class SsByLocationComponent implements AfterViewInit {
       .attr('cy', height / 2)
       .attr('r', this.radius);
 
-    this.svg.selectAll('path').attr('d', this.path);
+    this.svg.selectAll('path')
+      .data(this.countries.features)
+      .attr('d', this.path!);
   }
 }
