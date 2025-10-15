@@ -2,6 +2,7 @@ import { AfterViewInit, Component, ElementRef, ViewChild, HostListener } from '@
 import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import worldData from 'world-atlas/countries-50m.json';
+import { FeatureCollection, Geometry } from 'geojson';
 
 @Component({
   selector: 'app-ss-by-location',
@@ -11,31 +12,30 @@ import worldData from 'world-atlas/countries-50m.json';
 export class SsByLocationComponent implements AfterViewInit {
 
   @ViewChild('globeContainer', { static: false }) globeContainer!: ElementRef;
-  private svg: any;
-  private projection: any;
-  private path: any;
+
+  private svg!: d3.Selection<SVGSVGElement, unknown, null, undefined>;
+  private projection!: d3.GeoProjection;
+  private path!: d3.GeoPath<any, d3.GeoPermissibleObjects>;
   private radius = 300;
 
   ngAfterViewInit() {
-    this.initGlobe();
+    this.drawBasicGlobe();
   }
 
-  /** 🔁 Recalculate and re-render on window resize */
   @HostListener('window:resize')
   onResize() {
-    this.renderGlobe();
+    this.redrawGlobe();
   }
 
-  /** 📦 Initialize SVG and base layers */
-  private initGlobe() {
+  private drawBasicGlobe() {
     const container = this.globeContainer.nativeElement;
-    d3.select(container).selectAll('svg').remove(); // clear if any
+    d3.select(container).selectAll('svg').remove();
 
     const width = container.offsetWidth;
     const height = container.offsetHeight;
     this.radius = Math.min(width, height) / 2.1;
 
-    // Projection setup
+    // 🌍 Projection setup
     this.projection = d3.geoOrthographic()
       .scale(this.radius)
       .translate([width / 2, height / 2])
@@ -43,26 +43,29 @@ export class SsByLocationComponent implements AfterViewInit {
 
     this.path = d3.geoPath().projection(this.projection);
 
+    // 🖼️ Base SVG
     this.svg = d3.select(container)
       .append('svg')
       .attr('width', width)
       .attr('height', height)
       .attr('preserveAspectRatio', 'xMidYMid meet');
 
-    // Draw ocean sphere
+    // 🌊 Ocean sphere
     this.svg.append('circle')
       .attr('cx', width / 2)
       .attr('cy', height / 2)
       .attr('r', this.radius)
-      .attr('fill', '#8cc0f0');
+      .attr('fill', '#8cc0f0')
+      .attr('stroke', '#aaa')
+      .attr('stroke-width', 0.4);
 
-    // Convert TopoJSON → GeoJSON
+    // 🗺️ Countries (convert topojson → geojson)
     const countries = topojson.feature(
       worldData as any,
       (worldData as any).objects.countries
-    );
+    ) as FeatureCollection<Geometry, any>;
 
-    // Draw countries
+    // ✅ Draw countries safely
     this.svg.append('g')
       .selectAll('path')
       .data(countries.features)
@@ -74,8 +77,7 @@ export class SsByLocationComponent implements AfterViewInit {
       .attr('stroke-width', 0.3);
   }
 
-  /** 📐 Re-render when container resizes */
-  private renderGlobe() {
+  private redrawGlobe() {
     if (!this.svg) return;
 
     const container = this.globeContainer.nativeElement;
