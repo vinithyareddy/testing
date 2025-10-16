@@ -59,8 +59,9 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   isMobile = false;
   isTablet = false;
   currentZoom = 1;
-  currentRotation = [0, 0];
+  currentRotation: [number, number, number] = [0, 0, 0];
   currentRadius = 300;
+
   private svg!: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   private projection!: d3.GeoProjection;
   private path!: d3.GeoPath<any, d3.GeoPermissibleObjects>;
@@ -82,7 +83,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     public apiService: SwfpApiService
   ) {}
 
-  /** ---------- RESPONSIVE SETUP ---------- **/
+  /** ---------- Responsive ---------- **/
   @HostListener('window:resize') onResize() {
     this.checkScreenSize();
     this.resizeGlobe();
@@ -105,15 +106,13 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     return Math.min(min * 0.45, 300);
   }
 
-  /** ---------- INIT ---------- **/
+  /** ---------- Init ---------- **/
   ngAfterViewInit() {
     this.checkScreenSize();
-
     this.store
       .select(selectEncodedFilter)
       .pipe(distinctUntilChanged((a, b) => _.isEqual(a, b)), debounceTime(150), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.fetchData());
-
     this.initResizeObserver();
   }
 
@@ -122,7 +121,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
   }
 
-  /** ---------- API + DATA ---------- **/
+  /** ---------- Data Fetch ---------- **/
   private fetchData() {
     this.ResponseFlag = false;
     const dynamicFilter = this.queryBuilder.buildDynamicFilter(this.widgetId);
@@ -155,15 +154,12 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   private updateColorScale() {
     const min = d3.min(this.countriesList, d => d.uniqueSkills) || 0;
     const max = d3.max(this.countriesList, d => d.uniqueSkills) || 1;
-    this.colorScale = d3
-      .scaleLinear<string>()
-      .domain([min, max])
-      .range(['#e5efe5', '#2c7a3f']);
+    this.colorScale = d3.scaleLinear<string>().domain([min, max]).range(['#e5efe5', '#2c7a3f']);
   }
 
-  /** ---------- GLOBE INITIALIZATION (runs once) ---------- **/
+  /** ---------- Globe Init ---------- **/
   private initGlobeOnce() {
-    if (this.svg) return; // already initialized
+    if (this.svg) return; // Already initialized
 
     const container = this.globeContainer.nativeElement;
     const width = container.offsetWidth;
@@ -201,11 +197,16 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .style('pointer-events', 'none')
       .style('display', 'none');
 
+    this.drawOceans();
+    this.drawStates();
+    this.updateCountries();
+    this.drawEquator();
+    this.drawCountryLabels();
     this.setupInteractions();
     this.startRotationLoop();
   }
 
-  /** ---------- RENDER ---------- **/
+  /** ---------- Drawing Layers ---------- **/
   private updateCountries() {
     if (!this.svg) return;
     const countriesSel = this.svg.selectAll<SVGPathElement, any>('.country').data(this.countries.features);
@@ -226,12 +227,94 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .on('mouseout', () => this.hideTooltip());
   }
 
-  private getCountryColor(d: any) {
-    const entry = this.countriesList.find(c => c.country === d.properties.name);
-    return entry ? this.colorScale(entry.uniqueSkills) : '#e0e0e0';
+  private drawEquator() {
+    const coords = [];
+    for (let lng = -180; lng <= 180; lng += 2) coords.push([lng, 0]);
+    const equator = { type: 'LineString', coordinates: coords };
+    this.svg.selectAll('.equator').remove();
+    this.svg
+      .append('path')
+      .datum(equator)
+      .attr('class', 'equator')
+      .attr('d', this.path)
+      .attr('fill', 'none')
+      .attr('stroke', '#7697a4')
+      .attr('stroke-width', 2)
+      .attr('stroke-dasharray', '5,3')
+      .style('opacity', 0.8);
   }
 
-  /** ---------- ROTATION ---------- **/
+  private drawOceans() {
+    this.http.get<any>('assets/json/oceans.json').subscribe(data => {
+      const oceans = data.features;
+      this.svg.selectAll('.ocean-label').remove();
+      oceans.forEach((f: any) => {
+        const coords = f.geometry.coordinates;
+        const p = this.projection(coords);
+        if (!p) return;
+        this.svg
+          .append('text')
+          .attr('class', 'ocean-label')
+          .attr('x', p[0])
+          .attr('y', p[1])
+          .attr('text-anchor', 'middle')
+          .style('font-size', '12px')
+          .style('fill', '#1a4b7a')
+          .style('font-weight', '600')
+          .style('opacity', 0.7)
+          .text(f.properties.name);
+      });
+    });
+  }
+
+  private drawStates() {
+    this.http.get<any>('assets/json/globe-states.json').subscribe(data => {
+      const states = topojson.feature(
+        data,
+        data.objects.ne_50m_admin_1_states_provinces
+      ) as FeatureCollection<Geometry, any>;
+      this.svg.selectAll('.state').remove();
+      this.svg
+        .selectAll('.state')
+        .data(states.features)
+        .enter()
+        .append('path')
+        .attr('class', 'state')
+        .attr('d', this.path)
+        .attr('fill', 'transparent')
+        .attr('stroke', '#aaa')
+        .attr('stroke-width', 0.3)
+        .style('pointer-events', 'none');
+    });
+  }
+
+  private drawCountryLabels() {
+    this.svg.selectAll('.country-label').remove();
+    const labelData = this.countries.features.map((f: any) => ({
+      name: f.properties.name,
+      centroid: d3.geoCentroid(f)
+    }));
+
+    labelData.forEach(d => {
+      const p = this.projection(d.centroid);
+      if (!p) return;
+      this.svg
+        .append('text')
+        .attr('class', 'country-label')
+        .attr('x', p[0])
+        .attr('y', p[1])
+        .attr('text-anchor', 'middle')
+        .style('font-size', '10px')
+        .style('font-weight', '600')
+        .style('fill', '#333')
+        .style('stroke', '#fff')
+        .style('stroke-width', '0.5px')
+        .style('paint-order', 'stroke fill')
+        .text(d.name);
+    });
+  }
+
+  /** ---------- Rotation ---------- **/
   private startRotationLoop() {
     this.zone.runOutsideAngular(() => {
       const rotate = () => {
@@ -246,67 +329,105 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  /** ---------- INTERACTIONS ---------- **/
+  /** ---------- Interactions ---------- **/
   private setupInteractions() {
     const drag = d3
       .drag<SVGCircleElement, unknown>()
       .on('start', () => (this.isDragging = true))
       .on('drag', (event: any) => {
-        const sensitivity = this.isMobile ? 0.4 : 0.25;
-        this.currentRotation[0] += event.dx * sensitivity;
-        this.currentRotation[1] -= event.dy * sensitivity;
+        const s = this.isMobile ? 0.4 : 0.25;
+        this.currentRotation[0] += event.dx * s;
+        this.currentRotation[1] -= event.dy * s;
         this.projection.rotate(this.currentRotation);
         this.updateCountries();
       })
-      .on('end', () => {
-        this.isDragging = false;
-      });
+      .on('end', () => (this.isDragging = false));
 
-    this.svg.select('circle').call(drag);
+    (this.svg.select('circle') as any).call(drag as any);
   }
 
-  zoomIn() {
-    this.currentZoom = Math.min(this.currentZoom + 0.2, 3);
-    this.resizeGlobe();
-  }
-
-  zoomOut() {
-    this.currentZoom = Math.max(this.currentZoom - 0.2, 0.5);
-    this.resizeGlobe();
-  }
-
+  /** ---------- Tooltip ---------- **/
   private showTooltip(event: MouseEvent, d: any) {
     const entry = this.countriesList.find(c => c.country === d.properties.name);
     if (!entry) return;
-    const content = `
+    const html = `
       <div class="tooltip-header">
         <img class="flag-icon" src="assets/images/flags/${entry.code.toLowerCase()}.svg"/>
         <span>${entry.country}</span>
       </div>
-      <div class="tooltip-row">
-        <span class="label">Unique Skills</span>
-        <span class="value">${entry.uniqueSkills}</span>
-      </div>
-      <div class="tooltip-row">
-        <span class="label">Skill Supply (FTE)</span>
-        <span class="value">${entry.skillSupply}</span>
-      </div>`;
-    this.tooltip.html(content).style('display', 'block');
+      <div class="tooltip-row"><span class="label">Unique Skills</span><span class="value">${entry.uniqueSkills}</span></div>
+      <div class="tooltip-row"><span class="label">Skill Supply (FTE)</span><span class="value">${entry.skillSupply}</span></div>
+    `;
+    this.tooltip.html(html).style('display', 'block');
     this.moveTooltip(event);
   }
 
   private moveTooltip(event: MouseEvent) {
     const rect = this.globeContainer.nativeElement.getBoundingClientRect();
-    const x = event.clientX - rect.left + 15;
-    const y = event.clientY - rect.top + 15;
-    this.tooltip.style('left', `${x}px`).style('top', `${y}px`);
+    this.tooltip
+      .style('left', event.clientX - rect.left + 15 + 'px')
+      .style('top', event.clientY - rect.top + 15 + 'px');
   }
 
   private hideTooltip() {
     this.tooltip.style('display', 'none');
   }
 
-  /** ---------- RESIZE ---------- **/
+  /** ---------- Legend + Focus ---------- **/
+  filterList() {
+    const q = (this.searchTerm || '').toLowerCase();
+    this.filteredList = this.countriesList.filter(
+      c => c.country.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
+    );
+  }
+
+  toggleLegend() {
+    if (!this.isMobile) this.legendCollapsed = !this.legendCollapsed;
+  }
+
+  focusOnCountry(country: CountrySkill) {
+    if (!country) return;
+    this.isRotating = false;
+    const targetRotation: [number, number, number] = [-country.lng, -country.lat, 0];
+    this.currentRotation = targetRotation;
+    this.projection.rotate(this.currentRotation);
+    this.updateCountries();
+
+    this.svg.selectAll('.country-highlight').remove();
+    const feature = this.countries.features.find(f => f.properties.name === country.country);
+    if (!feature) return;
+
+    const highlight = this.svg
+      .append('path')
+      .datum(feature)
+      .attr('class', 'country-highlight')
+      .attr('d', this.path)
+      .attr('fill', 'none')
+      .attr('stroke', '#ff4444')
+      .attr('stroke-width', 2)
+      .attr('stroke-dasharray', '8,4')
+      .style('opacity', 0);
+
+    highlight.transition().duration(400).style('opacity', 1);
+
+    const centroid = d3.geoCentroid(feature);
+    const projected = this.projection(centroid);
+    if (projected) {
+      const fakeEvent = {
+        clientX: projected[0] + this.globeContainer.nativeElement.getBoundingClientRect().left,
+        clientY: projected[1] + this.globeContainer.nativeElement.getBoundingClientRect().top
+      } as MouseEvent;
+      this.showTooltip(fakeEvent, feature);
+    }
+
+    setTimeout(() => {
+      this.hideTooltip();
+      highlight.transition().duration(600).style('opacity', 0).remove();
+      this.isRotating = true;
+    }, 3000);
+  }
+
+  /** ---------- Resize ---------- **/
   private initResizeObserver() {
     if (typeof ResizeObserver === 'undefined') return;
     this.resizeObserver = new ResizeObserver(() => this.resizeGlobe());
@@ -319,30 +440,13 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     const width = container.offsetWidth;
     const height = container.offsetHeight;
     this.currentRadius = this.getResponsiveRadius();
-
-    this.projection
-      .scale(this.currentRadius * this.currentZoom)
-      .translate([width / 2, height / 2]);
+    this.projection.scale(this.currentRadius * this.currentZoom).translate([width / 2, height / 2]);
     this.svg.attr('viewBox', `0 0 ${width} ${height}`);
-    this.svg
-      .select('circle')
+    this.svg.select('circle')
       .attr('cx', width / 2)
       .attr('cy', height / 2)
       .attr('r', this.currentRadius * this.currentZoom);
-
     this.updateCountries();
-  }
-
-  /** ---------- SEARCH + LEGEND ---------- **/
-  filterList() {
-    const q = (this.searchTerm || '').toLowerCase();
-    this.filteredList = this.countriesList.filter(
-      c => c.country.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
-    );
-  }
-
-  toggleLegend() {
-    if (!this.isMobile) this.legendCollapsed = !this.legendCollapsed;
   }
 
   fullPageView() {
