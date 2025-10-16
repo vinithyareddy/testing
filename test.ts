@@ -83,7 +83,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     public apiService: SwfpApiService
   ) {}
 
-  /** ---------- Responsive ---------- **/
+  /** ---------- RESPONSIVE SETUP ---------- **/
   @HostListener('window:resize') onResize() {
     this.checkScreenSize();
     this.resizeGlobe();
@@ -106,13 +106,15 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     return Math.min(min * 0.45, 300);
   }
 
-  /** ---------- Init ---------- **/
+  /** ---------- INIT ---------- **/
   ngAfterViewInit() {
     this.checkScreenSize();
+
     this.store
       .select(selectEncodedFilter)
       .pipe(distinctUntilChanged((a, b) => _.isEqual(a, b)), debounceTime(150), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.fetchData());
+
     this.initResizeObserver();
   }
 
@@ -121,7 +123,7 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
   }
 
-  /** ---------- Data Fetch ---------- **/
+  /** ---------- API + DATA ---------- **/
   private fetchData() {
     this.ResponseFlag = false;
     const dynamicFilter = this.queryBuilder.buildDynamicFilter(this.widgetId);
@@ -154,12 +156,15 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   private updateColorScale() {
     const min = d3.min(this.countriesList, d => d.uniqueSkills) || 0;
     const max = d3.max(this.countriesList, d => d.uniqueSkills) || 1;
-    this.colorScale = d3.scaleLinear<string>().domain([min, max]).range(['#e5efe5', '#2c7a3f']);
+    this.colorScale = d3
+      .scaleLinear<string>()
+      .domain([min, max])
+      .range(['#f5f0e4', '#87c3ab']);
   }
 
-  /** ---------- Globe Init ---------- **/
+  /** ---------- GLOBE INITIALIZATION ---------- **/
   private initGlobeOnce() {
-    if (this.svg) return; // Already initialized
+    if (this.svg) return; // already initialized
 
     const container = this.globeContainer.nativeElement;
     const width = container.offsetWidth;
@@ -197,40 +202,22 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .style('pointer-events', 'none')
       .style('display', 'none');
 
+    // Draw static layers
     this.drawOceans();
     this.drawStates();
-    this.updateCountries();
     this.drawEquator();
+    this.updateCountries();
     this.drawCountryLabels();
+
     this.setupInteractions();
     this.startRotationLoop();
   }
 
-  /** ---------- Drawing Layers ---------- **/
-  private updateCountries() {
-    if (!this.svg) return;
-    const countriesSel = this.svg.selectAll<SVGPathElement, any>('.country').data(this.countries.features);
-
-    countriesSel.exit().remove();
-
-    countriesSel
-      .enter()
-      .append('path')
-      .attr('class', 'country')
-      .attr('stroke', '#7e8790')
-      .attr('stroke-width', 0.5)
-      .merge(countriesSel)
-      .attr('d', this.path)
-      .attr('fill', (d: any) => this.getCountryColor(d))
-      .on('mouseover', (event: MouseEvent, d: any) => this.showTooltip(event, d))
-      .on('mousemove', (event: MouseEvent) => this.moveTooltip(event))
-      .on('mouseout', () => this.hideTooltip());
-  }
-
+  /** ---------- DRAW ELEMENTS ---------- **/
   private drawEquator() {
-    const coords = [];
-    for (let lng = -180; lng <= 180; lng += 2) coords.push([lng, 0]);
-    const equator = { type: 'LineString', coordinates: coords };
+    const equatorCoords = [];
+    for (let lng = -180; lng <= 180; lng += 2) equatorCoords.push([lng, 0]);
+    const equator = { type: 'LineString', coordinates: equatorCoords };
     this.svg.selectAll('.equator').remove();
     this.svg
       .append('path')
@@ -241,28 +228,31 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
       .attr('stroke', '#7697a4')
       .attr('stroke-width', 2)
       .attr('stroke-dasharray', '5,3')
-      .style('opacity', 0.8);
+      .style('opacity', 0.8)
+      .style('pointer-events', 'none');
   }
 
   private drawOceans() {
     this.http.get<any>('assets/json/oceans.json').subscribe(data => {
       const oceans = data.features;
       this.svg.selectAll('.ocean-label').remove();
-      oceans.forEach((f: any) => {
-        const coords = f.geometry.coordinates;
-        const p = this.projection(coords);
-        if (!p) return;
+
+      oceans.forEach((feature: any) => {
+        const coords = feature.geometry.coordinates;
+        const projected = this.projection(coords);
+        if (!projected) return;
+
         this.svg
           .append('text')
           .attr('class', 'ocean-label')
-          .attr('x', p[0])
-          .attr('y', p[1])
+          .attr('x', projected[0])
+          .attr('y', projected[1])
           .attr('text-anchor', 'middle')
           .style('font-size', '12px')
           .style('fill', '#1a4b7a')
           .style('font-weight', '600')
           .style('opacity', 0.7)
-          .text(f.properties.name);
+          .text(feature.properties.name);
       });
     });
   }
@@ -273,7 +263,9 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
         data,
         data.objects.ne_50m_admin_1_states_provinces
       ) as FeatureCollection<Geometry, any>;
+
       this.svg.selectAll('.state').remove();
+
       this.svg
         .selectAll('.state')
         .data(states.features)
@@ -296,13 +288,13 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     }));
 
     labelData.forEach(d => {
-      const p = this.projection(d.centroid);
-      if (!p) return;
+      const projected = this.projection(d.centroid);
+      if (!projected) return;
       this.svg
         .append('text')
         .attr('class', 'country-label')
-        .attr('x', p[0])
-        .attr('y', p[1])
+        .attr('x', projected[0])
+        .attr('y', projected[1])
         .attr('text-anchor', 'middle')
         .style('font-size', '10px')
         .style('font-weight', '600')
@@ -314,7 +306,32 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  /** ---------- Rotation ---------- **/
+  private updateCountries() {
+    if (!this.svg) return;
+    const countriesSel = this.svg.selectAll<SVGPathElement, any>('.country').data(this.countries.features);
+
+    countriesSel.exit().remove();
+
+    countriesSel
+      .enter()
+      .append('path')
+      .attr('class', 'country')
+      .attr('stroke', '#7e8790')
+      .attr('stroke-width', 0.5)
+      .merge(countriesSel)
+      .attr('d', this.path)
+      .attr('fill', (d: any) => this.getCountryColor(d))
+      .on('mouseover', (event: MouseEvent, d: any) => this.showTooltip(event, d))
+      .on('mousemove', (event: MouseEvent) => this.moveTooltip(event))
+      .on('mouseout', () => this.hideTooltip());
+  }
+
+  private getCountryColor(d: any) {
+    const entry = this.countriesList.find(c => c.country === d.properties.name);
+    return entry ? this.colorScale(entry.uniqueSkills) : '#e0e0e0';
+  }
+
+  /** ---------- ROTATION ---------- **/
   private startRotationLoop() {
     this.zone.runOutsideAngular(() => {
       const rotate = () => {
@@ -329,15 +346,15 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  /** ---------- Interactions ---------- **/
+  /** ---------- INTERACTIONS ---------- **/
   private setupInteractions() {
     const drag = d3
       .drag<SVGCircleElement, unknown>()
       .on('start', () => (this.isDragging = true))
       .on('drag', (event: any) => {
-        const s = this.isMobile ? 0.4 : 0.25;
-        this.currentRotation[0] += event.dx * s;
-        this.currentRotation[1] -= event.dy * s;
+        const sensitivity = this.isMobile ? 0.4 : 0.25;
+        this.currentRotation[0] += event.dx * sensitivity;
+        this.currentRotation[1] -= event.dy * sensitivity;
         this.projection.rotate(this.currentRotation);
         this.updateCountries();
       })
@@ -346,34 +363,73 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     (this.svg.select('circle') as any).call(drag as any);
   }
 
-  /** ---------- Tooltip ---------- **/
+  zoomIn() {
+    this.currentZoom = Math.min(this.currentZoom + 0.2, 3);
+    this.resizeGlobe();
+  }
+
+  zoomOut() {
+    this.currentZoom = Math.max(this.currentZoom - 0.2, 0.5);
+    this.resizeGlobe();
+  }
+
   private showTooltip(event: MouseEvent, d: any) {
     const entry = this.countriesList.find(c => c.country === d.properties.name);
     if (!entry) return;
-    const html = `
+    const content = `
       <div class="tooltip-header">
         <img class="flag-icon" src="assets/images/flags/${entry.code.toLowerCase()}.svg"/>
         <span>${entry.country}</span>
       </div>
-      <div class="tooltip-row"><span class="label">Unique Skills</span><span class="value">${entry.uniqueSkills}</span></div>
-      <div class="tooltip-row"><span class="label">Skill Supply (FTE)</span><span class="value">${entry.skillSupply}</span></div>
-    `;
-    this.tooltip.html(html).style('display', 'block');
+      <div class="tooltip-row">
+        <span class="label">Unique Skills</span>
+        <span class="value">${entry.uniqueSkills}</span>
+      </div>
+      <div class="tooltip-row">
+        <span class="label">Skill Supply (FTE)</span>
+        <span class="value">${entry.skillSupply}</span>
+      </div>`;
+    this.tooltip.html(content).style('display', 'block');
     this.moveTooltip(event);
   }
 
   private moveTooltip(event: MouseEvent) {
     const rect = this.globeContainer.nativeElement.getBoundingClientRect();
-    this.tooltip
-      .style('left', event.clientX - rect.left + 15 + 'px')
-      .style('top', event.clientY - rect.top + 15 + 'px');
+    const x = event.clientX - rect.left + 15;
+    const y = event.clientY - rect.top + 15;
+    this.tooltip.style('left', `${x}px`).style('top', `${y}px`);
   }
 
   private hideTooltip() {
     this.tooltip.style('display', 'none');
   }
 
-  /** ---------- Legend + Focus ---------- **/
+  /** ---------- RESIZE ---------- **/
+  private initResizeObserver() {
+    if (typeof ResizeObserver === 'undefined') return;
+    this.resizeObserver = new ResizeObserver(() => this.resizeGlobe());
+    this.resizeObserver.observe(this.globeContainer.nativeElement);
+  }
+
+  private resizeGlobe() {
+    if (!this.svg || !this.projection) return;
+    const container = this.globeContainer.nativeElement;
+    const width = container.offsetWidth;
+    const height = container.offsetHeight;
+    this.currentRadius = this.getResponsiveRadius();
+
+    this.projection.scale(this.currentRadius * this.currentZoom).translate([width / 2, height / 2]);
+    this.svg.attr('viewBox', `0 0 ${width} ${height}`);
+    this.svg
+      .select('circle')
+      .attr('cx', width / 2)
+      .attr('cy', height / 2)
+      .attr('r', this.currentRadius * this.currentZoom);
+
+    this.updateCountries();
+  }
+
+  /** ---------- LEGEND + SEARCH + HIGHLIGHT ---------- **/
   filterList() {
     const q = (this.searchTerm || '').toLowerCase();
     this.filteredList = this.countriesList.filter(
@@ -388,13 +444,14 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
   focusOnCountry(country: CountrySkill) {
     if (!country) return;
     this.isRotating = false;
+
     const targetRotation: [number, number, number] = [-country.lng, -country.lat, 0];
     this.currentRotation = targetRotation;
     this.projection.rotate(this.currentRotation);
     this.updateCountries();
 
     this.svg.selectAll('.country-highlight').remove();
-    const feature = this.countries.features.find(f => f.properties.name === country.country);
+    const feature = this.countries.features.find((f: any) => f.properties.name === country.country);
     if (!feature) return;
 
     const highlight = this.svg
@@ -427,32 +484,5 @@ export class SsByLocationComponent implements AfterViewInit, OnDestroy {
     }, 3000);
   }
 
-  /** ---------- Resize ---------- **/
-  private initResizeObserver() {
-    if (typeof ResizeObserver === 'undefined') return;
-    this.resizeObserver = new ResizeObserver(() => this.resizeGlobe());
-    this.resizeObserver.observe(this.globeContainer.nativeElement);
-  }
-
-  private resizeGlobe() {
-    if (!this.svg || !this.projection) return;
-    const container = this.globeContainer.nativeElement;
-    const width = container.offsetWidth;
-    const height = container.offsetHeight;
-    this.currentRadius = this.getResponsiveRadius();
-    this.projection.scale(this.currentRadius * this.currentZoom).translate([width / 2, height / 2]);
-    this.svg.attr('viewBox', `0 0 ${width} ${height}`);
-    this.svg.select('circle')
-      .attr('cx', width / 2)
-      .attr('cy', height / 2)
-      .attr('r', this.currentRadius * this.currentZoom);
-    this.updateCountries();
-  }
-
   fullPageView() {
-    this.fullview = !this.fullview;
-    if (this.fullview) this.renderer.addClass(document.body, 'no-scroll');
-    else this.renderer.removeClass(document.body, 'no-scroll');
-    this.resizeGlobe();
-  }
-}
+    this.fullview
