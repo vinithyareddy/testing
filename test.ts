@@ -3,7 +3,7 @@ legend: {
     align: 'center',
     layout: 'horizontal',
     verticalAlign: 'bottom',
-    useHTML: true,
+    useHTML: false,
     symbolPadding: 5,
     itemDistance: 20,
     itemStyle: {
@@ -11,24 +11,38 @@ legend: {
       fontWeight: '500',
       color: '#051223'
     },
-    labelFormatter: function () {
-      // Insert heading before the first legend item
-      if (this.index === 0) {
-        return '<span style="font-weight:600;color:#051223;margin-right:8px;">Proficiency Level:</span>' +
-               '<span style="vertical-align:middle;">' + this.name + '</span>';
-      }
-      return this.name;
-    },
-    title: {
-      text: '' // keep blank to avoid stacking
-    },
     events: {
       itemClick: function (event: any) {
         event.preventDefault();
       }
     },
-    // Adjust margins to keep alignment consistent
-    padding: 0,
     margin: 10
+  },
+  chart: {
+    type: 'column',
+    backgroundColor: '#ffffff',
+    events: {
+      render: function () {
+        const chart = this;
+        // Remove old label if it exists
+        if (chart.customLegendTitle) chart.customLegendTitle.destroy();
+  
+        // Compute legend position
+        if (chart.legend && chart.legend.group) {
+          const legendX = chart.legend.group.translateX;
+          const legendY = chart.legend.group.translateY;
+  
+          // Add static text before the legend
+          chart.customLegendTitle = chart.renderer
+            .text('Proficiency Level:', legendX - 130, legendY + 12)
+            .css({
+              fontWeight: '600',
+              color: '#051223',
+              fontSize: '13px'
+            })
+            .add();
+        }
+      }
+    }
   }
   
