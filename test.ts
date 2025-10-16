@@ -3,26 +3,23 @@ legend: {
     align: 'center',
     layout: 'horizontal',
     verticalAlign: 'bottom',
-    title: {
-      text: 'Proficiency Level:',
-      style: {
-        fontWeight: '600',
-        fontSize: '13px',
-        color: '#051223',
-        padding: 8
-      }
-    },
     itemStyle: {
       fontSize: '12px',
       fontWeight: '500',
       color: '#051223'
     },
     symbolPadding: 5,
-    margin: 10,
     itemDistance: 20,
+    labelFormatter: function () {
+      if (this.index === 0) {
+        return '<span style="font-weight:600;color:#051223;margin-right:6px;">Proficiency Level:</span>' + this.name;
+      }
+      return this.name;
+    },
+    useHTML: true,
     events: {
       itemClick: function (event: any) {
-        event.preventDefault(); // keep legend static
+        event.preventDefault();
       }
     }
   }
