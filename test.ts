@@ -72,3 +72,14 @@ const equator = {
     .attr('opacity', 0.6)
     .attr('fill', 'none');
   
+
+    // --- Label and overlay updates ---
+this.updateStateBorders();       // draw state outlines first
+this.updateCountryLabels();      // draw adaptive country names
+this.updateStateLabels();        // draw adaptive state codes
+this.addOceanLabels();           // 🌊 add static ocean names
+
+// Keep labels on top of everything
+this.svg.selectAll('.country-label').raise();
+this.svg.selectAll('.state-label').raise();
+this.svg.selectAll('.ocean-label').raise();
