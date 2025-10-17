@@ -1,53 +1,58 @@
-private updateCountryLabels() {
-    if (!this.countries) return;
+private updateStateLabels() {
+    if (!this.states) return;
   
-    // Remove previous labels
-    this.svg.selectAll('.country-label').remove();
+    // Remove existing labels each frame
+    this.svg.selectAll('.state-label').remove();
   
     const usedPositions: Array<{ x: number; y: number }> = [];
   
-    // Loop through countries
-    this.countries.features.forEach((f: any) => {
-      const centroid = d3.geoCentroid(f);
-      if (!this.isPointVisible(centroid)) return; // skip back side
+    // Loop through state features
+    this.states.features.forEach((s: any) => {
+      const centroid = d3.geoCentroid(s);
+      if (!this.isPointVisible(centroid)) return; // hide back side
   
       const projected = this.projection(centroid);
       if (!projected) return;
       const [x, y] = projected;
   
-      // Approximate on-screen area from path bounds
-      const bounds = this.path.bounds(f);
+      // Estimate how much screen space this state covers
+      const bounds = this.path.bounds(s);
       const area = (bounds[1][0] - bounds[0][0]) * (bounds[1][1] - bounds[0][1]);
   
-      // Adaptive visibility: larger countries always visible,
-      // smaller ones only visible when zoomed in
-      const minVisibleArea = 80 / (this.currentZoom * this.currentZoom); // smaller = show more labels
-      if (area < minVisibleArea) return; // skip small countries when zoomed out
+      // Adaptive visibility: large states always visible, small ones need zoom
+      const minVisibleArea = 20 / (this.currentZoom * this.currentZoom);
+      if (area < minVisibleArea) return; // skip when zoomed out or cramped
   
-      // Prevent label overlaps
-      const tooClose = usedPositions.some(p => Math.hypot(p.x - x, p.y - y) < 14);
+      // Skip if label would overlap another one
+      const tooClose = usedPositions.some(p => Math.hypot(p.x - x, p.y - y) < 10);
       if (tooClose) return;
       usedPositions.push({ x, y });
   
-      // Adaptive font size by zoom (no hardcode)
-      const fontSize = Math.max(6, Math.min(12, 6 + this.currentZoom * 1.5));
+      // Adaptive font size — scales naturally with zoom
+      const fontSize = Math.max(5, Math.min(10, 5 + this.currentZoom * 1.2));
+  
+      // Pick an available short identifier (ISO, HASC, or fallback)
+      let label = s.properties?.iso_3166_2 || s.properties?.code_hasc || s.properties?.name;
+      if (label && label.includes('.')) label = label.split('.').pop();
+      if (label && label.includes('-')) label = label.split('-').pop();
+      if (!label) return;
   
       this.svg
         .append('text')
-        .attr('class', 'country-label')
+        .attr('class', 'state-label')
         .attr('x', x)
         .attr('y', y)
         .attr('text-anchor', 'middle')
         .style('font-size', `${fontSize}px`)
         .style('font-weight', '600')
-        .style('fill', '#111')
+        .style('fill', '#2c3e50')
         .style('stroke', 'white')
-        .style('stroke-width', '0.6px')
+        .style('stroke-width', '0.5px')
         .style('paint-order', 'stroke fill')
-        .text(f.properties.name);
+        .text(label);
     });
   
-    // Keep labels on top of all paths
-    this.svg.selectAll('.country-label').raise();
+    // Keep state codes above borders
+    this.svg.selectAll('.state-label').raise();
   }
   
