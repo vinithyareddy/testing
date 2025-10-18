@@ -1,11 +1,15 @@
 // Force remove all margins from parent elements using ::ng-deep
 ::ng-deep {
-  html, body {
+  html {
     margin: 0 !important;
     padding: 0 !important;
-    overflow-x: hidden;
   }
-
+  
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
   app-root {
     margin: 0 !important;
     padding: 0 !important;
@@ -18,12 +22,6 @@
   display: block;
   margin: 0 !important;
   padding: 0 !important;
-  width: 100vw;
-  position: relative;
-  left: 50%;
-  right: 50%;
-  margin-left: -50vw !important;
-  margin-right: -50vw !important;
 }
 
 .page-wrapper {
@@ -33,7 +31,6 @@
   color: #1d1d1d;
   padding: 0;
   margin: 0;
-  width: 100%;
 }
 
 /* 1️⃣ Header Section */
@@ -43,7 +40,6 @@
   padding: 1.5rem 2rem;
   height: 55px;
   margin: 0;
-  width: 100%;
 
   .breadcrumb {
     font-size: 14px;
