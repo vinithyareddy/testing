@@ -1,5 +1,23 @@
-// Force remove all margins from parent elements using ::ng-deep
+// Force remove padding from the parent wrapper that's causing the spacing
 ::ng-deep {
+  // Target the specific wrapper causing the issue
+  .col-md-layout-wrapper {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  // Also remove padding from other potential parent containers
+  .row {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .container,
+  .wrapper.container {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
   html {
     margin: 0 !important;
     padding: 0 !important;
@@ -8,12 +26,6 @@
   body {
     margin: 0 !important;
     padding: 0 !important;
-  }
-  
-  app-root {
-    margin: 0 !important;
-    padding: 0 !important;
-    display: block;
   }
 }
 
