@@ -31,7 +31,7 @@ export class IbrdIdaTfsComponent implements OnInit {
 
   ngOnInit() {
     // 1️⃣ Load menu and keep both collapsed initially
-    this.menuList = this.srServicesService.getTFMenuList(true);
+    this.menuList = this.srServicesService.getTFMenuList(true, true, false);
     this.menuList.forEach(item => {
       if (item.settings) item.settings.collapsed = true;
       item.expanded = false;
@@ -45,13 +45,6 @@ export class IbrdIdaTfsComponent implements OnInit {
       .apiToggleHeaderControls({ settings: false, actions: false, help: true, isBeta: false })
       .apiToggleSplashScreen(false)
       .apiActionMenuToggle(false);
-
-    // 3️⃣ Optional: detect left nav clicks if framework supports it
-    if (this.fwService.apiOnLeftNavClick) {
-      this.fwService.apiOnLeftNavClick((clickedKey: string) => {
-        this.onToggle(clickedKey);
-      });
-    }
 
     this.fwService.apiTrackMyPageWithAppInsights({
       pageName: 'Standard Reports - Trust Funds',
