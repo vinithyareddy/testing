@@ -1,16 +1,16 @@
 ngOnInit() {
-  // 1️⃣ Get the full menu
-  const tempmenulist = this.srServicesService.getTFMenuList(true);
+  // Build the left-nav list
+  const tempmenulist = this.srServicesService.getTFMenuList(true, true, false);
 
-  // 2️⃣ Force all top-level items to start collapsed
-  tempmenulist.forEach(m => {
-    if (m.settings) {
-      m.settings.collapsed = true;
+  // --- 1. Collapse everything initially ---
+  tempmenulist.forEach(item => {
+    if (item.settings && 'collapsed' in item.settings) {
+      item.settings.collapsed = true;
     }
-    m.expanded = false;
+    item.expanded = false;
   });
 
-  // 3️⃣ Push to framework AFTER forcing collapse
+  // --- 2. Render the nav ---
   this.fwService
     .apiUpdateSiteTitle({ title: 'Standard Reports | Trust Funds', link: '/tf' })
     .apiSetLeftNavModel(tempmenulist)
@@ -24,21 +24,22 @@ ngOnInit() {
     .apiToggleSplashScreen(false)
     .apiActionMenuToggle(false);
 
-  // 4️⃣ Track page load
   this.fwService.apiTrackMyPageWithAppInsights({
     pageName: 'Standard Reports - Trust Funds',
     subSections: []
   });
 
-  // 5️⃣ Ensure no async expansion after load (some menus expand later)
-  setTimeout(() => {
-    const currentModel = this.fwService.apiGetLeftNavModel();
-    if (currentModel) {
-      currentModel.forEach(m => {
-        if (m.settings) m.settings.collapsed = true;
+  // --- 3. Listen for user clicks to handle accordion behaviour ---
+  this.srServicesService.toggleMenuExpand = (menuKey: string) => {
+    tempmenulist.forEach(m => {
+      if (m.key === menuKey) {
+        m.expanded = !m.expanded;
+        if (m.settings) m.settings.collapsed = !m.expanded;
+      } else {
         m.expanded = false;
-      });
-      this.fwService.apiSetLeftNavModel(currentModel);
-    }
-  }, 500);
+        if (m.settings) m.settings.collapsed = true;
+      }
+    });
+    this.fwService.apiSetLeftNavModel([...tempmenulist]);
+  };
 }
