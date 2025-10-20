@@ -1,6 +1,9 @@
-menuList: any[] = [];
+this.menuList = this.srServicesService.getTFMenuList(true);
 
-onToggle(key: string) {
-  this.srServicesService.toggleMenuExpand(this.menuList, key);
-  this.fwService.apiSetLeftNavModel(this.menuList);
-}
+// collapse all dropdowns when page loads
+this.menuList.forEach(item => {
+  if (item.settings) item.settings.collapsed = true;
+  item.expanded = false;
+});
+
+this.fwService.apiSetLeftNavModel(this.menuList);
