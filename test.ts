@@ -1,74 +1,75 @@
-import { Component, OnInit } from '@angular/core';
-import { FrameworkService } from '@framework/core/services';
-import { NgxSpinnerService } from 'ngx-spinner';
-import { SrServicesService } from 'services/sr-services.service';
+{
+  key: 'C-GRP-IBRDIDA',
+  routeActive: false,
+  active: true,
+  text: 'IBRD/IDA TFs',
+  page: 'tf/ibrdidatfs',
+  route: 'tf/ibrdidatfs',
+  prefixIconClass: 'fa-regular fa-id-card',
+  // ↓ try 'accordion' (if your framework supports it). If not, keep 'expand'.
+  settings: { leftNavType: 'accordion', collapsed: true, loadPage: false },
+  children: [
+    { key: 'C-GRP-TFlifecycle', routeActive: false, active: true, text: 'TF Lifecycle', route: 'tf/ibrdidatfs/tflifecycle', page: 'tf/ibrdidatfs/tflifecycle' },
+    { key: 'C-GRP-BunsinessUnit', routeActive: false, active: true, text: 'Business Unit Views', route: 'tf/ibrdidatfs/businessunitviews', page: 'tf/ibrdidatfs/businessunitviews' },
+    { key: 'C-GRP-TFReform', routeActive: false, active: true, text: 'TF Reform (MVP)', route: 'tf/ibrdidatfs/mvp', page: 'tf/ibrdidatfs/mvp' },
+    { key: 'C-GRP-TFGrant', routeActive: false, active: true, text: 'TF Grants', route: 'tf/ibrdidatfs/tfgrants', page: 'tf/ibrdidatfs/tfgrants' },
+    { key: 'C-GRP-Fact', routeActive: false, active: true, text: 'FAcT', route: 'tf/ibrdidatfs/fact', page: 'tf/ibrdidatfs/fact' },
+    { key: 'C-GRP-PersonaViews', routeActive: false, active: isUmberallaManager, text: 'Persona Views', route: 'tf/ibrdidatfs/umbrella-program', page: 'tf/ibrdidatfs/umbrella-program' },
+    { key: 'C-GRP-PersonaViews1', routeActive: false, active: !isUmberallaManager, text: 'Persona Views', route: 'tf/ibrdidatfs/trusteettl', page: 'tf/ibrdidatfs/trusteettl' }
+  ],
+  // ↓ make this explicit
+  expanded: false
+},
 
-@Component({
-  selector: 'app-ibrd-ida-tfs',
-  templateUrl: './ibrd-ida-tfs.component.html',
-  styleUrls: ['./ibrd-ida-tfs.component.scss']
-})
-export class IbrdIdaTfsComponent implements OnInit {
 
-  menuList: any[] = [];
-  ActiveTab: string = 'Summary';
 
-  constructor(
-    public fwService: FrameworkService,
-    public srServicesService: SrServicesService,
-    private spinner: NgxSpinnerService
-  ) {
-    const combineParams = this.fwService.apiGetAppData('routeParams');
-    combineParams.module = 'Trust Funds New';
-    combineParams.section = 'ibrdidatfs';
-    combineParams.path = window.location.pathname;
-    combineParams.Facets = '';
-    this.fwService.apiSetAppData('routeParams', combineParams);
 
-    this.srServicesService.getClearFilterEmitter('filterApply');
-    this.srServicesService.facetFilter = [];
-  }
-
-  ngOnInit() {
-    // 1️⃣ Load menu and keep both collapsed initially
-    this.menuList = this.srServicesService.getTFMenuList(true, true, false);
-    this.menuList.forEach(item => {
-      if (item.settings) item.settings.collapsed = true;
-      item.expanded = false;
-    });
-
-    // 2️⃣ Set the sidebar model once
-    this.fwService
-      .apiUpdateSiteTitle({ title: 'Standard Reports | Trust Funds', link: '/tf' })
-      .apiSetLeftNavModel(this.menuList)
-      .apiToggleLeftNav(true)
-      .apiToggleHeaderControls({ settings: false, actions: false, help: true, isBeta: false })
-      .apiToggleSplashScreen(false)
-      .apiActionMenuToggle(false);
-
-    this.fwService.apiTrackMyPageWithAppInsights({
-      pageName: 'Standard Reports - Trust Funds',
-      subSections: []
-    });
-  }
-
-  // 🔄 Toggle only one dropdown open at a time
-  onToggle(key: string) {
-    this.srServicesService.toggleMenuExpand(this.menuList, key);
-    this.fwService.apiSetLeftNavModel(this.menuList);
-  }
-
-  onSelectTab(value) {
-    if (this.srServicesService.tabload === '1') {
-      this.ActiveTab = value.id;
-      this.spinner.show();
-
-      setTimeout(() => {
-        this.srServicesService.getChangeFilterEmitter('filterApply');
-        this.spinner.hide();
-      }, 500);
-
-      this.srServicesService.tabselect = (value.id === 'Overview') ? 1 : 2;
+{
+  key: 'C-GRP-Reports',
+  active: true,
+  text: 'Reports',
+  // Reports has no landing page; keep user under /tf
+  page: 'tf',
+  route: 'tf',
+  prefixIconClass: 'far fa-bar-chart',
+  // ↓ same leftNavType as above
+  settings: { leftNavType: 'accordion', collapsed: true, loadPage: false },
+  children: [
+    {
+      key: 'C-GRP-My-Reports',
+      routeActive: false,
+      active: true,
+      text: 'My Reports',
+      route: 'tf/my-favorites',
+      page: 'tf/my-favorites'
     }
-  }
+  ],
+  // ↓ make this explicit
+  expanded: false
+}
+
+
+ngOnInit() {
+  // Build menu
+  const tempmenulist = this.srServicesService.getTFMenuList(true);
+
+  // Force both dropdowns collapsed on first paint
+  tempmenulist.forEach(m => {
+    if (m.settings) m.settings.collapsed = true;
+    m.expanded = false;
+  });
+
+  // Push to framework (single call)
+  this.fwService
+    .apiUpdateSiteTitle({ title: 'Standard Reports | Trust Funds', link: '/tf' })
+    .apiSetLeftNavModel(tempmenulist)
+    .apiToggleLeftNav(true)
+    .apiToggleHeaderControls({ settings: false, actions: false, help: true, isBeta: false })
+    .apiToggleSplashScreen(false)
+    .apiActionMenuToggle(false);
+
+  this.fwService.apiTrackMyPageWithAppInsights({
+    pageName: 'Standard Reports - Trust Funds',
+    subSections: []
+  });
 }
