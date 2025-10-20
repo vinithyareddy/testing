@@ -1,16 +1,25 @@
 ngOnInit() {
-  // Build menu list
+  // Get menu list (pass all expected parameters)
   const tempmenulist = this.srServicesService.getTFMenuList(true, true, false);
 
-  // --- 1. Collapse everything initially ---
+  // --- CRITICAL: Force collapse ALL items with children BEFORE setting to framework ---
   tempmenulist.forEach(item => {
-    if (item.settings && 'collapsed' in item.settings) {
+    // Force collapsed state
+    item.expanded = false;
+    
+    if (item.settings) {
       item.settings.collapsed = true;
     }
-    item.expanded = false;
+    
+    // Also ensure children don't have any expanded state
+    if (item.children && item.children.length > 0) {
+      item.children.forEach(child => {
+        child.expanded = false;
+      });
+    }
   });
 
-  // --- 2. Set to framework ---
+  // --- Set to Framework AFTER forcing collapse ---
   this.fwService
     .apiUpdateSiteTitle({ title: 'Standard Reports | Trust Funds', link: '/tf' })
     .apiSetLeftNavModel(tempmenulist)
@@ -29,18 +38,38 @@ ngOnInit() {
     subSections: []
   });
 
-  // --- 3. FORCE COLLAPSE AFTER FRAMEWORK AUTO-EXPANDS ---
-  // Framework auto-opens current route, so override it after 300ms
+  // --- Force-collapse AGAIN after a delay (to override any auto-expansion from framework) ---
   setTimeout(() => {
-    const navModel = this.fwService.apiGetLeftNavModel();
-    if (navModel && Array.isArray(navModel)) {
-      navModel.forEach(m => {
-        if (m.settings && 'collapsed' in m.settings) {
+    const currentModel = this.fwService.apiGetLeftNavModel();
+    if (currentModel && Array.isArray(currentModel)) {
+      currentModel.forEach(m => {
+        m.expanded = false;
+        if (m.settings) {
           m.settings.collapsed = true;
         }
-        m.expanded = false;
+        if (m.children && m.children.length > 0) {
+          m.children.forEach(child => {
+            child.expanded = false;
+          });
+        }
       });
-      this.fwService.apiSetLeftNavModel([...navModel]);
+      this.fwService.apiSetLeftNavModel(currentModel);
     }
-  }, 300);
+  }, 0);
+
+  // --- Additional safety check after render cycle ---
+  setTimeout(() => {
+    const currentModel = this.fwService.apiGetLeftNavModel();
+    if (currentModel && Array.isArray(currentModel)) {
+      currentModel.forEach(m => {
+        m.expanded = false;
+        if (m.settings) {
+          m.settings.collapsed = true;
+        }
+      });
+      this.fwService.apiSetLeftNavModel(currentModel);
+    }
+  }, 500);
 }
+
+
