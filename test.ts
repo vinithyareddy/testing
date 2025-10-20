@@ -1,8 +1,8 @@
 ngOnInit() {
-  // Get menu list (pass all expected parameters)
+  // Build menu list
   const tempmenulist = this.srServicesService.getTFMenuList(true, true, false);
 
-  // --- 1. Collapse all items on load ---
+  // --- 1. Collapse everything initially ---
   tempmenulist.forEach(item => {
     if (item.settings && 'collapsed' in item.settings) {
       item.settings.collapsed = true;
@@ -10,7 +10,7 @@ ngOnInit() {
     item.expanded = false;
   });
 
-  // --- 2. Set to Framework ---
+  // --- 2. Set to framework ---
   this.fwService
     .apiUpdateSiteTitle({ title: 'Standard Reports | Trust Funds', link: '/tf' })
     .apiSetLeftNavModel(tempmenulist)
@@ -29,35 +29,18 @@ ngOnInit() {
     subSections: []
   });
 
-  // --- 3. Force-collapse again after render (to override auto-expansion) ---
+  // --- 3. FORCE COLLAPSE AFTER FRAMEWORK AUTO-EXPANDS ---
+  // Framework auto-opens current route, so override it after 300ms
   setTimeout(() => {
-    const currentModel = this.fwService.apiGetLeftNavModel();
-    if (currentModel) {
-      currentModel.forEach(m => {
-        if (m.settings) m.settings.collapsed = true;
+    const navModel = this.fwService.apiGetLeftNavModel();
+    if (navModel && Array.isArray(navModel)) {
+      navModel.forEach(m => {
+        if (m.settings && 'collapsed' in m.settings) {
+          m.settings.collapsed = true;
+        }
         m.expanded = false;
       });
-      this.fwService.apiSetLeftNavModel(currentModel);
+      this.fwService.apiSetLeftNavModel([...navModel]);
     }
-  }, 200);
-}
-
-
-toggleMenuExpand(menuList: any[], key: string) {
-  menuList.forEach(m => {
-    if (m.key === key) {
-      m.expanded = !m.expanded;
-      if (m.settings) m.settings.collapsed = !m.expanded;
-    } else {
-      m.expanded = false;
-      if (m.settings) m.settings.collapsed = true;
-    }
-  });
-}
-
-
-onToggle(key: string) {
-  const tempmenulist = this.fwService.apiGetLeftNavModel();
-  this.srServicesService.toggleMenuExpand(tempmenulist, key);
-  this.fwService.apiSetLeftNavModel(tempmenulist);
+  }, 300);
 }
