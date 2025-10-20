@@ -1,16 +1,19 @@
-:host ::ng-deep .layout-wrapper {
-  max-width: 100% !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  width: 100vw !important;
-  background-color: #f4f7fa !important;
+toggleMenuExpand(menuList: any[], key: string) {
+  menuList.forEach(item => {
+    if (item.key === key) {
+      item.expanded = !item.expanded;
+      item.settings.collapsed = !item.expanded;
+    } else {
+      item.expanded = false;
+      item.settings.collapsed = true;
+    }
+  });
 }
 
 
-:host ::ng-deep .content-wrapper .layout-wrapper {
-  max-width: 100% !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  width: 100vw !important;
-  background-color: #f4f7fa !important;
-}
+// Ensure both menus start collapsed
+tempmenulist.forEach(m => {
+  m.expanded = false;
+  if (m.settings) m.settings.collapsed = true;
+});
+this.fwService.apiSetLeftNavModel(tempmenulist);
