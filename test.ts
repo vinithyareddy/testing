@@ -1,23 +1,28 @@
-private startRotation() {
-  this.ngZone.runOutsideAngular(() => {
-    let lastTime = 0;
-    const fps = 30; // target 30 frames per second (no need for 60)
-    const interval = 1000 / fps;
+// --- Permanent optimized version ---
+private startRotationLoop() {
+  this.zone.runOutsideAngular(() => {
+    let lastFrame = 0;
+    const frameInterval = 120; // ms → ~8 fps (smooth enough, silent console)
 
-    const rotate = (time: number) => {
+    const rotate = (timestamp: number) => {
       if (this.isRotating && !this.isDragging) {
-        const elapsed = time - lastTime;
-        if (elapsed > interval) {
-          lastTime = time;
-          this.currentRotation[0] += ROTATION_SPEED;
+        if (timestamp - lastFrame >= frameInterval) {
+          this.currentRotation[0] += 0.6; // slightly faster for smoothness
           this.projection.rotate(this.currentRotation);
-          this.updateCountries(); // redraw countries
-          this.updateStates();    // redraw states
+
+          // Update only projection transform, not all paths every frame
+          this.svg.selectAll<SVGPathElement, any>('.country')
+            .attr('d', this.path);
+          this.svg.selectAll<SVGPathElement, any>('.state-border')
+            .attr('d', this.path);
+
+          lastFrame = timestamp;
         }
       }
-      requestAnimationFrame(rotate);
+
+      this.animationFrameId = requestAnimationFrame(rotate);
     };
 
-    requestAnimationFrame(rotate);
+    this.animationFrameId = requestAnimationFrame(rotate);
   });
 }
