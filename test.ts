@@ -1,14 +1,18 @@
 ngOnInit() {
-  // Get menu list
+  // --- 1. Build full menu list ---
   const tempmenulist = this.srServicesService.getTFMenuList(true, true, false);
 
-  // Collapse everything before setting
+  // --- 2. Collapse all items before rendering ---
   tempmenulist.forEach(item => {
-    item.expanded = false;
     if (item.settings) item.settings.collapsed = true;
+    item.expanded = false;
   });
 
-  // Set the nav model
+  // --- 3. Clear any persisted nav state ---
+  sessionStorage.removeItem('fw_leftNavModel');
+  localStorage.removeItem('fw_leftNavModel');
+
+  // --- 4. Apply fresh model ---
   this.fwService
     .apiUpdateSiteTitle({ title: 'Standard Reports | Trust Funds', link: '/tf' })
     .apiSetLeftNavModel(tempmenulist)
@@ -27,17 +31,15 @@ ngOnInit() {
     subSections: []
   });
 
-  // ✅ Force collapse again AFTER framework renders
+  // --- 5. Force re-collapse again after framework UI sync ---
   setTimeout(() => {
     const model = this.fwService.apiGetLeftNavModel();
     if (model && Array.isArray(model)) {
       model.forEach(m => {
-        if (m.key === 'C-GRP-Reports' || m.key === 'C-GRP-IBRDIDA') {
-          m.expanded = false;
-          if (m.settings) m.settings.collapsed = true;
-        }
+        if (m.settings) m.settings.collapsed = true;
+        m.expanded = false;
       });
       this.fwService.apiSetLeftNavModel(model);
     }
-  }, 400);
+  }, 800);
 }
