@@ -2,27 +2,15 @@ ngOnInit() {
   // Get menu list (pass all expected parameters)
   const tempmenulist = this.srServicesService.getTFMenuList(true, true, false);
 
-  // --- DEBUG: Log the initial state ---
-  console.log('=== INITIAL MENU STATE ===');
+  // Force everything collapsed initially
   tempmenulist.forEach(item => {
-    console.log(`Item: ${item.text}, expanded: ${item.expanded}, collapsed: ${item.settings?.collapsed}`);
-  });
-
-  // --- 1. Collapse all items on load ---
-  tempmenulist.forEach(item => {
+    item.expanded = false;
     if (item.settings && 'collapsed' in item.settings) {
       item.settings.collapsed = true;
     }
-    item.expanded = false;
   });
 
-  // --- DEBUG: Log after manual collapse ---
-  console.log('=== AFTER MANUAL COLLAPSE ===');
-  tempmenulist.forEach(item => {
-    console.log(`Item: ${item.text}, expanded: ${item.expanded}, collapsed: ${item.settings?.collapsed}`);
-  });
-
-  // --- 2. Set to Framework ---
+  // Set to Framework
   this.fwService
     .apiUpdateSiteTitle({ title: 'Standard Reports | Trust Funds', link: '/tf' })
     .apiSetLeftNavModel(tempmenulist)
@@ -41,17 +29,49 @@ ngOnInit() {
     subSections: []
   });
 
-  // --- 3. Force-collapse again after render ---
+  // CRITICAL: Force collapse multiple times to override framework's route-based expansion
+  // Use multiple timeouts because we don't know exactly when framework expands
+  
+  [0, 50, 100, 200, 300, 500].forEach(delay => {
+    setTimeout(() => {
+      const currentModel = this.fwService.apiGetLeftNavModel();
+      if (currentModel) {
+        currentModel.forEach(m => {
+          m.expanded = false;
+          if (m.settings) m.settings.collapsed = true;
+        });
+        this.fwService.apiSetLeftNavModel(currentModel);
+      }
+    }, delay);
+  });
+}
+
+ngAfterViewInit() {
+  // Force collapse after view is completely initialized
+  // This catches any late-stage expansions
   setTimeout(() => {
     const currentModel = this.fwService.apiGetLeftNavModel();
-    console.log('=== AFTER FRAMEWORK SET (in setTimeout) ===');
     if (currentModel) {
       currentModel.forEach(m => {
-        console.log(`Item: ${m.text}, expanded: ${m.expanded}, collapsed: ${m.settings?.collapsed}`);
-        if (m.settings) m.settings.collapsed = true;
         m.expanded = false;
+        if (m.settings) m.settings.collapsed = true;
       });
       this.fwService.apiSetLeftNavModel(currentModel);
     }
-  }, 200);
+  }, 100);
+  
+  setTimeout(() => {
+    const currentModel = this.fwService.apiGetLeftNavModel();
+    if (currentModel) {
+      currentModel.forEach(m => {
+        m.expanded = false;
+        if (m.settings) m.settings.collapsed = true;
+      });
+      this.fwService.apiSetLeftNavModel(currentModel);
+    }
+  }, 500);
 }
+
+import { Component, OnInit, AfterViewInit } from '@angular/core';
+
+export class IbrdIdaTfsComponent implements OnInit, AfterViewInit {
