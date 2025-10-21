@@ -1,18 +1,14 @@
 ngOnInit() {
-  // --- 1. Build full menu list ---
+  // Build full menu
   const tempmenulist = this.srServicesService.getTFMenuList(true, true, false);
 
-  // --- 2. Collapse all items before rendering ---
+  // Collapse all before setting
   tempmenulist.forEach(item => {
-    if (item.settings) item.settings.collapsed = true;
     item.expanded = false;
+    if (item.settings) item.settings.collapsed = true;
   });
 
-  // --- 3. Clear any persisted nav state ---
-  sessionStorage.removeItem('fw_leftNavModel');
-  localStorage.removeItem('fw_leftNavModel');
-
-  // --- 4. Apply fresh model ---
+  // Apply fresh model
   this.fwService
     .apiUpdateSiteTitle({ title: 'Standard Reports | Trust Funds', link: '/tf' })
     .apiSetLeftNavModel(tempmenulist)
@@ -31,15 +27,27 @@ ngOnInit() {
     subSections: []
   });
 
-  // --- 5. Force re-collapse again after framework UI sync ---
+  // ✅ Override any auto-expansion by collapsing all after render
   setTimeout(() => {
     const model = this.fwService.apiGetLeftNavModel();
+
     if (model && Array.isArray(model)) {
       model.forEach(m => {
-        if (m.settings) m.settings.collapsed = true;
-        m.expanded = false;
+        // Force collapse both major dropdowns
+        if (m.key === 'C-GRP-Reports' || m.key === 'C-GRP-IBRDIDA') {
+          m.expanded = false;
+          if (m.settings) m.settings.collapsed = true;
+        }
       });
+
+      // Reset entire model again to apply collapse visually
       this.fwService.apiSetLeftNavModel(model);
     }
-  }, 800);
+
+    // ✅ Optional: Force re-render refresh (some UI caches the expand state)
+    const leftNavElem = document.querySelector('.left-nav');
+    if (leftNavElem) {
+      leftNavElem.dispatchEvent(new Event('refresh'));
+    }
+  }, 1000);
 }
