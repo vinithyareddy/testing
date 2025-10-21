@@ -1,61 +1,26 @@
-ngOnInit() {
-  const tempmenulist = this.srServicesService.getTFMenuList(true, true, false);
+// ORIGINAL CODE - COMMENT THIS OUT OR DELETE:
+// if (!isIbrdIda) {
+//   ReportList = [{
+//     ...with children and leftNavType
+//   }];
+// } else {
+//   ReportList = [{
+//     ...with leftNavType
+//   }];
+// }
 
-  tempmenulist.forEach(item => {
-    item.expanded = false;
-    if (item.settings) item.settings.collapsed = true;
-  });
-
-  this.fwService
-    .apiUpdateSiteTitle({ title: 'Standard Reports | Trust Funds', link: '/tf' })
-    .apiSetLeftNavModel(tempmenulist)
-    .apiToggleLeftNav(true)
-    .apiToggleHeaderControls({
-      settings: false,
-      actions: false,
-      help: true,
-      isBeta: false
-    })
-    .apiToggleSplashScreen(false)
-    .apiActionMenuToggle(false);
-
-  this.fwService.apiTrackMyPageWithAppInsights({
-    pageName: 'Standard Reports - Trust Funds',
-    subSections: []
-  });
-
-  // AGGRESSIVE: Watch for any changes and force collapse immediately
-  this.startAggressiveCollapseMonitoring();
-}
-
-private startAggressiveCollapseMonitoring() {
-  // Create interval that runs every 50ms for 3 seconds
-  let counter = 0;
-  const maxChecks = 60; // 60 checks * 50ms = 3 seconds
-  
-  const collapseInterval = setInterval(() => {
-    const currentModel = this.fwService.apiGetLeftNavModel();
-    if (currentModel) {
-      let foundExpanded = false;
-      
-      currentModel.forEach(m => {
-        if (m.expanded === true) {
-          console.log(`🚨 CAUGHT EXPANSION: ${m.text} at ${counter * 50}ms`);
-          foundExpanded = true;
-        }
-        m.expanded = false;
-        if (m.settings) m.settings.collapsed = true;
-      });
-      
-      if (foundExpanded) {
-        this.fwService.apiSetLeftNavModel(currentModel);
-      }
-    }
-    
-    counter++;
-    if (counter >= maxChecks) {
-      clearInterval(collapseInterval);
-      console.log('✅ Stopped monitoring after 3 seconds');
-    }
-  }, 50);
-}
+// NEW CODE - Reports never expands on this page:
+ReportList = [{
+  key: 'C-GRP-Reports', 
+  routeActive: false, 
+  active: true, 
+  text: 'Reports', 
+  page: 'tf', 
+  route: 'tf', 
+  prefixIconClass: 'far fa-bar-chart',
+  settings: { 
+    collapsed: true, 
+    loadPage: false 
+  }
+  // NO leftNavType, NO children, NO expanded property AT ALL
+}];
