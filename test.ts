@@ -1,22 +1,9 @@
 ngOnInit() {
   const tempmenulist = this.srServicesService.getTFMenuList(true, true, false);
 
-  // CRITICAL: Mark ALL items as NOT route active to prevent auto-expansion
   tempmenulist.forEach(item => {
-    item.routeActive = false;  // ← Prevent route-based expansion
-    item.active = false;       // ← Prevent active state
     item.expanded = false;
-    if (item.settings) {
-      item.settings.collapsed = true;
-    }
-    
-    // Also ensure children don't trigger expansion
-    if (item.children) {
-      item.children.forEach(child => {
-        child.routeActive = false;
-        child.active = false;
-      });
-    }
+    if (item.settings) item.settings.collapsed = true;
   });
 
   this.fwService
@@ -37,26 +24,38 @@ ngOnInit() {
     subSections: []
   });
 
-  // Force collapse after framework finishes initialization
-  setTimeout(() => {
-    const currentModel = this.fwService.apiGetLeftNavModel();
-    if (currentModel) {
-      currentModel.forEach(m => {
-        m.expanded = false;
-        if (m.settings) m.settings.collapsed = true;
-      });
-      this.fwService.apiSetLeftNavModel(currentModel);
-    }
-  }, 0);
+  // AGGRESSIVE: Watch for any changes and force collapse immediately
+  this.startAggressiveCollapseMonitoring();
+}
 
-  setTimeout(() => {
+private startAggressiveCollapseMonitoring() {
+  // Create interval that runs every 50ms for 3 seconds
+  let counter = 0;
+  const maxChecks = 60; // 60 checks * 50ms = 3 seconds
+  
+  const collapseInterval = setInterval(() => {
     const currentModel = this.fwService.apiGetLeftNavModel();
     if (currentModel) {
+      let foundExpanded = false;
+      
       currentModel.forEach(m => {
+        if (m.expanded === true) {
+          console.log(`🚨 CAUGHT EXPANSION: ${m.text} at ${counter * 50}ms`);
+          foundExpanded = true;
+        }
         m.expanded = false;
         if (m.settings) m.settings.collapsed = true;
       });
-      this.fwService.apiSetLeftNavModel(currentModel);
+      
+      if (foundExpanded) {
+        this.fwService.apiSetLeftNavModel(currentModel);
+      }
     }
-  }, 500);
+    
+    counter++;
+    if (counter >= maxChecks) {
+      clearInterval(collapseInterval);
+      console.log('✅ Stopped monitoring after 3 seconds');
+    }
+  }, 50);
 }
