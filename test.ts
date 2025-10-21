@@ -1,16 +1,24 @@
 ngOnInit() {
-  // Get menu list (pass all expected parameters)
   const tempmenulist = this.srServicesService.getTFMenuList(true, true, false);
 
-  // Force everything collapsed initially
+  // CRITICAL: Mark ALL items as NOT route active to prevent auto-expansion
   tempmenulist.forEach(item => {
+    item.routeActive = false;  // ← Prevent route-based expansion
+    item.active = false;       // ← Prevent active state
     item.expanded = false;
-    if (item.settings && 'collapsed' in item.settings) {
+    if (item.settings) {
       item.settings.collapsed = true;
+    }
+    
+    // Also ensure children don't trigger expansion
+    if (item.children) {
+      item.children.forEach(child => {
+        child.routeActive = false;
+        child.active = false;
+      });
     }
   });
 
-  // Set to Framework
   this.fwService
     .apiUpdateSiteTitle({ title: 'Standard Reports | Trust Funds', link: '/tf' })
     .apiSetLeftNavModel(tempmenulist)
@@ -29,26 +37,7 @@ ngOnInit() {
     subSections: []
   });
 
-  // CRITICAL: Force collapse multiple times to override framework's route-based expansion
-  // Use multiple timeouts because we don't know exactly when framework expands
-  
-  [0, 50, 100, 200, 300, 500].forEach(delay => {
-    setTimeout(() => {
-      const currentModel = this.fwService.apiGetLeftNavModel();
-      if (currentModel) {
-        currentModel.forEach(m => {
-          m.expanded = false;
-          if (m.settings) m.settings.collapsed = true;
-        });
-        this.fwService.apiSetLeftNavModel(currentModel);
-      }
-    }, delay);
-  });
-}
-
-ngAfterViewInit() {
-  // Force collapse after view is completely initialized
-  // This catches any late-stage expansions
+  // Force collapse after framework finishes initialization
   setTimeout(() => {
     const currentModel = this.fwService.apiGetLeftNavModel();
     if (currentModel) {
@@ -58,8 +47,8 @@ ngAfterViewInit() {
       });
       this.fwService.apiSetLeftNavModel(currentModel);
     }
-  }, 100);
-  
+  }, 0);
+
   setTimeout(() => {
     const currentModel = this.fwService.apiGetLeftNavModel();
     if (currentModel) {
@@ -71,7 +60,3 @@ ngAfterViewInit() {
     }
   }, 500);
 }
-
-import { Component, OnInit, AfterViewInit } from '@angular/core';
-
-export class IbrdIdaTfsComponent implements OnInit, AfterViewInit {
