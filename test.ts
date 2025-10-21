@@ -1,21 +1,9 @@
-// --- FINAL override: disconnect Reports from router sync ---
-setTimeout(() => {
-  const model = this.fwService.apiGetLeftNavModel();
-  if (!model) return;
-
-  // Find the "Reports" node
-  const reportsNode = model.find(m => m.key === 'C-GRP-Reports');
-  if (reportsNode) {
-    // Freeze it so the framework router listener can't mutate it again
-    reportsNode.route = '';      // remove route mapping
-    reportsNode.page = '';
-    reportsNode.expanded = false;
-    if (reportsNode.settings) reportsNode.settings.collapsed = true;
-
-    // Defensive clone (break reference link with internal nav array)
-    const newModel = JSON.parse(JSON.stringify(model));
-    this.fwService.apiSetLeftNavModel(newModel);
+// Final safety: ensure dropdown groups are collapsed for every caller
+tempmenulist = tempmenulist.map(item => {
+  if (item.key === 'C-GRP-Reports' || item.key === 'C-GRP-IBRDIDA') {
+    item.expanded = false;
+    if (item.settings) item.settings.collapsed = true;
   }
-
-  console.log('✅ Reports node disconnected from router and collapsed');
-}, 2500);
+  return item;
+});
+return tempmenulist;
