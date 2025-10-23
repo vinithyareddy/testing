@@ -1,19 +1,80 @@
 .support-section {
-    position: relative;
+    background: linear-gradient(90deg, rgba(20, 4, 30, 0.8) 0%, rgba(51, 22, 41, 0.8) 50%, rgba(25, 6, 32, 0.8) 100%), 
+                url('landingpage_bg.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     color: white;
     padding: 40px;
     border-radius: 24px;
     margin-top: 40px;
+    position: relative;
     height: 417px;
-    background: linear-gradient(90deg, #14041e 0%, #331629 50%, #190620 100%);
-    overflow: hidden;
-  
-    /* === Add background image === */
-    background-image: url("assets/images/landingpage_bg.png"),
-                      linear-gradient(90deg, #14041e 0%, #331629 50%, #190620 100%);
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-blend-mode: overlay; /* keeps your gradient visible on top of image */
-  }
-  
+}
+
+.support-left {
+    margin-left: 20px;
+    padding: 20px 0;
+    margin-top: 3rem;
+
+    i {
+        font-size: 3rem;
+        background: linear-gradient(135deg, #65c5ff, #5e59ac);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: inline-block;
+    }
+}
+
+.support-title {
+    font-size: 30px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.support-subtext {
+    font-size: 16px;
+    color: #d3d2f3;
+    margin-top: 15px;
+    max-width: 80%;
+    line-height: 1.6;
+}
+
+/* Right Cards */
+.support-right {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 457px;
+    height: 337px;
+}
+
+.support-card {
+    background: #ffffff;
+    color: #000;
+    border-radius: 8px;
+    padding: 18px 20px;
+    font-size: 14px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+}
+
+.support-card .card-title {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 5px;
+}
+
+.support-card .card-desc {
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.support-card .card-desc a {
+    color: #0b4dd1;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.support-card .card-link {
+    color: #0b4dd1;
+}
