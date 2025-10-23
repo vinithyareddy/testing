@@ -1,141 +1,80 @@
-<div class="container-lg">
-  <div class="row">
-    <!-- USER GUIDE -->
-    <div class="col-md-4">
-      <div class="small-box user-guide">
-        <img src="assets/images/landingpage_userguide.png" alt="User Guide" class="guide-thumb">
-        <div class="guide-text">
-          <div class="small-head">User Guide</div>
-          <div class="small-desc">WPA Module Standard Reports User Guide</div>
-        </div>
-      </div>
-    </div>
+.support-section {
+    background: linear-gradient(90deg, rgba(20, 4, 30, 0.8) 0%, rgba(51, 22, 41, 0.8) 50%, rgba(25, 6, 32, 0.8) 100%), 
+                url('landingpage_bg.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    color: white;
+    padding: 40px;
+    border-radius: 24px;
+    margin-top: 40px;
+    position: relative;
+    height: 417px;
+}
 
-    <!-- PUBLISHED ANNOUNCEMENT -->
-    <div class="col-md-4">
-      <div class="small-box">
-        <div class="small-head">Published Announcement</div>
-        <div class="small-desc">
-          Sponsor: BPS Solutions (BPSSO)<br />
-          Date: April 28, 2025
-        </div>
-      </div>
-    </div>
+.support-left {
+    margin-left: 20px;
+    padding: 20px 0;
+    margin-top: 3rem;
 
-    <!-- GLOSSARY -->
-    <div class="col-md-4">
-      <div class="small-box">
-        <div class="small-head">Glossary</div>
-        <div class="small-desc">
-          A platform to govern business terms, definitions, key management reports, and data assets.
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+    i {
+        font-size: 3rem;
+        background: linear-gradient(135deg, #65c5ff, #5e59ac);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: inline-block;
+    }
+}
 
+.support-title {
+    font-size: 30px;
+    font-weight: 600;
+    color: #fff;
+}
 
-/* Shared base stays same — we extend for user guide */
-.user-guide {
-    display: flex;
-    align-items: center;
-    padding: 0; /* remove extra inner padding for clean alignment */
-    overflow: hidden;
-  }
-  
-  /* Thumbnail on left */
-  .user-guide .guide-thumb {
-    width: 121px;
-    height: 118px;
-    object-fit: cover;
-    border-top-left-radius: 12px;
-    border-bottom-left-radius: 12px;
-    margin-right: 14px;
-    flex-shrink: 0;
-  }
-  
-  /* Text section on right */
-  .user-guide .guide-text {
-    padding-right: 12px;
+.support-subtext {
+    font-size: 16px;
+    color: #d3d2f3;
+    margin-top: 15px;
+    max-width: 80%;
+    line-height: 1.6;
+}
+
+/* Right Cards */
+.support-right {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-  }
-
-  
-
-  <div class="container-lg">
-    <div class="row">
-        <div class="col-md-4">
-            <div class="small-box small-box-with-image">
-                <img src="landingpage_userguide.png" alt="User Guide" class="box-image">
-                <div class="box-content">
-                    <div class="small-head">User Guide</div>
-                    <div class="small-desc">WPA Module Standard Reports User Guide</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="small-box">
-                <div class="small-head">Published Announcement</div>
-                <div class="small-desc">
-                    Sponsor: BPS Solutions (BPSSO)<br />
-                    Date: April 28, 2025
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="small-box">
-                <div class="small-head">Glossary</div>
-                <div class="small-desc">
-                    A platform to govern business terms, definitions, key management reports, and data assets.
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-
-.small-box {
-    height: 119px;
-    border-radius: 12px;
-    border-width: 1px;
-    opacity: 1;
-    gap: 12px;
-    padding: 12px;
-    border: 1px solid #ABB8C5;
-    box-shadow: 0px 1px 2px 0px #3A3A3A0D;
-    background-color: #E5ECFB;
+    gap: 15px;
+    width: 457px;
+    height: 337px;
 }
 
-.small-box-with-image {
-    display: flex;
-    align-items: center;
-    padding: 0;
-    overflow: hidden;
+.support-card {
+    background: #ffffff;
+    color: #000;
+    border-radius: 8px;
+    padding: 18px 20px;
+    font-size: 14px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
 }
 
-.box-image {
-    width: 80px;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 12px 0 0 12px;
-}
-
-.box-content {
-    padding: 12px;
-    flex: 1;
-}
-
-.small-head {
-    font-size: 15px;
+.support-card .card-title {
     font-weight: 700;
-    color: #35404c;
-    margin-bottom: 8px;
+    font-size: 15px;
+    margin-bottom: 5px;
 }
 
-.small-desc {
+.support-card .card-desc {
     font-size: 13px;
-    color: #56606d;
     line-height: 1.5;
+}
+
+.support-card .card-desc a {
+    color: #0b4dd1;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.support-card .card-link {
+    color: #0b4dd1;
 }
