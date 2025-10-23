@@ -1,64 +1,30 @@
-// White box (first section)
-.gray-bx-white {
-    background-color: white;
-    padding: 16px 24px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: 1px solid #e0e0e0;
-    margin-bottom: 16px;
-}
-
-// Gray boxes (other sections)
-.gray-bx-emt {
-    background-color: transparent;
-    padding: 16px 24px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: 1px solid transparent;
-}
-
-// Hover effect
-.gray-bx-white:hover,
-.gray-bx-emt:hover {
-    background-color: white !important;
-    border: 1px solid #e0e0e0;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-// Text styles
-.gray-bx-head {
-    font-size: 16px;
-    font-weight: 700;
-    color: #000;
-    margin-bottom: 12px;
-}
-
-.gray-bx-txt {
-    font-size: 14px;
-    color: #666;
-    line-height: 1.5;
-    margin-bottom: 16px;
-}
-
-// Button style
-.gray-bx-btn {
-    display: inline-block;
-    padding: 8px 16px;
-    border: 1px solid #0071BC;
-    color: #0071BC;
-    border-radius: 4px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    text-align: center;
-}
-
-.bxwidth {
-    width: auto;
-}
-
-.martTop {
-    margin-top: 16px;
-}
+<div class="container-lg">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="small-box small-box-with-image">
+                <img src="landingpage_userguide.png" alt="User Guide" class="box-image">
+                <div class="box-content">
+                    <div class="small-head">User Guide</div>
+                    <div class="small-desc">WPA Module Standard Reports User Guide</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="small-box">
+                <div class="small-head">Published Announcement</div>
+                <div class="small-desc">
+                    Sponsor: BPS Solutions (BPSSO)<br />
+                    Date: April 28, 2025
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="small-box">
+                <div class="small-head">Glossary</div>
+                <div class="small-desc">
+                    A platform to govern business terms, definitions, key management reports, and data assets.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
