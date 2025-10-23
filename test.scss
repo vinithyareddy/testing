@@ -4,7 +4,6 @@
     flex-direction: column;
     gap: 16px;
 }
-
 // Empty/gray boxes (other 3 sections)
 .gray-bx-emt {
     background-color: transparent;
@@ -12,11 +11,7 @@
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s ease;
-    min-height: 200px;
-    flex: 1;
     border: 1px solid transparent;
-    display: flex;
-    flex-direction: column;
 }
 
 // Hover effect
@@ -40,7 +35,6 @@
     color: #666;
     line-height: 1.5;
     margin-bottom: 16px;
-    flex-grow: 1;
 }
 
 // Button style
@@ -54,15 +48,12 @@
     font-weight: 600;
     cursor: pointer;
     text-align: center;
-    margin-top: auto;
-    width: fit-content;
 }
 
 .bxwidth {
     width: auto;
 }
 
-// Remove these margins as we're using gap now
 .martTop {
     margin-top: 0;
 }
