@@ -1,14 +1,15 @@
-/* === USER GUIDE BOX (alignment refined to match widgets) === */
+/* === USER GUIDE BOX (exact Figma alignment) === */
 .user-guide-box {
     background: #f6f6f6;
     border: 1px solid #d8d8d8;
     border-radius: 6px;
-    padding: 10px 14px; /* tighter to match widget padding */
+    padding: 0; /* remove internal padding so edges align cleanly */
     height: 100%;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
     transition: all 0.3s ease;
+    overflow: hidden; /* ensures the image edge is clean */
     display: flex;
-    align-items: flex-start; /* ensures top alignment */
+    align-items: stretch;
   }
   
   .user-guide-box:hover {
@@ -17,61 +18,61 @@
     transform: translateY(-2px);
   }
   
-  /* Arrange thumbnail and text horizontally */
+  /* Container for image + text side by side */
   .user-guide-row {
     display: flex;
-    align-items: flex-start; /* top align with text baseline */
-    gap: 12px;
+    align-items: stretch;
     width: 100%;
   }
   
-  /* Thumbnail adjustments */
+  /* Left thumbnail section */
   .user-guide-thumb {
     flex: 0 0 121px;
     height: 118px;
-    border-radius: 4px;
     overflow: hidden;
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
     background: #eaeaea;
-    margin-top: 2px;   /* lift slightly upward */
-    margin-left: 2px;  /* push slightly inward to align with box edge */
     position: relative;
   }
   
-  /* Play button overlay (if you already have it) */
+  /* Make image cover entire thumb area */
+  .user-guide-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  
+  /* Centered play icon overlay */
   .user-guide-thumb::after {
     content: '';
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 28px;
-    height: 28px;
-    background: rgba(255, 255, 255, 0.85);
+    width: 30px;
+    height: 30px;
+    background: rgba(255, 255, 255, 0.9);
     border-radius: 50%;
-    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23000' viewBox='0 0 24 24'%3E%3Cpath d='M8 5v14l11-7z'/%3E%3C/svg%3E") center / 12px 12px no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23000' viewBox='0 0 24 24'%3E%3Cpath d='M8 5v14l11-7z'/%3E%3C/svg%3E") center / 14px 14px no-repeat;
   }
   
-  /* Image fills box perfectly */
-  .user-guide-thumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 4px;
-  }
-  
-  /* Right-side text */
+  /* Right content section */
   .user-guide-info {
+    flex: 1;
+    padding: 12px 16px; /* top and side spacing aligned with Figma */
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
-    padding-top: 4px; /* fine-tune top alignment */
+    justify-content: center;
   }
   
+  /* Typography consistent with other widgets */
   .user-guide-info .small-head {
     font-weight: 600;
     font-size: 14px;
     color: #3a3a3a;
-    margin-bottom: 5px;
+    margin-bottom: 6px;
   }
   
   .user-guide-info .small-desc {
