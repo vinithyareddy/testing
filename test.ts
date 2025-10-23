@@ -1,7 +1,8 @@
-<!--Search Bar -->
-<div class="search-bar">
-    <input type="text" [(ngModel)]="searchQuery" placeholder="Start Typing..." />
-    <!-- <lift-search [data]="data" [config]="config"></lift-search> -->
-    <img src="assets/images/aichat/ai-chat.png">
-</div>
-</div> 
+onSearchEnter(): void {
+  if (this.searchQuery && this.searchQuery.trim() !== '') {
+    localStorage.setItem('tfSearchPrompt', this.searchQuery.trim());
+    this.searchQuery = '';
+    this.router.navigate(['/tf/ai-search-results']);
+  }
+}
+
