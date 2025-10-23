@@ -1,6 +1,6 @@
 .support-section {
-    background: linear-gradient(90deg, rgba(20, 4, 30, 0.8) 0%, rgba(51, 22, 41, 0.8) 50%, rgba(25, 6, 32, 0.8) 100%), 
-                url('landingpage_bg.png');
+    background-image: linear-gradient(90deg, rgba(20, 4, 30, 0.7) 0%, rgba(51, 22, 41, 0.7) 50%, rgba(25, 6, 32, 0.7) 100%), 
+                      url('/assets/images/landingpagewidget_bg.jpg');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -12,69 +12,24 @@
     height: 417px;
 }
 
-.support-left {
-    margin-left: 20px;
-    padding: 20px 0;
-    margin-top: 3rem;
-
-    i {
-        font-size: 3rem;
-        background: linear-gradient(135deg, #65c5ff, #5e59ac);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        display: inline-block;
-    }
+.support-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url('/assets/images/landingpagewidget_bg.jpg');
+    background-size: cover;
+    background-position: center;
+    opacity: 0.6;
+    filter: blur(12px);
+    border-radius: 24px;
+    z-index: 0;
 }
 
-.support-title {
-    font-size: 30px;
-    font-weight: 600;
-    color: #fff;
-}
-
-.support-subtext {
-    font-size: 16px;
-    color: #d3d2f3;
-    margin-top: 15px;
-    max-width: 80%;
-    line-height: 1.6;
-}
-
-/* Right Cards */
+.support-left,
 .support-right {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    width: 457px;
-    height: 337px;
-}
-
-.support-card {
-    background: #ffffff;
-    color: #000;
-    border-radius: 8px;
-    padding: 18px 20px;
-    font-size: 14px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-}
-
-.support-card .card-title {
-    font-weight: 700;
-    font-size: 15px;
-    margin-bottom: 5px;
-}
-
-.support-card .card-desc {
-    font-size: 13px;
-    line-height: 1.5;
-}
-
-.support-card .card-desc a {
-    color: #0b4dd1;
-    font-weight: 500;
-    text-decoration: none;
-}
-
-.support-card .card-link {
-    color: #0b4dd1;
+    position: relative;
+    z-index: 1;
 }
