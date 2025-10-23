@@ -1,22 +1,24 @@
 <div class="col-md-4">
   <div class="small-box user-guide-box">
-    <div class="user-guide-thumbnail">
-      <img src="assets/images/userguide-thumbnail.png" alt="User Guide Thumbnail" />
+    <div class="user-guide-row">
+      <div class="user-guide-thumb">
+        <img src="assets/images/userguide-thumbnail.png" alt="User Guide Thumbnail" />
+      </div>
+
+      <div class="user-guide-info">
+        <div class="small-head">User Guide</div>
+        <div class="small-desc">WPA Module Standard Reports User Guide</div>
+      </div>
     </div>
-    <div class="small-head">User Guide</div>
-    <div class="small-desc">WPA Module Standard Reports User Guide</div>
   </div>
 </div>
 
-
-
-/* === User Guide Box Vertical Layout === */
+/* === USER GUIDE BOX (horizontal thumbnail layout) === */
 .user-guide-box {
-    text-align: left;
     background: #f6f6f6;
     border: 1px solid #d8d8d8;
     border-radius: 6px;
-    padding: 16px 18px;
+    padding: 14px 18px;
     height: 100%;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
     transition: all 0.3s ease;
@@ -28,31 +30,45 @@
     transform: translateY(-2px);
   }
   
-  /* Thumbnail on top */
-  .user-guide-thumbnail {
-    width: 100%;
-    height: 56px; /* adjust as per Figma */
+  /* Align thumbnail + text side-by-side */
+  .user-guide-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  
+  /* Fixed thumbnail size exactly as you said */
+  .user-guide-thumb {
+    flex: 0 0 121px;
+    height: 118px;
     border-radius: 4px;
     overflow: hidden;
-    margin-bottom: 10px;
+    background: #eaeaea; /* fallback in case image fails */
   }
   
-  .user-guide-thumbnail img {
+  .user-guide-thumb img {
     width: 100%;
     height: 100%;
-    object-fit: cover; /* ensures image fills nicely */
+    object-fit: cover;
     border-radius: 4px;
   }
   
-  /* Text styling same as others */
-  .user-guide-box .small-head {
+  /* Right-side text */
+  .user-guide-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  
+  /* Typography consistent with other widgets */
+  .user-guide-info .small-head {
     font-weight: 600;
     font-size: 14px;
     color: #3a3a3a;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
   }
   
-  .user-guide-box .small-desc {
+  .user-guide-info .small-desc {
     font-size: 13px;
     color: #666;
     line-height: 1.4;
