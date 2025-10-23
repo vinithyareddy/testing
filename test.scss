@@ -1,0 +1,71 @@
+<div class="col-md-4">
+  <div class="small-box user-guide-box">
+    <div class="user-guide-content">
+      <div class="user-guide-icon">
+        <img src="assets/images/userguide-thumbnail.png" alt="User Guide" />
+      </div>
+      <div class="user-guide-text">
+        <div class="small-head">User Guide</div>
+        <div class="small-desc">WPA Module Standard Reports User Guide</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+/* === User Guide Box Styling === */
+.user-guide-box {
+    display: flex;
+    align-items: center;
+    background: #f6f6f6;
+    border: 1px solid #d8d8d8;
+    border-radius: 6px;
+    padding: 12px 16px;
+    height: 100%;
+    transition: 0.3s ease;
+  }
+  
+  .user-guide-box:hover {
+    background: #ffffff;
+    border-color: #c0c0c0;
+    transform: translateY(-2px);
+  }
+  
+  .user-guide-content {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  
+  .user-guide-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 4px;
+    background: #e0e3eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  
+  .user-guide-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+  
+  .user-guide-text .small-head {
+    font-weight: 600;
+    font-size: 14px;
+    color: #3a3a3a;
+    margin-bottom: 4px;
+  }
+  
+  .user-guide-text .small-desc {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.4;
+  }
+  
