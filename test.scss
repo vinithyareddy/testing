@@ -1,84 +1,59 @@
-<div class="container-lg">
-    <div class="row marleft">
-        <div class="fnt-lg">Discover the new OneWB Reports</div>
-        <div class="fnt-md linhight">Track, analyze, and decide - all in Standard Reports.</div>
-    </div><br>
-    <div class="row marleft bx-home-gray">
-        <div class="row martTopview">
-            <div class="col-md-3">
-                <div class="gray-bx-white" (mouseenter)="changeImage('customizable')">
-                    <div class="gray-bx-head">Customizable Data</div>
-                    <div class="gray-bx-txt">
-                        Import data from spreadsheets, CSV files, and audio/video recordings, or conduct remote
-                        interviews right from ResearchStudio.
-                    </div><br>
-                    <div class="gray-bx-btn">CREATE CUSTOM PAGE</div>
-                </div><br>
-                <div class="gray-bx-emt" (mouseenter)="changeImage('publications')">
-                    <div class="gray-bx-head">Publications</div>
-                    <div class="gray-bx-txt">
-                        Import data from spreadsheets, CSV files, and audio/video recordings, or conduct remote
-                        interviews..
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="gray-bx-emt" (mouseenter)="changeImage('analyze')">
-                    <div class="gray-bx-head">Analyze findings</div>
-                    <div class="gray-bx-txt">
-                        Tag observations with Al, and make sense of the collected data with powerful analytics and data
-                        visualization.
-                    </div><br>
-                    <div class="gray-bx-btn bxwidth">CREATE CUSTOM PAGE</div>
-                </div><br>
-                <div class="gray-bx-emt martTop" (mouseenter)="changeImage('formatted')">
-                    <div class="gray-bx-head">Formatted Reports</div>
-                    <div class="gray-bx-txt">
-                        Import data from spreadsheets, CSV files, and audio/video recordings, or conduct remote
-                        interviews..
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <img [src]="currentImage" width="600px">
-            </div>
-        </div>
-    </div>
-</div>
 
-
-export class LandingPageComponent implements OnInit, AfterViewInit {
-    // ... your existing code ...
-    
-    currentImage = 'assets/images/customizable-image.png'; // default image
-    
-    changeImage(section: string) {
-      switch(section) {
-        case 'customizable':
-          this.currentImage = 'assets/images/customizable-image.png';
-          break;
-        case 'publications':
-          this.currentImage = 'assets/images/publications-image.png';
-          break;
-        case 'analyze':
-          this.currentImage = 'assets/images/analyze-image.png';
-          break;
-        case 'formatted':
-          this.currentImage = 'assets/images/formatted-image.png';
-          break;
-      }
-    }
-    
-    // ... rest of your existing code ...
-  }
-
-  .gray-bx-white,
+// Empty/gray boxes (other 3 sections)
 .gray-bx-emt {
+    background-color: transparent;
+    padding: 16px 24px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: all 0.3s ease;
+    height: 256px;
+    border: 1px solid transparent;
 }
 
+// Hover effect - turn white with border
 .gray-bx-white:hover,
 .gray-bx-emt:hover {
     background-color: white !important;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+// Text styles
+.gray-bx-head {
+    font-size: 16px;
+    font-weight: 700;
+    color: #000;
+    margin-bottom: 12px;
+}
+
+.gray-bx-txt {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+
+// Button style
+.gray-bx-btn {
+    display: inline-block;
+    padding: 8px 16px;
+    border: 1px solid #0071BC;
+    color: #0071BC;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+}
+
+.bxwidth {
+    width: auto;
+}
+
+.martTop {
+    margin-top: 16px;
+}
+
+.martTopview {
+    margin-top: 20px;
 }
