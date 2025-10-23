@@ -1,8 +1,4 @@
-onSearchEnter(): void {
-  if (this.searchQuery && this.searchQuery.trim() !== '') {
-    localStorage.setItem('tfSearchPrompt', this.searchQuery.trim());
-    this.searchQuery = '';
-    this.router.navigate(['/tf/ai-search-results']);
-  }
-}
-
+<div class="search-bar">
+<input type="text" [(ngModel)]="searchQuery" placeholder="Start Typing..." (keyup.enter)="onSearchEnter()" />
+<img src="assets/images/aichat/ai-chat.png" (click)="onSearchEnter()">
+</div>
