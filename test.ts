@@ -20,7 +20,6 @@
     display: block !important;
     width: 100% !important;
     height: 100% !important;
-    border: none !important;
     background: transparent !important;
   }
   
@@ -30,11 +29,8 @@
     height: 40px !important;
     padding-left: 40px !important;
     padding-right: 12px !important;
-    border: 1px solid #ddd !important;
-    border-radius: 8px !important;
     font-size: 14px !important;
     box-sizing: border-box !important;
-    background-color: #fff !important;
     margin: 0 !important;
   }
   
