@@ -2,35 +2,26 @@
     position: relative;
     width: 328px;
     height: 40px;
-    border-radius: 8px;
-  
-    // optional: match white background with subtle border like Figma
-    background-color: #fff;
-    border: 1px solid #ccc;
-  
-    .search-icon {
-      position: absolute;
-      top: 50%;
-      left: 12px;
-      transform: translateY(-50%);
-      color: #999;
-      font-size: 14px;
-      pointer-events: none; // lets user click inside
-      z-index: 2;
-    }
-  
-    lift-search {
-      display: block;
-      width: 100%;
-  
-      input {
-        width: 100%;
-        height: 100%;
-        padding-left: 35px !important; // make room for icon
-        border: none;
-        outline: none;
-        font-size: 14px;
-      }
-    }
   }
   
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 12px;
+    color: #888;
+    font-size: 16px;
+    pointer-events: none;
+    z-index: 10;
+  }
+  
+  /* Target the input directly */
+  ::ng-deep .searchBox lift-search input,
+  ::ng-deep .searchBox lift-search .search-input,
+  ::ng-deep .searchBox input {
+    width: 100% !important;
+    height: 40px !important;
+    padding-left: 40px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 8px !important;
+    box-sizing: border-box !important;
+  }
