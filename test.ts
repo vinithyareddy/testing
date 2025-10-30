@@ -1,9 +1,3 @@
-<div class="searchBox">
-  <i class="fa fa-search search-icon"></i>
-  <lift-search [data]="data" [config]="config"></lift-search>
-</div>
-
-
 .searchBox {
     position: relative;
     width: 328px;
@@ -21,7 +15,13 @@
     z-index: 10;
   }
   
-  /* Only add padding to move the placeholder/text to the right */
+  /* Move the placeholder span to the right */
+  ::ng-deep .searchBox .placeholder-text {
+    padding-left: 28px !important;
+    margin-left: 0 !important;
+  }
+  
+  /* Also add padding to the input when user types */
   ::ng-deep .searchBox input {
     padding-left: 40px !important;
   }
