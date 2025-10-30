@@ -15,16 +15,10 @@
     z-index: 10;
   }
   
-  /* Target the lift-search component styles */
-  ::ng-deep .searchBox lift-search {
-    display: block;
-    width: 100%;
-    height: 100%;
-  }
-  
-  /* Target the input inside lift-search */
-  ::ng-deep .searchBox lift-search input {
-    width: 100% !important;
+  /* Target the input with its actual classes */
+  ::ng-deep .searchBox input.placeholder-text,
+  ::ng-deep .searchBox input {
+    width: 328px !important;
     height: 40px !important;
     padding-left: 40px !important;
     padding-right: 12px !important;
@@ -32,8 +26,10 @@
     border-radius: 8px !important;
     font-size: 14px !important;
     box-sizing: border-box !important;
+    background-color: #fff !important;
   }
   
-  ::ng-deep .searchBox lift-search input::placeholder {
+  ::ng-deep .searchBox input::placeholder {
     color: #999 !important;
+    font-size: 14px !important;
   }
