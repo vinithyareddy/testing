@@ -2,26 +2,29 @@
     position: relative;
     width: 328px;
     height: 40px;
+    border-radius: 8px;
+  
+    .search-icon {
+      position: absolute;
+      top: 50%;
+      left: 12px;
+      transform: translateY(-50%);
+      color: #999;
+      font-size: 14px;
+      pointer-events: none;
+      z-index: 2;
+    }
+  
+    lift-search {
+      display: block;
+      width: 100%;
+    }
+  
+    // ✅ Scoped deep style for this component only
+    ::ng-deep lift-search input[type="search"],
+    ::ng-deep lift-search input {
+      padding-left: 35px !important;  // moves placeholder text to the right
+      box-sizing: border-box;
+    }
   }
   
-  .search-icon {
-    position: absolute;
-    left: 12px;
-    top: 12px;
-    color: #888;
-    font-size: 16px;
-    pointer-events: none;
-    z-index: 10;
-  }
-  
-  /* Target the input directly */
-  ::ng-deep .searchBox lift-search input,
-  ::ng-deep .searchBox lift-search .search-input,
-  ::ng-deep .searchBox input {
-    width: 100% !important;
-    height: 40px !important;
-    padding-left: 40px !important;
-    border: 1px solid #ddd !important;
-    border-radius: 8px !important;
-    box-sizing: border-box !important;
-  }
