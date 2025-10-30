@@ -19,12 +19,11 @@
       display: block;
       width: 100%;
     }
+  }
   
-    // ✅ Scoped deep style for this component only
-    ::ng-deep lift-search input[type="search"],
-    ::ng-deep lift-search input {
-      padding-left: 35px !important;  // moves placeholder text to the right
-      box-sizing: border-box;
-    }
+  /* ✅ ng-deep must be outside */
+  ::ng-deep lift-search input.form-control.shadow-none.border-0 {
+    padding-left: 35px !important;   // pushes search text right
+    box-sizing: border-box;
   }
   
