@@ -1,0 +1,57 @@
+<div class="reports-wrap">
+    <div class="toolbar">
+      <div class="title">
+        <span>All Reports</span>
+        <i class="fa fa-info-circle" aria-hidden="true"></i>
+      </div>
+  
+      <div class="actions">
+        <div class="search">
+          <i class="fa fa-search"></i>
+          <input
+            type="text"
+            placeholder="Enter your search"
+            [(ngModel)]="searchText"
+            (input)="onSearch()"
+          />
+        </div>
+  
+        <div class="view-toggle">
+          <button class="btn icon" [class.active]="view==='grid'" (click)="view='grid'">
+            <i class="fa fa-th-large"></i>
+          </button>
+          <button class="btn icon" [class.active]="view==='list'" (click)="view='list'">
+            <i class="fa fa-list"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  
+    <!-- GRID -->
+    <div class="cards" [class.list]="view==='list'">
+      <div class="card" *ngFor="let r of filtered">
+        <div class="card-body">
+          <div class="category">{{ r.category }}</div>
+  
+          <div class="title">{{ r.title }}</div>
+  
+          <div class="sub">
+            <i class="fa fa-bolt"></i>
+            <span>POWER BI</span>
+          </div>
+        </div>
+  
+        <div class="card-footer">
+          <div class="metric">
+            <i class="fa fa-eye"></i>
+            <span>{{ r.views }}</span>
+          </div>
+          <div class="metric">
+            <i class="fa fa-download"></i>
+            <span>{{ r.downloads }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
