@@ -1,127 +1,93 @@
-:host {
-    display: block;
-    --bg: #f4f6f8;
-    --card-bg: #fff;
-    --muted: #7a7f87;
-    --border: #e6e8ec;
-    --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.08);
-    --radius: 10px;
-  }
-  
-  .reports-wrap {
-    padding: 16px 20px;
-    background: var(--bg);
-    min-height: 100%;
-  }
-  
-  /* Top bar */
-  .toolbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 14px;
+.faq-section {
+  opacity: 1;
+  gap: 40px;
+  padding-top: 40px;
+  padding-bottom: 40px;
+  margin-top: 24px;
+  border-top: 1px solid #c8d1da;
+  background: #ffffff;
+}
+
+::ng-deep .faqlist-container {
+  .lift-accordion-wrapper {
     gap: 16px;
-  
-    .title {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-weight: 600;
-      font-size: 20px;
-  
-      span { letter-spacing: .2px; }
-      i { color: var(--muted); font-size: 16px; }
-    }
-  
-    .actions {
-      display: flex; align-items: center; gap: 10px;
-  
-      .search {
-        position: relative; display: flex; align-items: center;
-        background: #fff; border: 1px solid var(--border);
-        border-radius: 8px; padding: 0 10px; height: 40px; min-width: 280px;
-  
-        i { margin-right: 8px; color: var(--muted); font-size: 14px; }
-        input {
-          border: none; outline: none; width: 100%;
-          font-size: 14px; color: #111;
-        }
-        input::placeholder { color: #9aa1a9; }
-      }
-  
-      .view-toggle { display: inline-flex; gap: 6px; }
-      .btn.icon {
-        width: 40px; height: 40px; border: 1px solid var(--border);
-        border-radius: 8px; background: #fff; display: grid;
-        place-items: center; box-shadow: none; cursor: pointer;
-        i { color: #60656d; }
-      }
-      .btn.icon.active { outline: 2px solid #d9dfe6; }
+    display: flex;
+    flex-direction: column;
+  }
+
+  .lift-accordion-item {
+    background: #ffffff !important;
+    min-height: 64px;
+    border-bottom: 1px solid #c8d1da !important;
+    border-top: unset !important;
+
+    .item-arrow {
+      height: 32.5px !important;
+      width: 32.5px !important;
+      font-size: 26px !important;
+      color: #748fff !important;
     }
   }
-  
-  /* Cards grid */
-  .cards {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 18px;
-  
-    &.list {
-      grid-template-columns: 1fr;
-      .card { display: grid; grid-template-columns: 1fr 200px; }
-    }
-  }
-  
-  .card {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    min-height: 148px;
-    display: flex; flex-direction: column; justify-content: space-between;
-  
-    .card-body {
-      padding: 16px 18px 8px 18px;
-  
-      .category {
-        font-size: 12px; letter-spacing: .4px; font-weight: 700;
-        color: #7b7f86; text-transform: uppercase; margin-bottom: 6px;
-      }
-  
-      .title {
-        font-size: 18px; font-weight: 700; color: #1b1d22;
-        line-height: 1.25; margin-bottom: 10px;
-      }
-  
-      .sub {
-        display: inline-flex; align-items: center; gap: 6px;
-        font-size: 12px; color: #7b7f86; font-weight: 600;
-        i { font-size: 12px; color: #f2b01e; } /* bolt as Power BI mark */
-      }
-    }
-  
-    .card-footer {
-      display: flex; align-items: center; gap: 18px;
-      padding: 10px 16px 14px 16px; color: var(--muted);
-  
-      .metric {
-        display: inline-flex; align-items: center; gap: 8px; font-weight: 600;
-        i { font-size: 14px; }
-      }
-    }
-  }
-  
-  /* Responsive */
-  @media (max-width: 1280px) {
-    .cards { grid-template-columns: repeat(3, 1fr); }
-  }
-  @media (max-width: 968px) {
-    .toolbar .actions .search { min-width: 220px; }
-    .cards { grid-template-columns: repeat(2, 1fr); }
-  }
-  @media (max-width: 640px) {
-    .toolbar { flex-direction: column; align-items: stretch; }
-    .actions { justify-content: space-between; }
-    .cards { grid-template-columns: 1fr; }
-  }
-  
+}
+
+.faq-question {
+  font-family: 'Open Sans';
+  font-weight: 500;
+  font-size: 24px;
+  line-height: 135%;
+  letter-spacing: -0.01em;
+  color: #35404c;
+}
+
+.faq-answer {
+  font-family: 'Open Sans';
+  font-weight: 300;
+  font-size: 20px;
+  line-height: 150%;
+  color: #35404c;
+}
+
+/* FOOTER */
+.FooterWBReports {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 40px;
+  width: 102%;
+  height: 360px;
+  background: rgba(53, 64, 76, 1);
+}
+
+.FooterWBReports ul li {
+  margin-top: 6px;
+  margin-bottom: 6px;
+}
+
+.footertitle {
+  font-family: 'Open Sans';
+  font-size: 24px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.footertext {
+  font-family: 'Open Sans';
+  font-size: 16px;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.subfootertitle {
+  font-family: 'Open Sans';
+  font-size: 16px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.footersubheading {
+  font-family: 'Open Sans';
+  font-size: 20px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+}

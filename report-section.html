@@ -1,57 +1,95 @@
-<div class="reports-wrap">
-    <div class="toolbar">
-      <div class="title">
-        <span>All Reports</span>
-        <i class="fa fa-info-circle" aria-hidden="true"></i>
-      </div>
-  
-      <div class="actions">
-        <div class="search">
-          <i class="fa fa-search"></i>
-          <input
-            type="text"
-            placeholder="Enter your search"
-            [(ngModel)]="searchText"
-            (input)="onSearch()"
-          />
+<!-- FAQ SECTION -->
+<div id="faq-section" class="faq-section">
+  <div class="content-wrapper-section">
+    <div class="row pt-3">
+      <div class="col-md-12 col-lg-12">
+        <div class="mid-head">Frequently Asked Questions</div>
+        <div class="fnt-md linhight">Learn more about the product and get insights.</div>
+
+        <div class="faqlist faqlist-container">
+          <lift-accordion>
+            @for (data of faqData; track data; let i = $index) {
+              <lift-accordion-item id="{{ i }}" [open]="false">
+                <div title class="faq-question">{{ data.question }}</div>
+                <div class="faq-answer">{{ data.answer }}</div>
+              </lift-accordion-item>
+            }
+          </lift-accordion>
         </div>
-  
-        <div class="view-toggle">
-          <button class="btn icon" [class.active]="view==='grid'" (click)="view='grid'">
-            <i class="fa fa-th-large"></i>
-          </button>
-          <button class="btn icon" [class.active]="view==='list'" (click)="view='list'">
-            <i class="fa fa-list"></i>
+
+        <div class="mt-5">
+          <button type="button" class="btn btn-outline-primary enabled mt-2">
+            <span class="fa fa-plus"></span>&nbsp;&nbsp; View More
           </button>
         </div>
       </div>
     </div>
-  
-    <!-- GRID -->
-    <div class="cards" [class.list]="view==='list'">
-      <div class="card" *ngFor="let r of filtered">
-        <div class="card-body">
-          <div class="category">{{ r.category }}</div>
-  
-          <div class="title">{{ r.title }}</div>
-  
-          <div class="sub">
-            <i class="fa fa-bolt"></i>
-            <span>POWER BI</span>
+  </div>
+</div>
+
+<!-- FOOTER SECTION -->
+<div class="container-fluid mid-section-ft FooterWBReports mt-5">
+  <div class="content-wrapper-section">
+    <div class="row">
+      <!-- LEFT SIDE -->
+      <div class="col-md-6 mb-4">
+        <p class="footertitle"><img src="assets/images/onewb_footer.png" /> OneWB Reports</p>
+        <p class="footertext">
+          The World Bank’s Data Studio helps turn data into actionable insights through a unified platform,
+          the use of Power BI, and customizable dashboard and report templates.
+        </p>
+
+        <ul class="subfootertitle mt-3">
+          <li class="mb-2">
+            <img src="assets/images/wbhelp.png" />&nbsp;&nbsp; OneWB Help
+          </li>
+          <li class="mb-2">
+            <img src="assets/images/wbmail.png" />&nbsp;&nbsp; Policy:
+            <a href="mailto:onewbhelp@worldbank.org" class="text-light">onewbhelp&#64;worldbank.org</a>
+          </li>
+          <li>
+            <img src="assets/images/wbmail.png" />&nbsp;&nbsp; IT:
+            <a href="mailto:itsdasupport@worldbank.org" class="text-light">itsdasupport&#64;worldbank.org</a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- RIGHT SIDE -->
+      <div class="col-md-6">
+        <div class="row">
+          <div class="col-md-4 mb-4">
+            <p class="footersubheading">Explore</p>
+            <ul class="footertext">
+              <li>Operations</li>
+              <li>BPS</li>
+              <li>Human Resources</li>
+              <li>Finance & Accounting</li>
+              <li>Development Finance</li>
+              <li>Corporate</li>
+            </ul>
           </div>
-        </div>
-  
-        <div class="card-footer">
-          <div class="metric">
-            <i class="fa fa-eye"></i>
-            <span>{{ r.views }}</span>
+
+          <div class="col-md-4 mb-4">
+            <p class="footersubheading">Quick Links</p>
+            <ul class="footertext">
+              <li>Standard Reports</li>
+              <li>Data Studio Yammer</li>
+              <li>Data Explorer</li>
+              <li>Power BI Help</li>
+            </ul>
           </div>
-          <div class="metric">
-            <i class="fa fa-download"></i>
-            <span>{{ r.downloads }}</span>
+
+          <div class="col-md-4 mb-4">
+            <p class="footersubheading">External Sites</p>
+            <ul class="footertext">
+              <li>World Bank</li>
+              <li>IFC</li>
+              <li>MIGA</li>
+              <li>ICSID</li>
+            </ul>
           </div>
         </div>
       </div>
     </div>
   </div>
-  
+</div>
