@@ -1,0 +1,52 @@
+<div id="print-section">
+    <app-trust-funds-top-header></app-trust-funds-top-header>
+    <div class="container-lg mblView desktop-container">
+        <div class="tf-layout-container">
+            <lift-tab-group class="tf-layout-tab-container">
+                <lift-tab [title]="'SUMMARY'" id="Overview" [active]="this.srServicesService.tabselect === 1"
+                    (selectedTab)="onSelectTab($event)">
+
+                    <div id="trust-fund-portfolio">
+                        <app-trust-fund-portfolio></app-trust-fund-portfolio>
+                    </div>
+                    <div class="row  mt-4" id="tf-contribution-by-contributing-partners">
+                        <div class="col-lg-12 col-md-12 col-sm-12">
+                            <app-tf-contribution-by-contributing-partners></app-tf-contribution-by-contributing-partners>
+                        </div>
+                    </div>
+                    <div id="annual-contribution-paid" class="mt-4">
+                        <app-tf-annual-contribution-paid></app-tf-annual-contribution-paid>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div id="ontribution-by-instruments" class="col-lg-6 col-md-6 col-sm-6">
+                            <app-tf-contribution-by-instruments></app-tf-contribution-by-instruments>
+                        </div>
+                        <div id="disbursement-by-instruments" class="col-lg-6 col-md-6 col-sm-6">
+                            <app-tf-disbursement-by-instruments></app-tf-disbursement-by-instruments>
+                        </div>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="tf-header-description">
+                            <span>* Does not include IFC TFs Blended Finance information</span>
+                        </div>
+                    </div>
+
+                </lift-tab>
+                <lift-tab [title]="'REPORTS'" id="Report" [active]="this.srServicesService.tabselect === 2"
+                    (selectedTab)="onSelectTab($event)">
+                    <div id="annual-contribution-paid" class="mt-4">
+                        <app-reports-tab [reportModule]="'Home'"></app-reports-tab>
+                    </div>
+
+                </lift-tab>
+            </lift-tab-group>
+        </div>
+    </div>
+</div>
+<app-chat-search></app-chat-search>
+@if(tourStatus){
+<div>
+    <app-take-atour></app-take-atour>
+</div>
+}
