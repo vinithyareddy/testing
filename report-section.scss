@@ -1,93 +1,261 @@
-.faq-section {
-  opacity: 1;
-  gap: 40px;
-  padding-top: 40px;
-  padding-bottom: 40px;
-  margin-top: 24px;
-  border-top: 1px solid #c8d1da;
-  background: #ffffff;
+::ng-deep .layout-wrapper {
+  padding: unset !important;
+  margin-top: -13px;
 }
 
-::ng-deep .faqlist-container {
-  .lift-accordion-wrapper {
-    gap: 16px;
-    display: flex;
-    flex-direction: column;
+.container-fluid {
+  padding-left: unset !important;
+  padding-right: unset !important;
+}
+
+.content-wrapper-section {
+  width: 80vw;
+  margin: 0 auto;
+  padding: 20px 0 5px 25px;
+}
+
+/* Header Background (Corporate style) */
+.HeaderNewBgView {
+  min-height: 420px;
+  padding-top: 60px;
+  background: linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.2) 0%,
+      rgba(255,255,255,0.5) 50%,
+      rgba(255,255,255,0.9) 100%
+    ),
+    linear-gradient(90deg,#d8f5e3,#bfece0 20%,#b0dcf3 50%,#9cc8f0 75%,#8ab6ec);
+  border-bottom: 1px solid #bcc7d2;
+
+  .header-lg-fnt {
+    font-family: Poppins;
+    font-size: 48px;
+    font-weight: 600;
+    color: #002244;
+    margin-bottom: 12px;
   }
 
-  .lift-accordion-item {
-    background: #ffffff !important;
-    min-height: 64px;
-    border-bottom: 1px solid #c8d1da !important;
-    border-top: unset !important;
+  .sub-heder-fnt {
+    font-size: 18px;
+    color: #35404C;
+    width: 900px;
+  }
+}
 
-    .item-arrow {
-      height: 32.5px !important;
-      width: 32.5px !important;
-      font-size: 26px !important;
-      color: #748fff !important;
+/* Filters Row */
+.filter-row {
+  display: flex;
+  gap: 20px;
+  margin-top: 22px;
+  align-items: center;
+}
+
+.dt-search-wrapper {
+  position: relative;
+  width: 320px;
+}
+
+.dt-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+}
+
+.dt-search-input {
+  width: 100%;
+  height: 40px;
+  border-radius: 8px;
+  padding: 0 12px 0 32px;
+  border: 1px solid #d3d6de;
+}
+
+.dt-select-wrapper {
+  position: relative;
+  width: 200px;
+}
+
+.dt-select-display {
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid #d3d6de;
+  padding: 0 32px 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.dt-select-menu {
+  position: absolute;
+  background: #fff;
+  border: 1px solid #d3d6de;
+  border-radius: 8px;
+  width: 100%;
+  top: 45px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 100;
+}
+
+.dt-select-option {
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.dt-select-option:hover {
+  background: #f5f5f5;
+}
+
+.dt-clear-link {
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+/* AI Notice */
+.ai-notice {
+  margin-top: 18px;
+  padding: 14px;
+  background: #fff8d6;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #4b4b4b;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  img {
+    width: 26px;
+  }
+}
+
+/* Sticky Tabs */
+.mini-header {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 100;
+  border-bottom: 1px solid #e1e1e1;
+}
+
+.header-menu {
+  display: flex;
+  gap: 35px;
+  padding: 14px 60px;
+
+  li {
+    cursor: pointer;
+    text-transform: uppercase;
+    font-family: Open Sans;
+    font-size: 14px;
+    color: #35404C;
+    padding-bottom: 8px;
+
+    &.active {
+      font-weight: 600;
+      border-bottom: 3px solid #0D3EA1;
     }
   }
 }
 
-.faq-question {
-  font-family: 'Open Sans';
-  font-weight: 500;
-  font-size: 24px;
-  line-height: 135%;
-  letter-spacing: -0.01em;
-  color: #35404c;
+/* Card Grid */
+.templates-main-row {
+  margin-top: 40px;
 }
 
-.faq-answer {
-  font-family: 'Open Sans';
-  font-weight: 300;
-  font-size: 20px;
-  line-height: 150%;
-  color: #35404c;
+.template-card {
+  width: 345px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  overflow: hidden;
+  background: #fff;
+  transition: 0.3s;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+  }
 }
 
-/* FOOTER */
-.FooterWBReports {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 40px;
-  width: 102%;
-  height: 360px;
-  background: rgba(53, 64, 76, 1);
-}
-
-.FooterWBReports ul li {
-  margin-top: 6px;
-  margin-bottom: 6px;
-}
-
-.footertitle {
-  font-family: 'Open Sans';
-  font-size: 24px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.95);
-}
-
-.footertext {
-  font-family: 'Open Sans';
-  font-size: 16px;
-  font-weight: 300;
-  color: rgba(255, 255, 255, 0.95);
-}
-
-.subfootertitle {
-  font-family: 'Open Sans';
-  font-size: 16px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.95);
-}
-
-.footersubheading {
-  font-family: 'Open Sans';
-  font-size: 20px;
+.template-card-header {
+  padding: 12px 16px;
+  font-size: 12px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
+  color: #35404C;
+}
+
+.template-card-body {
+  padding: 16px;
+
+  .template-card-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #35404C;
+  }
+
+  .template-category {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .template-card-image {
+    width: 100%;
+    height: 180px;
+    border-radius: 6px;
+    overflow: hidden;
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+}
+
+.template-card-footer {
+  padding: 12px 16px;
+  border-top: 1px solid #ececec;
+
+  .template-stats {
+    display: flex;
+    gap: 20px;
+
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+  }
+}
+
+/* Sidebar */
+.sidebar-section {
+  .image-box img {
+    width: 100%;
+    border-radius: 8px;
+    margin-bottom: 18px;
+  }
+
+  .widget-box {
+    background: #fff;
+    padding: 16px;
+    border-radius: 6px;
+    border: 1px solid #d3d6de;
+
+    .widget-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .widget-text {
+      font-size: 14px;
+      color: #0071bc;
+      margin-bottom: 6px;
+    }
+  }
 }
