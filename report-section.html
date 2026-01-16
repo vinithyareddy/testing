@@ -1,46 +1,68 @@
-<span class="tooltip-wrapper" (click)="refinerOpen()">
-  <lift-tag
-    text="Filter({{budgetservice.FilterCount}})"
-    class="tagview"
-    [size]="smallSize"
-    [readOnly]="true"
-    [active]="tagActive"
-    image="../../assets/images/filter.png">
-  </lift-tag>
-  <span class="tooltip-text">Filters</span>
-</span>
+<div class="d-inline-flex tagviewShow">
 
-<span class="tooltip-wrapper">
-  <img
-    class="applied-filter-icon"
-    src="../../../../assets/images/budget_glance/applied_filter_icon.png"
-    (click)="onImageClick($event)" />
-  <span class="tooltip-text">Applied Filters</span>
-</span>
+    <!-- FILTER BUTTON TOOLTIP -->
+    <span class="tooltip-wrapper" (click)="refinerOpen()">
+        <lift-tag
+            text="Filter({{budgetservice.FilterCount}})"
+            class="tagview"
+            [size]="smallSize"
+            [readOnly]="true"
+            [active]="tagActive"
+            image="../../assets/images/filter.png">
+        </lift-tag>
+        <span class="tooltip-text">Filters</span>
+    </span>
+
+    <!-- APPLIED FILTER ICON TOOLTIP -->
+    @if(budgetservice.appliedFilterVal === false){
+    <span class="tooltip-wrapper">
+        <img class="applied-filter-icon"
+            src="../../../../assets/images/budget_glance/applied_filter_icon.png"
+            (click)="onImageClick($event)" alt="">
+        <span class="tooltip-text">Applied Filters</span>
+    </span>
+    }
+
+    @if(budgetservice.appliedFilterVal === true){
+    <span class="tooltip-wrapper">
+        <img class="applied-filter-icon"
+            src="../../../../assets/images/budget_glance/checked_applied_filter.png"
+            (click)="onImageClick($event)" alt="">
+        <span class="tooltip-text">Applied Filters</span>
+    </span>
+    }
+
+</div>
 
 
 .tooltip-wrapper {
   position: relative;
   display: inline-flex;
+  align-items: center;
   cursor: pointer;
 }
 
 .tooltip-text {
   visibility: hidden;
+  opacity: 0;
   background-color: #2f2f2f;
-  color: #fff;
+  color: #ffffff;
   text-align: center;
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
+  white-space: nowrap;
+
   position: absolute;
   bottom: -32px;
   left: 50%;
   transform: translateX(-50%);
-  white-space: nowrap;
-  z-index: 999;
+  z-index: 1000;
+
+  transition: opacity 0.2s ease;
 }
 
 .tooltip-wrapper:hover .tooltip-text {
   visibility: visible;
+  opacity: 1;
 }
