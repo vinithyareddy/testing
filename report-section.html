@@ -1,46 +1,45 @@
-<span class="tooltip-wrapper" (click)="refinerOpen()">
-  <lift-tag
-    text="Filter({{budgetservice.FilterCount}})"
-    class="tagview"
-    [size]="smallSize"
-    [readOnly]="true"
-    [active]="tagActive"
-    image="../../assets/images/filter.png">
-  </lift-tag>
-  <span class="tooltip-text">Filters</span>
-</span>
-
-<span class="tooltip-wrapper">
-  <img
-    class="applied-filter-icon"
-    src="../../../../assets/images/budget_glance/applied_filter_icon.png"
-    (click)="onImageClick($event)" />
-  <span class="tooltip-text">Applied Filters</span>
-</span>
-
-
 .tooltip-wrapper {
   position: relative;
   display: inline-flex;
-  cursor: pointer;
+  align-items: center;
 }
 
+/* Tooltip body */
 .tooltip-text {
-  visibility: hidden;
-  background-color: #2f2f2f;
-  color: #fff;
-  text-align: center;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
   position: absolute;
-  bottom: -32px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 110%;                /* move tooltip to the right */
+  top: 50%;
+  transform: translateY(-50%);
+
+  background-color: #4a4a4a;
+  color: #ffffff;
+  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 6px;
   white-space: nowrap;
-  z-index: 999;
+
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease;
+
+  z-index: 1000;
 }
 
+/* Arrow (left side) */
+.tooltip-text::before {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  border-width: 6px;
+  border-style: solid;
+  border-color: transparent #4a4a4a transparent transparent;
+}
+
+/* Show on hover */
 .tooltip-wrapper:hover .tooltip-text {
+  opacity: 1;
   visibility: visible;
 }
