@@ -1,140 +1,46 @@
-<div class="container-fluid HeaderNewBgView">
-    <div class="content-wrapper-section pb-0">
+<span class="tooltip-wrapper" (click)="refinerOpen()">
+  <lift-tag
+    text="Filter({{budgetservice.FilterCount}})"
+    class="tagview"
+    [size]="smallSize"
+    [readOnly]="true"
+    [active]="tagActive"
+    image="../../assets/images/filter.png">
+  </lift-tag>
+  <span class="tooltip-text">Filters</span>
+</span>
 
-        <!-- Breadcrumb -->
-        <nav aria-label="breadcrumb" class="breadcrumb-nav">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="#">Home</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Corporate Badge</li>
-            </ol>
-        </nav>
+<span class="tooltip-wrapper">
+  <img
+    class="applied-filter-icon"
+    src="../../../../assets/images/budget_glance/applied_filter_icon.png"
+    (click)="onImageClick($event)" />
+  <span class="tooltip-text">Applied Filters</span>
+</span>
 
-        <!-- Header Section (from Corporate component) -->
-        <div class="row">
-            <div class="col-md-7 col-lg-7">
-                <div class="header-lg-fnt">Corporate Badge Templates</div>
-                <div class="sub-heder-fnt">View all Corporate dashboard templates across domains.</div>
 
-                <!-- Search + Dropdowns -->
-                <div class="filter-row">
+.tooltip-wrapper {
+  position: relative;
+  display: inline-flex;
+  cursor: pointer;
+}
 
-                    <!-- Search -->
-                    <div class="dt-search-wrapper">
-                        <i class="fa fa-search dt-search-icon"></i>
-                        <input type="text" class="dt-search-input" placeholder="Search templates" [(ngModel)]="searchText">
-                    </div>
+.tooltip-text {
+  visibility: hidden;
+  background-color: #2f2f2f;
+  color: #fff;
+  text-align: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  position: absolute;
+  bottom: -32px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  z-index: 999;
+}
 
-                    <!-- Dropdown 1 -->
-                    <div class="dt-select-wrapper" (click)="toggleDropdown1($event)">
-                        <div class="dt-select-display">
-                            <span>{{ selectedFilter1 }}</span>
-                            <i class="fa fa-chevron-down dt-select-arrow"></i>
-                        </div>
-
-                        <div class="dt-select-menu" *ngIf="isDropdown1Open">
-                            <div class="dt-select-option" *ngFor="let opt of dropdownOptions"
-                                 (click)="selectFilter1(opt, $event)">
-                                {{ opt }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Dropdown 2 -->
-                    <div class="dt-select-wrapper" (click)="toggleDropdown2($event)">
-                        <div class="dt-select-display">
-                            <span>{{ selectedFilter2 }}</span>
-                            <i class="fa fa-chevron-down dt-select-arrow"></i>
-                        </div>
-
-                        <div class="dt-select-menu" *ngIf="isDropdown2Open">
-                            <div class="dt-select-option" *ngFor="let opt of dropdownOptions"
-                                 (click)="selectFilter2(opt, $event)">
-                                {{ opt }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Clear Filters -->
-                    <span class="dt-clear-link" (click)="clearFilters()">Clear Filters</span>
-                </div>
-
-                <!-- Yellow AI Notice -->
-                <div class="ai-notice">
-                    <img src="assets/images/datastudio/ai-icon.png" alt="ai">
-                    AI enhancements applied to metadata & descriptions for improved discoverability.
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Sticky Tabs -->
-<div class="container-fluid mini-header">
-    <div class="content-wrapper-section2">
-        <ul class="header-menu">
-            <li class="active">DEFAULT</li>
-            <li>DATA PRODUCTS</li>
-            <li>EXECUTIVE DASHBOARDS</li>
-            <li>ENTERPRISE DASHBOARDS</li>
-            <li>CORPORATE STANDARD REPORTS</li>
-            <li>CORPORATE DATA EXPLORER</li>
-        </ul>
-    </div>
-</div>
-
-<!-- Main Section -->
-<div class="content-wrapper">
-    <div class="content-wrapper-section">
-
-        <div class="templates-main-row row">
-
-            <!-- LEFT SIDE: Card Grid -->
-            <div class="col-lg-9 col-md-9 templates-track">
-                <div class="row templates-grid">
-
-                    <div class="template-card" *ngFor="let card of dummyCards">
-                        <div class="template-card-header">
-                            <span class="template-domain">{{ card.domain }}</span>
-                        </div>
-
-                        <div class="template-card-body">
-                            <h3 class="template-card-title">{{ card.title }}</h3>
-
-                            <div class="template-category">
-                                <img src="assets/images/powerbi.svg" width="12px">
-                                <span>{{ card.category }}</span>
-                            </div>
-
-                            <div class="template-card-image">
-                                <img src="assets/images/template-1.png">
-                            </div>
-                        </div>
-
-                        <div class="template-card-footer">
-                            <div class="template-stats">
-                                <span class="stat-item"><i class="fa fa-eye"></i> {{ card.views }}</span>
-                                <span class="stat-item"><i class="fa fa-download"></i> {{ card.downloads }}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-
-            <!-- RIGHT SIDE: Sidebar -->
-            <div class="col-lg-3 col-md-3 ps-0 sidebar-section">
-
-                <div class="image-box"><img src="assets/images/Explore_card.png"></div>
-                <div class="image-box"><img src="assets/images/Explore_card1.png"></div>
-
-                <div class="widget-box">
-                    <div class="widget-title">Other related products</div>
-                    <div class="widget-text">Set up your POWER BI environment</div>
-                    <div class="widget-text">Resource Center</div>
-                    <div class="widget-text">Training</div>
-                </div>
-
-            </div>
-        </div>
-    </div>
-</div>
+.tooltip-wrapper:hover .tooltip-text {
+  visibility: visible;
+}
