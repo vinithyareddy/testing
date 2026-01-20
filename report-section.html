@@ -1,50 +1,52 @@
-<div class="all-reports-wrapper">
-  <div class="card-body p-lg-4 p-0">
-    <div class="row col-lg-12">
+@if(selectedView === 'tb'){
+  <div class="all-reports-wrapper">
+    <div class="card-body p-lg-4 p-0">
+      <div class="row col-lg-12">
 
-      <ng-container *ngFor="let module of RMAllReport">
-        <div class="col-lg-4 px-lg-4 pb-lg-5 pb-4">
+        <ng-container *ngFor="let module of RMAllReport">
+          <div class="col-lg-4 px-lg-4 pb-lg-5 pb-4">
 
-          <!-- Business Area -->
-          <h5 class="report-heading">
-            {{ module.busArea | uppercase }}
-          </h5>
+            <!-- Business Area -->
+            <h5 class="report-heading">
+              {{ module.busArea | uppercase }}
+            </h5>
 
-          <!-- Report -->
-          <ul class="report-list">
-            <li>
-              <div class="report-row border-bottom py-2">
+            <!-- Report -->
+            <ul class="report-list">
+              <li>
+                <div class="report-row border-bottom py-2">
 
-                <!-- Report name -->
-                <div class="report-name">
-                  <a
-                    class="report-text pointer"
-                    (click)="getReport(module)"
-                    title="{{ module.name }}">
-                    {{ module.name }}
-                  </a>
+                  <!-- Report name -->
+                  <div class="report-name">
+                    <a
+                      class="report-text pointer"
+                      (click)="getReport(module)"
+                      title="{{ module.name }}">
+                      {{ module.name }}
+                    </a>
+                  </div>
+
+                  <!-- Icons -->
+                  <span class="report-icons d-flex align-items-center">
+                    <button class="btn btn-link btn-hover" title="Info">
+                      <i class="fal fa-info-circle"></i>
+                    </button>
+                    <button class="btn btn-link btn-hover" title="Download">
+                      <i class="fal fa-download"></i>
+                    </button>
+                    <button class="btn btn-link btn-hover" title="Favorite">
+                      <i class="fal fa-heart"></i>
+                    </button>
+                  </span>
+
                 </div>
+              </li>
+            </ul>
 
-                <!-- Icons -->
-                <span class="report-icons d-flex align-items-center">
-                  <button class="btn btn-link btn-hover" title="Info">
-                    <i class="fal fa-info-circle"></i>
-                  </button>
-                  <button class="btn btn-link btn-hover" title="Download">
-                    <i class="fal fa-download"></i>
-                  </button>
-                  <button class="btn btn-link btn-hover" title="Favorite">
-                    <i class="fal fa-heart"></i>
-                  </button>
-                </span>
+          </div>
+        </ng-container>
 
-              </div>
-            </li>
-          </ul>
-
-        </div>
-      </ng-container>
-
+      </div>
     </div>
   </div>
-</div>
+}
