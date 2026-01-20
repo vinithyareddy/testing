@@ -1,45 +1,50 @@
-.tooltip-wrapper {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
+<div class="all-reports-wrapper">
+  <div class="card-body p-lg-4 p-0">
+    <div class="row col-lg-12">
 
-/* Tooltip body */
-.tooltip-text {
-  position: absolute;
-  left: 110%;                /* move tooltip to the right */
-  top: 50%;
-  transform: translateY(-50%);
+      <ng-container *ngFor="let module of RMAllReport">
+        <div class="col-lg-4 px-lg-4 pb-lg-5 pb-4">
 
-  background-color: #4a4a4a;
-  color: #ffffff;
-  font-size: 14px;
-  padding: 6px 12px;
-  border-radius: 6px;
-  white-space: nowrap;
+          <!-- Business Area -->
+          <h5 class="report-heading">
+            {{ module.busArea | uppercase }}
+          </h5>
 
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.2s ease;
+          <!-- Report -->
+          <ul class="report-list">
+            <li>
+              <div class="report-row border-bottom py-2">
 
-  z-index: 1000;
-}
+                <!-- Report name -->
+                <div class="report-name">
+                  <a
+                    class="report-text pointer"
+                    (click)="getReport(module)"
+                    title="{{ module.name }}">
+                    {{ module.name }}
+                  </a>
+                </div>
 
-/* Arrow (left side) */
-.tooltip-text::before {
-  content: "";
-  position: absolute;
-  left: -6px;
-  top: 50%;
-  transform: translateY(-50%);
+                <!-- Icons -->
+                <span class="report-icons d-flex align-items-center">
+                  <button class="btn btn-link btn-hover" title="Info">
+                    <i class="fal fa-info-circle"></i>
+                  </button>
+                  <button class="btn btn-link btn-hover" title="Download">
+                    <i class="fal fa-download"></i>
+                  </button>
+                  <button class="btn btn-link btn-hover" title="Favorite">
+                    <i class="fal fa-heart"></i>
+                  </button>
+                </span>
 
-  border-width: 6px;
-  border-style: solid;
-  border-color: transparent #4a4a4a transparent transparent;
-}
+              </div>
+            </li>
+          </ul>
 
-/* Show on hover */
-.tooltip-wrapper:hover .tooltip-text {
-  opacity: 1;
-  visibility: visible;
-}
+        </div>
+      </ng-container>
+
+    </div>
+  </div>
+</div>
