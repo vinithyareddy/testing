@@ -1,122 +1,27 @@
-<div class="hr-card-box" [class.fullscreen]="isFullscreen">
+@if (selectedView === 'REGION') {
+  @for (let row of terminationReasons; let i = $index; track row) {
+    <tr>
+      <td class="sticky-col">{{ row }}</td>
 
-  <!-- Header -->
-  <div class="card-box-header-sec">
-    <div class="row align-items-center">
-      <div class="col-md-7">
-        <div class="widget-heading">
-          <span>Termination for Current Year</span>
-          <i class="info-icon">i</i>
-        </div>
-      </div>
-
-      <div class="col-md-5 text-end controls">
-
-        <!-- Grid / Chart toggle -->
-        @if (selectedView === 'GENDER' || selectedView === 'HQCO') {
-          <i class="icon"
-             [class.active]="displayMode === 'GRID'"
-             (click)="setDisplayMode('GRID')">▦</i>
-          <i class="icon"
-             [class.active]="displayMode === 'CHART'"
-             (click)="setDisplayMode('CHART')">📊</i>
-        }
-
-        <!-- Fullscreen -->
-        @if (selectedView === 'REGION') {
-          <i class="icon" (click)="toggleFullscreen()">
-            {{ isFullscreen ? '🗗' : '🗖' }}
-          </i>
-        }
-
-        <!-- Dropdown -->
-        <select
-          class="view-select"
-          [ngModel]="selectedView"
-          (ngModelChange)="onViewChange($event)">
-          @for (opt of viewOptions; track opt.value) {
-            <option [value]="opt.value">{{ opt.label }}</option>
-          }
-        </select>
-      </div>
-    </div>
-  </div>
-
-  <!-- Body -->
-  <div class="hr-inner-cart-box">
-
-    <!-- CHART -->
-    @if (displayMode === 'CHART') {
-      <div class="chart-section" #chartContainer>
-        @for (trend of AssigmntDataChart; track trend) {
-          <highcharts-chart
-            [Highcharts]="trend.Highcharts"
-            [options]="trend.chartOptions"
-            [constructorType]="trend.chartConstructor">
-          </highcharts-chart>
-        }
-      </div>
-    }
-
-    <!-- GRID -->
-    @if (displayMode === 'GRID') {
-
-      <!-- Alphabet filter -->
-      @if (selectedView === 'COUNTRY') {
-        <div class="alpha-filter">
-          @for (a of alphaGroups; track a.value) {
-            <span
-              [class.active]="selectedAlpha === a.value"
-              (click)="setAlpha(a.value)">
-              {{ a.label }}
-            </span>
-          }
-        </div>
+      @for (let val of regionHeatmapData[i]; track $index) {
+        <td
+          class="heat-cell"
+          [ngStyle]="{
+            'background-color': getHeatmapColor(val),
+            'color': val > 45 ? '#fff' : '#000'
+          }">
+          {{ val < 10 ? ('0' + val) : val }}
+        </td>
       }
+    </tr>
+  }
+}
 
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Termination Reason</th>
 
-              @if (selectedView === 'GRADE') {
-                @for (g of gradeColumns; track g) { <th>{{ g }}</th> }
-              }
-
-              @if (selectedView === 'REGION') {
-                @for (r of regionColumns; track r) { <th>{{ r }}</th> }
-              }
-
-              @if (selectedView === 'COUNTRY') {
-                @for (c of countryColumns; track c) { <th>{{ c }}</th> }
-              }
-            </tr>
-          </thead>
-
-          <tbody>
-            @for (r of terminationReasons; track r) {
-              <tr>
-                <td>{{ r }}</td>
-
-                @if (selectedView === 'GRADE') {
-                  @for (g of gradeColumns; track g) { <td>63</td> }
-                }
-
-                @if (selectedView === 'REGION') {
-                  @for (r of regionColumns; track r) { <td class="heat">40</td> }
-                }
-
-                @if (selectedView === 'COUNTRY') {
-                  @for (c of countryColumns; track c) { <td>63</td> }
-                }
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    }
+@if (selectedView === 'REGION') {
+  <div class="heatmap-legend">
+    <span>0</span>
+    <div class="scale"></div>
+    <span>100</span>
   </div>
-
-  <div class="view-more">View More ›</div>
-</div>
+}
