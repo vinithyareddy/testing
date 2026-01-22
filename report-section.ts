@@ -24,6 +24,7 @@ export class TerminationForCurrentYearComponent
 
   @ViewChild('chartContainer') chartContainer!: ElementRef;
 
+  private resizeObserver!: ResizeObserver;
   destroy$ = new Subject<void>();
   ResponseFlag = false;
 
@@ -94,7 +95,22 @@ export class TerminationForCurrentYearComponent
 
   ngAfterViewInit(): void {
     this.ResponseFlag = true;
-    this.renderChart();
+    this.initResizeObserver();
+  }
+
+  /** Resize observer ensures chart renders only when width is valid */
+  private initResizeObserver() {
+    if (!this.chartContainer) return;
+
+    this.resizeObserver = new ResizeObserver(entries => {
+      const width = entries[0]?.contentRect?.width || 0;
+
+      if (width > 0 && this.displayMode === 'CHART') {
+        this.renderChart();
+      }
+    });
+
+    this.resizeObserver.observe(this.chartContainer.nativeElement);
   }
 
   /** View change */
@@ -102,13 +118,15 @@ export class TerminationForCurrentYearComponent
     this.selectedView = view;
     this.displayMode = 'GRID';
     this.isFullscreen = false;
-    this.renderChart();
+    this.AssigmntDataChart = [];
   }
 
   /** Grid / Chart toggle */
   setDisplayMode(mode: DisplayMode) {
     this.displayMode = mode;
-    this.renderChart();
+    if (mode === 'CHART') {
+      this.renderChart();
+    }
   }
 
   /** Fullscreen toggle */
@@ -128,10 +146,11 @@ export class TerminationForCurrentYearComponent
     if (this.displayMode !== 'CHART') return;
     if (!this.chartContainer) return;
 
+    const width = this.chartContainer.nativeElement.offsetWidth;
+    if (!width || width === 0) return;
+
     let seriesData: any[] = [];
     let chartTitle = '';
-    let xAxisTitle = '';
-    let yAxisTitle = '';
 
     if (this.selectedView === 'GENDER') {
       seriesData = this.genderData;
@@ -147,7 +166,7 @@ export class TerminationForCurrentYearComponent
 
     const ChartOptions = {
       chartTitle,
-      chartWidth: this.chartContainer.nativeElement.offsetWidth,
+      chartWidth: width,
       chartHight: 360,
       xAxisCategory: this.terminationReasons,
       legendVisible: true,
@@ -158,8 +177,8 @@ export class TerminationForCurrentYearComponent
       })),
       xAxisVisible: true,
       yAxisVisible: true,
-      xAxisTitle,
-      yAxisTitle,
+      xAxisTitle: '',
+      yAxisTitle: '',
       dataLabelEnable: true,
       datalabelFormat: '#',
       widgetID: 'termination-for-current-year'
@@ -175,6 +194,10 @@ export class TerminationForCurrentYearComponent
   }
 
   ngOnDestroy(): void {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
+
     this.destroy$.next();
     this.destroy$.complete();
   }
