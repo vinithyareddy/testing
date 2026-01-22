@@ -1,22 +1,57 @@
-@if (selectedView === 'REGION') {
-  @for (row of terminationReasons; let i = $index; track row) {
-    <tr>
-      <!-- Sticky first column -->
-      <td class="sticky-col">
-        {{ row }}
-      </td>
+<thead>
+  <tr>
+    @if (selectedView === 'REGION') {
+      <!-- Empty header to align sticky row header -->
+      <th></th>
+    }
 
-      <!-- Heatmap cells -->
-      @for (val of regionHeatmapData[i]; track $index) {
-        <td
-          class="heat-cell"
-          [ngStyle]="{
-            'background-color': getHeatmapColor(val),
-            'color': val > 45 ? '#fff' : '#000'
-          }">
-          {{ val < 10 ? ('0' + val) : val }}
-        </td>
+    @if (selectedView !== 'REGION') {
+      <th>Termination Reason</th>
+    }
+
+    @if (selectedView === 'GRADE') {
+      @for (g of gradeColumns; track g) {
+        <th>{{ g }}</th>
+      }
+    }
+
+    @if (selectedView === 'REGION') {
+      @for (r of regionColumns; track r) {
+        <th>{{ r }}</th>
+      }
+    }
+
+    @if (selectedView === 'COUNTRY') {
+      @for (c of filteredCountryColumns; track c) {
+        <th>{{ c }}</th>
+      }
+    }
+  </tr>
+</thead>
+
+
+<tbody>
+  @for (r of terminationReasons; track r) {
+    <tr>
+      <td>{{ r }}</td>
+
+      @if (selectedView === 'GRADE') {
+        @for (g of gradeColumns; track g) {
+          <td>63</td>
+        }
+      }
+
+      @if (selectedView === 'REGION') {
+        @for (r of regionColumns; track r) {
+          <td class="heat">40</td>
+        }
+      }
+
+      @if (selectedView === 'COUNTRY') {
+        @for (c of filteredCountryColumns; track c) {
+          <td>63</td>
+        }
       }
     </tr>
   }
-}
+</tbody>
