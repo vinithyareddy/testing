@@ -1,8 +1,12 @@
 @if (selectedView === 'REGION') {
   @for (row of terminationReasons; track row; let i = $index) {
     <tr>
-      <td class="sticky-col">{{ row }}</td>
+      <!-- Sticky first column -->
+      <td class="sticky-col">
+        {{ row }}
+      </td>
 
+      <!-- Heatmap cells -->
       @for (val of regionHeatmapData[i]; track $index) {
         <td
           class="heat-cell"
