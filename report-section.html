@@ -1,52 +1,122 @@
-@if(selectedView === 'tb'){
-  <div class="all-reports-wrapper">
-    <div class="card-body p-lg-4 p-0">
-      <div class="row col-lg-12">
+<div class="hr-card-box" [class.fullscreen]="isFullscreen">
 
-        <ng-container *ngFor="let module of RMAllReport">
-          <div class="col-lg-4 px-lg-4 pb-lg-5 pb-4">
+  <!-- Header -->
+  <div class="card-box-header-sec">
+    <div class="row align-items-center">
+      <div class="col-md-7">
+        <div class="widget-heading">
+          <span>Termination for Current Year</span>
+          <i class="info-icon">i</i>
+        </div>
+      </div>
 
-            <!-- Business Area -->
-            <h5 class="report-heading">
-              {{ module.busArea | uppercase }}
-            </h5>
+      <div class="col-md-5 text-end controls">
 
-            <!-- Report -->
-            <ul class="report-list">
-              <li>
-                <div class="report-row border-bottom py-2">
+        <!-- Grid / Chart toggle -->
+        @if (selectedView === 'GENDER' || selectedView === 'HQCO') {
+          <i class="icon"
+             [class.active]="displayMode === 'GRID'"
+             (click)="setDisplayMode('GRID')">▦</i>
+          <i class="icon"
+             [class.active]="displayMode === 'CHART'"
+             (click)="setDisplayMode('CHART')">📊</i>
+        }
 
-                  <!-- Report name -->
-                  <div class="report-name">
-                    <a
-                      class="report-text pointer"
-                      (click)="getReport(module)"
-                      title="{{ module.name }}">
-                      {{ module.name }}
-                    </a>
-                  </div>
+        <!-- Fullscreen -->
+        @if (selectedView === 'REGION') {
+          <i class="icon" (click)="toggleFullscreen()">
+            {{ isFullscreen ? '🗗' : '🗖' }}
+          </i>
+        }
 
-                  <!-- Icons -->
-                  <span class="report-icons d-flex align-items-center">
-                    <button class="btn btn-link btn-hover" title="Info">
-                      <i class="fal fa-info-circle"></i>
-                    </button>
-                    <button class="btn btn-link btn-hover" title="Download">
-                      <i class="fal fa-download"></i>
-                    </button>
-                    <button class="btn btn-link btn-hover" title="Favorite">
-                      <i class="fal fa-heart"></i>
-                    </button>
-                  </span>
-
-                </div>
-              </li>
-            </ul>
-
-          </div>
-        </ng-container>
-
+        <!-- Dropdown -->
+        <select
+          class="view-select"
+          [ngModel]="selectedView"
+          (ngModelChange)="onViewChange($event)">
+          @for (opt of viewOptions; track opt.value) {
+            <option [value]="opt.value">{{ opt.label }}</option>
+          }
+        </select>
       </div>
     </div>
   </div>
-}
+
+  <!-- Body -->
+  <div class="hr-inner-cart-box">
+
+    <!-- CHART -->
+    @if (displayMode === 'CHART') {
+      <div class="chart-section" #chartContainer>
+        @for (trend of AssigmntDataChart; track trend) {
+          <highcharts-chart
+            [Highcharts]="trend.Highcharts"
+            [options]="trend.chartOptions"
+            [constructorType]="trend.chartConstructor">
+          </highcharts-chart>
+        }
+      </div>
+    }
+
+    <!-- GRID -->
+    @if (displayMode === 'GRID') {
+
+      <!-- Alphabet filter -->
+      @if (selectedView === 'COUNTRY') {
+        <div class="alpha-filter">
+          @for (a of alphaGroups; track a.value) {
+            <span
+              [class.active]="selectedAlpha === a.value"
+              (click)="setAlpha(a.value)">
+              {{ a.label }}
+            </span>
+          }
+        </div>
+      }
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Termination Reason</th>
+
+              @if (selectedView === 'GRADE') {
+                @for (g of gradeColumns; track g) { <th>{{ g }}</th> }
+              }
+
+              @if (selectedView === 'REGION') {
+                @for (r of regionColumns; track r) { <th>{{ r }}</th> }
+              }
+
+              @if (selectedView === 'COUNTRY') {
+                @for (c of countryColumns; track c) { <th>{{ c }}</th> }
+              }
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (r of terminationReasons; track r) {
+              <tr>
+                <td>{{ r }}</td>
+
+                @if (selectedView === 'GRADE') {
+                  @for (g of gradeColumns; track g) { <td>63</td> }
+                }
+
+                @if (selectedView === 'REGION') {
+                  @for (r of regionColumns; track r) { <td class="heat">40</td> }
+                }
+
+                @if (selectedView === 'COUNTRY') {
+                  @for (c of countryColumns; track c) { <td>63</td> }
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+
+  <div class="view-more">View More ›</div>
+</div>

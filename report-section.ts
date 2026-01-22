@@ -1,62 +1,181 @@
-import { Component, HostListener } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  HostListener,
+  OnDestroy,
+  OnInit,
+  ViewChild
+} from '@angular/core';
+import { Subject } from 'rxjs';
+import { HrHighchartsService } from 'app/modules/hr-dashboard/services/hr-highcharts.service';
+import { HrService } from 'app/modules/hr-dashboard/services/hr.service';
+
+type ViewType = 'GRADE' | 'GENDER' | 'HQCO' | 'REGION' | 'COUNTRY';
+type DisplayMode = 'GRID' | 'CHART';
 
 @Component({
-  selector: 'app-corporate-badge',
-  templateUrl: './corporate-badge.component.html',
-  styleUrls: ['./corporate-badge.component.scss']
+  selector: 'app-termination-for-current-year',
+  templateUrl: './termination-for-current-year.component.html',
+  styleUrl: './termination-for-current-year.component.scss'
 })
-export class CorporateBadgeComponent {
+export class TerminationForCurrentYearComponent
+  implements OnInit, AfterViewInit, OnDestroy {
 
-  searchText = '';
+  @ViewChild('chartContainer') chartContainer!: ElementRef;
 
-  dropdownOptions = ['A', 'B', 'C', 'D'];
+  destroy$ = new Subject<void>();
+  ResponseFlag = false;
 
-  selectedFilter1 = 'Filter 1';
-  selectedFilter2 = 'Filter 2';
+  /** UI State */
+  selectedView: ViewType = 'GRADE';
+  displayMode: DisplayMode = 'GRID';
+  isFullscreen = false;
+  selectedAlpha = 'ALL';
 
-  isDropdown1Open = false;
-  isDropdown2Open = false;
-
-  dummyCards = [
-    { domain: 'CORPORATE', title: 'Financial Summary Dashboard', category: 'Analytics', views: 56, downloads: 12 },
-    { domain: 'CORPORATE', title: 'HR Workforce Insights', category: 'Analytics', views: 72, downloads: 20 },
-    { domain: 'CORPORATE', title: 'Governance Compliance Report', category: 'Power BI', views: 44, downloads: 10 },
-    { domain: 'CORPORATE', title: 'Operational Risk Overview', category: 'Analytics', views: 68, downloads: 15 },
+  /** Dropdown */
+  viewOptions = [
+    { label: 'Grade', value: 'GRADE' },
+    { label: 'Gender', value: 'GENDER' },
+    { label: 'By HQ/CO', value: 'HQCO' },
+    { label: 'Geographic Region', value: 'REGION' },
+    { label: 'Duty Country', value: 'COUNTRY' }
   ];
 
-  toggleDropdown1(event: Event) {
-    event.stopPropagation();
-    this.isDropdown1Open = !this.isDropdown1Open;
-    this.isDropdown2Open = false;
+  /** Chart holder */
+  AssigmntDataChart: any[] = [];
+
+  /** Dummy datasets */
+  terminationReasons = [
+    'End Of Contract', 'Resignation', 'Retirement', 'Mutually agreed',
+    'Resign, Better O', 'Early Out Retire', 'Early Out Resign',
+    'Disability', 'Death', 'Ethics Case', 'Coterminous',
+    'Redundant Employ', 'Non-Confirmation',
+    'Abandonment Of O', 'Unsatisfactory P'
+  ];
+
+  gradeColumns = ['EC1','EC2','EC3','EC4','ET1','ET2','ET3','ET4','GA','GB','GC','GD','GE','GF'];
+
+  genderData = [
+    { name: 'Male', data: [160,47,100,134,81,210,53,130,125,53,210,209,47,100,160] },
+    { name: 'Female', data: [219,108,263,153,117,113,28,30,40,28,113,135,210,263,219] }
+  ];
+
+  hqcoData = [
+    { name: 'HQ', data: [100,47,210,60,225,125,70,130,75,53,210,81,134,100,160] },
+    { name: 'CO Appt', data: [115,210,135,38,203,40,213,30,112,28,113,117,153,263,219] }
+  ];
+
+  regionColumns = ['AFR','EAP','ECA','HQ','ICR','MNA','SAR','W.EUROPE'];
+
+  countryColumns = [
+    'USA','INDIA','KOREA','FRENCH','JAPAN','UK',
+    'AFRICA','AUSTRIA','BELGIUM','CANADA',
+    'DENMARK','EGYPT','FRANCE','ITALY'
+  ];
+
+  alphaGroups = [
+    { label: 'All', value: 'ALL' },
+    { label: 'A-D', value: 'A-D' },
+    { label: 'E-H', value: 'E-H' },
+    { label: 'I-L', value: 'I-L' },
+    { label: 'M-P', value: 'M-P' },
+    { label: 'Q-T', value: 'Q-T' },
+    { label: 'U-W', value: 'U-W' },
+    { label: 'X-Z', value: 'X-Z' }
+  ];
+
+  constructor(
+    private highChartsService: HrHighchartsService,
+    public hrservice: HrService
+  ) {}
+
+  ngOnInit(): void {}
+
+  ngAfterViewInit(): void {
+    this.ResponseFlag = true;
+    this.renderChart();
   }
 
-  toggleDropdown2(event: Event) {
-    event.stopPropagation();
-    this.isDropdown2Open = !this.isDropdown2Open;
-    this.isDropdown1Open = false;
+  /** View change */
+  onViewChange(view: ViewType) {
+    this.selectedView = view;
+    this.displayMode = 'GRID';
+    this.isFullscreen = false;
+    this.renderChart();
   }
 
-  selectFilter1(val: string, event: Event) {
-    event.stopPropagation();
-    this.selectedFilter1 = val;
-    this.isDropdown1Open = false;
+  /** Grid / Chart toggle */
+  setDisplayMode(mode: DisplayMode) {
+    this.displayMode = mode;
+    this.renderChart();
   }
 
-  selectFilter2(val: string, event: Event) {
-    event.stopPropagation();
-    this.selectedFilter2 = val;
-    this.isDropdown2Open = false;
+  /** Fullscreen toggle */
+  toggleFullscreen() {
+    this.isFullscreen = !this.isFullscreen;
   }
 
-  clearFilters() {
-    this.searchText = '';
-    this.selectedFilter1 = 'Filter 1';
-    this.selectedFilter2 = 'Filter 2';
+  /** Alphabet filter */
+  setAlpha(val: string) {
+    this.selectedAlpha = val;
   }
 
-  @HostListener('document:click')
-  closeAll() {
-    this.isDropdown1Open = false;
-    this.isDropdown2Open = false;
+  /** Chart builder */
+  renderChart() {
+    this.AssigmntDataChart = [];
+
+    if (this.displayMode !== 'CHART') return;
+    if (!this.chartContainer) return;
+
+    let seriesData: any[] = [];
+    let chartTitle = '';
+    let xAxisTitle = '';
+    let yAxisTitle = '';
+
+    if (this.selectedView === 'GENDER') {
+      seriesData = this.genderData;
+      chartTitle = 'Termination by Gender';
+    }
+
+    if (this.selectedView === 'HQCO') {
+      seriesData = this.hqcoData;
+      chartTitle = 'Termination by HQ / CO';
+    }
+
+    if (!seriesData.length) return;
+
+    const ChartOptions = {
+      chartTitle,
+      chartWidth: this.chartContainer.nativeElement.offsetWidth,
+      chartHight: 360,
+      xAxisCategory: this.terminationReasons,
+      legendVisible: true,
+      dataseries: seriesData.map(s => ({
+        name: s.name,
+        data: s.data,
+        borderRadius: 3
+      })),
+      xAxisVisible: true,
+      yAxisVisible: true,
+      xAxisTitle,
+      yAxisTitle,
+      dataLabelEnable: true,
+      datalabelFormat: '#',
+      widgetID: 'termination-for-current-year'
+    };
+
+    this.AssigmntDataChart =
+      this.highChartsService.GetStackedBarChart(ChartOptions);
+  }
+
+  @HostListener('window:resize')
+  onResize() {
+    this.renderChart();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }
