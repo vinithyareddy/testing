@@ -1,9 +1,9 @@
 @if (selectedView === 'REGION') {
-  @for (let row of terminationReasons; let i = $index; track row) {
+  @for (row of terminationReasons; track row; let i = $index) {
     <tr>
       <td class="sticky-col">{{ row }}</td>
 
-      @for (let val of regionHeatmapData[i]; track $index) {
+      @for (val of regionHeatmapData[i]; track $index) {
         <td
           class="heat-cell"
           [ngStyle]="{
@@ -15,13 +15,4 @@
       }
     </tr>
   }
-}
-
-
-@if (selectedView === 'REGION') {
-  <div class="heatmap-legend">
-    <span>0</span>
-    <div class="scale"></div>
-    <span>100</span>
-  </div>
 }
