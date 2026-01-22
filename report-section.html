@@ -1,5 +1,5 @@
 @if (selectedView === 'REGION') {
-  @for (row of terminationReasons; track row; let i = $index) {
+  @for (row of terminationReasons; let i = $index; track row) {
     <tr>
       <!-- Sticky first column -->
       <td class="sticky-col">
