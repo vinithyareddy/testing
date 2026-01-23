@@ -1,12 +1,6 @@
-@if (selectedView === 'REGION') {
-  @for (val of regionHeatmapData[$index]; track $index) {
-    <td
-      class="heat-cell"
-      [ngStyle]="{
-        'background-color': getHeatmapColor(val),
-        'color': val >= 40 ? '#fff' : '#000'
-      }">
-      {{ val < 10 ? ('0' + val) : val }}
-    </td>
+dataLabels: {
+  enabled: chartOptions.dataLabelEnable,
+  formatter: function () {
+    return Math.round(this.y).toString();
   }
 }
