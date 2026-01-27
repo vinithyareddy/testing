@@ -1,90 +1,29 @@
-<div [ngClass]="{ 'full-view': fullview }">
+<div *ngIf="selectedVal === 'ch'" class="mt-3" #chartContainer>
 
-  <div class="qbhr_card_box">
-    <div class="qbhr_box_chart">
+  <ng-container *ngIf="selectedFilter === 'Expense Type'">
 
-      <!-- Header -->
-      <div class="row card_box_header_sec">
-        <div class="col-md-6">
-          <div class="qbhr_widget_heading mt-1">
-            Expense by cost category
-            <i class="far fa-info-circle ms-1"></i>
-          </div>
-          <div class="widget-subtext">$ Millions except otherwise stated</div>
-        </div>
+    <ng-container *ngFor="let chart of chartList">
+      <ng-container class="chart-section">
+        <highcharts-chart
+          [Highcharts]="chart.Highcharts"
+          [options]="chart.chartOptions"
+          [constructorType]="chart.chartConstructor">
+        </highcharts-chart>
+      </ng-container>
+    </ng-container>
 
-        <div class="col-md-6 bgt-text-end">
-          <div class="dropdownzindexfid d-inline-block me-3">
-            <lift-typeahead
-              [data]="filterOptions"
-              [config]="filterConfig"
-              (changed)="onFilterChange($event)">
-            </lift-typeahead>
-          </div>
+  </ng-container>
 
-          <span class="txtRight PToggle pe-2">
-            <mat-button-toggle-group
-              [value]="selectedVal"
-              (change)="onTabChanged($event.value)">
-              <mat-button-toggle value="tb"><i class="fa fa-table"></i></mat-button-toggle>
-              <mat-button-toggle value="ch"><i class="fa fa-chart-column"></i></mat-button-toggle>
-            </mat-button-toggle-group>
-          </span>
+  <ng-container *ngIf="selectedFilter === 'By Components'">
+    <ng-container *ngFor="let chart of chartList">
+      <ng-container class="chart-section">
+        <highcharts-chart
+          [Highcharts]="chart.Highcharts"
+          [options]="chart.chartOptions"
+          [constructorType]="chart.chartConstructor">
+        </highcharts-chart>
+      </ng-container>
+    </ng-container>
+  </ng-container>
 
-          <span class="view ms-2" (click)="fullPageView()">
-            <i class="fas" [ngClass]="fullview ? 'fa-compress' : 'fa-expand'"></i>
-          </span>
-
-          <span class="ellipsis ms-3">
-            <i class="fa fa-ellipsis-v"></i>
-          </span>
-        </div>
-      </div>
-
-      <!-- Body -->
-      <div [@collapse]="collapsed">
-
-        <div *ngIf="selectedVal === 'ch'" class="mt-3" #chartContainer>
-          <ng-container *ngFor="let chart of chartList">
-            <highcharts-chart
-              [Highcharts]="chart.Highcharts"
-              [options]="chart.chartOptions"
-              [constructorType]="chart.chartConstructor">
-            </highcharts-chart>
-          </ng-container>
-        </div>
-
-        <div *ngIf="selectedVal === 'tb'" class="TableView mt-3 p-2">
-          <!-- Table same structure as screenshots -->
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Category</th>
-                <th>FY26 ($M)</th>
-                <th>FY25 ($M)</th>
-                <th>YoY Change ($)</th>
-                <th>YoY Change (%)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Staff</td>
-                <td>1,335.6</td>
-                <td>1,226.7</td>
-                <td>108.7</td>
-                <td>8.9%</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- View More -->
-        <div class="viewmore pointer">
-          <span>View More</span>
-          <i class="fa fa-angle-right"></i>
-        </div>
-
-      </div>
-    </div>
-  </div>
 </div>
