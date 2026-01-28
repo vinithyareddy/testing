@@ -1,28 +1,15 @@
-.pie-layout {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-highcharts-chart {
-  width: 60%;
-}
-
-.pie-legend {
-  width: 35%;
-  padding-left: 12px;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 6px;
-  font-size: 12px;
-}
-
-.legend-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-right: 8px;
-}
+ // 👇 ADD THIS
+  dataLabels: {
+    enabled: true,
+    distance: 18,
+    connectorWidth: 1,
+    connectorColor: '#9aa4b2',
+    formatter: function () {
+      return Highcharts.numberFormat(this.percentage, 1) + '%';
+    },
+    style: {
+      fontSize: '11px',
+      fontWeight: '400',
+      color: '#374151'
+    }
+  }
