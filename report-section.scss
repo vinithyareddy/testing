@@ -1,1 +1,28 @@
-1. make sure it follows the same structure as expense by activity widget for data and chart options it will anyways be different otherwise same class names same flow 2. both the categories in the dropdown - expense type and by components has charts, make sure its table views are also coming i have attached of its table view look it should be exactly the same 3. for expense type chart view it has 2 pie charts, i want its legend to be shown on the right side of its chart just like in this second picture 4. the data label connectors lines of the pie charts need to be smaller, exactly like the second image, 5. the angle of pie chart needs to turn towards left side to make it look exactly the same as in the second picture, the current view of the pie charts are image 3.
+.pie-layout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+highcharts-chart {
+  width: 60%;
+}
+
+.pie-legend {
+  width: 35%;
+  padding-left: 12px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+}

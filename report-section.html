@@ -1,46 +1,25 @@
-<div *ngIf="selectedVal === 'ch'" #cartboxchartsection class="mt-3">
+<div class="pie-chart-col chart-section">
 
-  <!-- Expense Type -->
-  <div *ngIf="selectedFilter === 'Expense Type'" class="pie-charts-row">
+  <!-- PIE + LEGEND ROW -->
+  <div class="pie-layout">
 
-    <div class="pie-chart-col">
-      <highcharts-chart
-        [Highcharts]="chartList[0].Highcharts"
-        [options]="chartList[0].chartOptions"
-        [constructorType]="chartList[0].chartConstructor">
-      </highcharts-chart>
-      <div class="pie-title">Fixed Expense Breakdown</div>
-    </div>
+    <!-- PIE -->
+    <highcharts-chart
+      *ngIf="chartList[0]"
+      [Highcharts]="chartList[0].Highcharts"
+      [options]="chartList[0].chartOptions"
+      [constructorType]="chartList[0].chartConstructor">
+    </highcharts-chart>
 
-    <div class="pie-chart-col">
-      <highcharts-chart
-        [Highcharts]="chartList[1].Highcharts"
-        [options]="chartList[1].chartOptions"
-        [constructorType]="chartList[1].chartConstructor">
-      </highcharts-chart>
-      <div class="pie-title">Variable Expense Breakdown</div>
-    </div>
-
-    <!-- RIGHT SIDE LEGEND -->
+    <!-- LEGEND -->
     <div class="pie-legend">
-      <ul class="listLegend">
-        <li *ngFor="let item of legendData">
-          <span class="dot" [style.background]="item.color"></span>
-          {{ item.name }}
-        </li>
-      </ul>
+      <div class="legend-item" *ngFor="let item of fixedExpenseData">
+        <span class="legend-dot" [style.background]="item.color"></span>
+        {{ item.name }}
+      </div>
     </div>
 
   </div>
 
-  <!-- By Components -->
-  <ng-container *ngIf="selectedFilter === 'By Components'">
-    <highcharts-chart
-      *ngFor="let chart of chartList"
-      [Highcharts]="chart.Highcharts"
-      [options]="chart.chartOptions"
-      [constructorType]="chart.chartConstructor">
-    </highcharts-chart>
-  </ng-container>
-
+  <div class="pie-title">Fixed Expense Breakdown</div>
 </div>
