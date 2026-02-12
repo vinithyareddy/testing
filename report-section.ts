@@ -1,16 +1,44 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 
 @Component({
-  selector: 'app-promptathon-popup',
-  templateUrl: './promptathon-popup.component.html',
-  styleUrls: ['./promptathon-popup.component.scss']
+  selector: 'app-role-selection',
+  templateUrl: './role-selection.component.html',
+  styleUrls: ['./role-selection.component.scss']
 })
-export class PromptathonPopupComponent {
+export class RoleSelectionComponent {
 
-  @Output() next = new EventEmitter<void>();
+  @Input() groupedSegments: any;
+  @Input() SEGMENT_ICONS: any;
 
-  handleNext() {
-    this.next.emit();
+  @Output() back = new EventEmitter();
+  @Output() continue = new EventEmitter<any>();
+
+  name = '';
+  selectedSegment: any;
+  selectedPersona: any;
+
+  handleSegmentSelect(segment: any) {
+    this.selectedSegment = segment;
+    this.selectedPersona = null;
   }
 
+  handlePersonaSelect(persona: any) {
+    this.selectedPersona = persona;
+  }
+
+  handleContinue() {
+    this.continue.emit({
+      segment: this.selectedSegment,
+      persona: this.selectedPersona,
+      name: this.name
+    });
+  }
+
+  getPersonaNames(personas: any[]) {
+    return personas.map(p => p.name).join(', ');
+  }
+
+  getSegmentDescription(segment: any) {
+    return segment.description || '';
+  }
 }
