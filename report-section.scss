@@ -1,15 +1,115 @@
- // 👇 ADD THIS
-  dataLabels: {
-    enabled: true,
-    distance: 18,
-    connectorWidth: 1,
-    connectorColor: '#9aa4b2',
-    formatter: function () {
-      return Highcharts.numberFormat(this.percentage, 1) + '%';
-    },
-    style: {
-      fontSize: '11px',
-      fontWeight: '400',
-      color: '#374151'
+.popup-content {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Header */
+.header-section {
+  text-align: center;
+
+  h1 {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 0.5rem;
+  }
+
+  p {
+    font-size: 1.125rem;
+    color: #4b5563;
+  }
+}
+
+/* Info Boxes */
+.info-box {
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  p,
+  li {
+    color: #374151;
+    line-height: 1.5;
+  }
+
+  ul,
+  ol {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  ul li {
+    display: flex;
+    align-items: flex-start;
+  }
+
+  .check {
+    color: #16a34a;
+    margin-right: 0.5rem;
+    font-weight: bold;
+  }
+}
+
+/* Color Variants */
+.blue {
+  background: #eff6ff;
+}
+
+.green {
+  background: #f0fdf4;
+}
+
+.purple {
+  background: #faf5ff;
+}
+
+/* Warning Box */
+.warning-box {
+  background: #fefce8;
+  border: 1px solid #fde68a;
+  border-radius: 0.5rem;
+  padding: 1rem;
+
+  h3 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  p {
+    font-size: 0.875rem;
+    color: #374151;
+  }
+}
+
+/* Footer Button */
+.footer {
+  display: flex;
+  justify-content: flex-end;
+
+  button {
+    padding: 0.75rem 1.5rem;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+
+    &:hover {
+      background: #1d4ed8;
     }
   }
+}

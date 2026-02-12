@@ -1,25 +1,92 @@
-<div class="pie-chart-col chart-section">
+<div class="popup-content">
 
-  <!-- PIE + LEGEND ROW -->
-  <div class="pie-layout">
-
-    <!-- PIE -->
-    <highcharts-chart
-      *ngIf="chartList[0]"
-      [Highcharts]="chartList[0].Highcharts"
-      [options]="chartList[0].chartOptions"
-      [constructorType]="chartList[0].chartConstructor">
-    </highcharts-chart>
-
-    <!-- LEGEND -->
-    <div class="pie-legend">
-      <div class="legend-item" *ngFor="let item of fixedExpenseData">
-        <span class="legend-dot" [style.background]="item.color"></span>
-        {{ item.name }}
-      </div>
-    </div>
-
+  <div class="header-section">
+    <h1>Welcome to the Prompt-a-thon</h1>
+    <p>Scorecard Workbench — Promptathon Edition</p>
   </div>
 
-  <div class="pie-title">Fixed Expense Breakdown</div>
+  <!-- What is Promptathon -->
+  <div class="info-box blue">
+    <h2>What is the Prompt-a-thon?</h2>
+
+    <p>
+      The Prompt-a-thon is an interactive learning experience designed to help you master querying
+      Scorecard data using natural language. You'll work with AI-powered tools to transform how you
+      access, understand, and leverage Scorecard insights for your role.
+    </p>
+
+    <p>
+      This hands-on workshop combines guided tutorials, pre-built prompt templates, and real-time
+      feedback so you can ask better questions, interpret results confidently, and trace exactly how
+      each answer was produced.
+    </p>
+  </div>
+
+  <!-- Accomplishments -->
+  <div class="info-box green">
+    <h2>What you'll accomplish</h2>
+
+    <ul>
+      <li>
+        <span class="check">✓</span>
+        <span><strong>Master natural language queries:</strong> Ask questions in plain English and get instant answers grounded in Scorecard data</span>
+      </li>
+
+      <li>
+        <span class="check">✓</span>
+        <span><strong>Use the prompt library:</strong> Customize role-based templates or create your own prompts from scratch</span>
+      </li>
+
+      <li>
+        <span class="check">✓</span>
+        <span><strong>Understand data provenance:</strong> See the SQL, filters, and tables behind each result ("How computed")</span>
+      </li>
+
+      <li>
+        <span class="check">✓</span>
+        <span><strong>Apply filters effectively:</strong> Fiscal year, organization, region, sector, disaggregation, and more</span>
+      </li>
+
+      <li>
+        <span class="check">✓</span>
+        <span><strong>Navigate ADM compliance:</strong> Learn governance constraints and compliant ways to ask questions</span>
+      </li>
+
+      <li>
+        <span class="check">✓</span>
+        <span><strong>Provide feedback:</strong> Rate responses and help improve the system</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- How it works -->
+  <div class="info-box purple">
+    <h2>How it works</h2>
+
+    <ol>
+      <li>Tell us about your role and choose your segment to personalize prompts and guidance</li>
+      <li>Open the Prompt Library (left sidebar) and drag-and-drop prompts into the chat</li>
+      <li>Ask questions and iterate with follow-up prompts ("compare", "drill down", "explain why")</li>
+      <li>Review "How computed" to validate filters, SQL, and data sources</li>
+      <li>Save/share outputs and tag feedback to improve the experience</li>
+    </ol>
+  </div>
+
+  <!-- Warning -->
+  <div class="warning-box">
+    <h3>Important: Data scope & filters</h3>
+
+    <p>
+      This prototype may be limited to a vetted FY25 snapshot. Also, filters can auto-apply (e.g.,
+      region/sector/disaggregation). If you get empty results, clear filters or broaden them before re-asking.
+    </p>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <button (click)="handleNext()">
+      Next: Tell us about your role →
+    </button>
+  </div>
+
 </div>
