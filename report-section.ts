@@ -1,44 +1,38 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+const getDesc = (id: string) => {
 
-@Component({
-  selector: 'app-role-selection',
-  templateUrl: './role-selection.component.html',
-  styleUrls: ['./role-selection.component.scss']
-})
-export class RoleSelectionComponent {
+ if (this.biportalApiService.caiMetadataResponse) {
 
-  @Input() groupedSegments: any;
-  @Input() SEGMENT_ICONS: any;
+  const assets = this.biportalApiService.caiMetadataResponse.assets;
 
-  @Output() back = new EventEmitter();
-  @Output() continue = new EventEmitter<any>();
+  const getDesc = (id: string) => {
 
-  name = '';
-  selectedSegment: any;
-  selectedPersona: any;
+    if (this.biportalApiService.travelLast3Fiscyear) {
 
-  handleSegmentSelect(segment: any) {
-    this.selectedSegment = segment;
-    this.selectedPersona = null;
-  }
+      const found = assets.find(
+        x => x.ReferenceNumber?.toLowerCase() === id.toLowerCase() &&
+             x.yearConcept?.toLowerCase().includes('last 3')
+      );
 
-  handlePersonaSelect(persona: any) {
-    this.selectedPersona = persona;
-  }
+      return found ? found.description : '';
 
-  handleContinue() {
-    this.continue.emit({
-      segment: this.selectedSegment,
-      persona: this.selectedPersona,
-      name: this.name
-    });
-  }
+    } else {
 
-  getPersonaNames(personas: any[]) {
-    return personas.map(p => p.name).join(', ');
-  }
+      const found = assets.find(
+        x => x.ReferenceNumber?.toLowerCase() === id.toLowerCase() &&
+             x.yearConcept?.toLowerCase().includes('current')
+      );
 
-  getSegmentDescription(segment: any) {
-    return segment.description || '';
-  }
+      return found ? found.description : '';
+
+    }
+
+  };
+
+  this.airfareWidgetDescription = getDesc('WID002A');
+  this.carbonWidgetDescription = getDesc('WID002B');
+  this.hotelWidgetDescription = getDesc('WID002C');
+  this.travelerWidgetDescription = getDesc('WID002D');
+
 }
+
+};
